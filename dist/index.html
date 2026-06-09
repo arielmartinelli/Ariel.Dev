@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <!-- Stylesheets -->
-  <script type="module" crossorigin src="/assets/index-DnD2k9t3.js"></script>
+  <script type="module" crossorigin src="/assets/index-rTViHfxK.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/index-CVxuhs9B.css">
 </head>
 <body class="dark-theme">
@@ -509,12 +509,18 @@
             </div>
             <div class="admin-modal-body">
                 <div class="admin-password-screen" id="admin-password-screen">
-                    <p class="text-sm opacity-80 mb-4">Introduce la clave de acceso para gestionar los proyectos (por defecto: <code>admin123</code>):</p>
+                    <p class="text-sm opacity-80 mb-4">Introduce tus credenciales de administrador de Supabase para gestionar los contenidos:</p>
                     <div class="form-group">
-                        <input type="password" id="admin-password-input" placeholder="Clave de administrador" class="w-full">
+                        <label for="admin-email-input">Correo Electrónico</label>
+                        <input type="email" id="admin-email-input" placeholder="correo@ejemplo.com" class="w-full" style="margin-bottom: 12px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="admin-password-input">Contraseña</label>
+                        <input type="password" id="admin-password-input" placeholder="Tu contraseña" class="w-full">
                         <p class="error-msg" id="password-error"></p>
                     </div>
                     <button class="btn btn-primary w-full mt-2" id="btn-submit-password">Acceder</button>
+                    <p class="text-sm opacity-60 mt-4 text-center">Nota: Si Supabase no está configurado, puedes escribir cualquier correo y <code>admin123</code> como clave para acceder en modo LocalStorage local.</p>
                 </div>
 
                 <div class="admin-dashboard-content hidden" id="admin-dashboard-content">

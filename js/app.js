@@ -1,4 +1,5 @@
 import { getProjects, addProject, deleteProject, updateProject, getCategories, addCategory, deleteCategory } from "./projects.js";
+import { supabase } from "./supabase.js";
 
 // Espera a que el DOM esté completamente cargado
 document.addEventListener("DOMContentLoaded", () => {
@@ -22,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Login Admin
     const adminPasswordScreen = document.getElementById("admin-password-screen");
     const adminDashboardContent = document.getElementById("admin-dashboard-content");
+    const adminEmailInput = document.getElementById("admin-email-input");
     const adminPasswordInput = document.getElementById("admin-password-input");
     const btnSubmitPassword = document.getElementById("btn-submit-password");
     const passwordError = document.getElementById("password-error");
@@ -71,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let uploadedImageBase64 = "";
     let isEditMode = false;
     let editingProjectId = null;
+    let cachedCategories = [];
 
     // ==========================================================================
     // 2. Control de Tema (Oscuro / Claro)
@@ -154,9 +157,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // ==========================================================================
     // 4. Renderizado e Interacción del Portfolio (Filtros)
     // ==========================================================================
-    function renderPortfolio(filter = "all") {
+    async function renderPortfolio(filter = "all") {
         portfolioGrid.innerHTML = "";
-        const projects = getProjects();
+        const projects = await getProjects();
 
         const filteredProjects = filter === "all" 
             ? projects 
@@ -210,17 +213,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function getCategoryLabel(catId) {
-        const cat = getCategories().find(c => c.id === catId);
+        const cat = cachedCategories.find(c => c.id === catId);
         return cat ? cat.label : "Web";
     }
 
     // Renderizar Filtros del Portfolio dinámicamente
-    function renderFilters() {
+    async function renderFilters() {
         const activeBtn = filterWrapper.querySelector(".filter-btn.active");
         const activeFilter = activeBtn ? activeBtn.dataset.filter : "all";
 
         filterWrapper.innerHTML = `<button class="filter-btn" data-filter="all">Todos</button>`;
-        const categories = getCategories();
+        const categories = await getCategories();
+        cachedCategories = categories; // Actualizar caché
         categories.forEach(cat => {
             filterWrapper.innerHTML += `<button class="filter-btn" data-filter="${cat.id}">${cat.label}</button>`;
         });
@@ -247,10 +251,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Renderizar las Opciones del Selector de Categorías en el Formulario
-    function renderCategoryDropdown() {
+    async function renderCategoryDropdown() {
         const currentSelected = projCategorySelect.value;
         projCategorySelect.innerHTML = "";
-        const categories = getCategories();
+        const categories = await getCategories();
+        cachedCategories = categories; // Actualizar caché
         categories.forEach(cat => {
             const opt = document.createElement("option");
             opt.value = cat.id;
@@ -263,19 +268,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ==========================================================================
-    // 5. Panel de Administración (Local Storage)
+    // 5. Panel de Administración (Supabase Auth / LocalStorage Fallback)
     // ==========================================================================
-    const openAdminModal = () => {
+    const openAdminModal = async () => {
         adminModal.classList.add("open");
         adminModalOverlay.classList.add("open");
         mobileDrawer.classList.remove("open");
         drawerOverlay.classList.remove("open");
 
-        // Comprobación si ya se logueó esta sesión
-        if (sessionStorage.getItem("admin_logged_in") === "true") {
-            showAdminDashboard();
-        } else {
-            showPasswordScreen();
+        // Comprobación si ya se logueó esta sesión (Supabase Session o Fallback)
+        try {
+            const { data } = await supabase.auth.getSession();
+            if (data?.session || sessionStorage.getItem("admin_logged_in") === "true") {
+                showAdminDashboard();
+            } else {
+                showPasswordScreen();
+            }
+        } catch (e) {
+            if (sessionStorage.getItem("admin_logged_in") === "true") {
+                showAdminDashboard();
+            } else {
+                showPasswordScreen();
+            }
         }
     };
 
@@ -293,24 +307,51 @@ document.addEventListener("DOMContentLoaded", () => {
     function showPasswordScreen() {
         adminPasswordScreen.classList.remove("hidden");
         adminDashboardContent.classList.add("hidden");
+        adminEmailInput.value = "";
         adminPasswordInput.value = "";
         passwordError.textContent = "";
     }
 
-    function showAdminDashboard() {
+    async function showAdminDashboard() {
         adminPasswordScreen.classList.add("hidden");
         adminDashboardContent.classList.remove("hidden");
-        renderAdminProjectsList();
-        renderAdminCategoriesList();
+        await renderAdminProjectsList();
+        await renderAdminCategoriesList();
     }
 
-    // Enviar clave
-    btnSubmitPassword.addEventListener("click", () => {
-        if (adminPasswordInput.value === "admin123") {
-            sessionStorage.setItem("admin_logged_in", "true");
-            showAdminDashboard();
-        } else {
-            passwordError.textContent = "Clave incorrecta. Intente con 'admin123'.";
+    // Enviar credenciales a Supabase Auth o Fallback local
+    btnSubmitPassword.addEventListener("click", async () => {
+        const email = adminEmailInput.value.trim();
+        const password = adminPasswordInput.value;
+
+        if (!email || !password) {
+            passwordError.textContent = "Por favor completa todos los campos.";
+            return;
+        }
+
+        try {
+            // Intentar autenticación con Supabase Auth
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                // Si la URL de Supabase es la por defecto (offline) y la clave es admin123, permitimos modo local
+                const isConfigured = import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes("tu-proyecto-id");
+                if (!isConfigured && password === "admin123") {
+                    sessionStorage.setItem("admin_logged_in", "true");
+                    await showAdminDashboard();
+                    return;
+                }
+                throw error;
+            }
+
+            // Login exitoso
+            await showAdminDashboard();
+        } catch (err) {
+            console.error("Error de Login:", err);
+            passwordError.textContent = err.message || "Credenciales incorrectas.";
         }
     });
 
@@ -361,7 +402,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Enviar Formulario de Carga / Edición
-    adminAddProjectForm.addEventListener("submit", (e) => {
+    adminAddProjectForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
         // Validaciones
@@ -380,7 +421,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!projectImage) {
             // Si estamos editando y no se subió una nueva imagen, conservamos la actual
             if (isEditMode) {
-                const existingProj = getProjects().find(p => p.id === editingProjectId);
+                const projects = await getProjects();
+                const existingProj = projects.find(p => p.id === editingProjectId);
                 projectImage = existingProj ? existingProj.image : "";
             }
             // Si no hay imagen, generamos un SVG de gradiente dinámico
@@ -401,20 +443,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (isEditMode) {
             projectData.id = editingProjectId;
-            updateProject(projectData);
+            await updateProject(projectData);
             exitEditMode();
             alert("¡Proyecto actualizado con éxito!");
         } else {
-            addProject(projectData);
+            await addProject(projectData);
             resetAdminForm();
             alert("¡Proyecto agregado con éxito!");
         }
 
-        renderAdminProjectsList();
+        await renderAdminProjectsList();
         
         // Obtener filtro activo en portfolio y refrescar
         const activeFilterBtn = document.querySelector(".filter-btn.active");
-        renderPortfolio(activeFilterBtn ? activeFilterBtn.dataset.filter : "all");
+        await renderPortfolio(activeFilterBtn ? activeFilterBtn.dataset.filter : "all");
     });
 
     function resetAdminForm() {
@@ -436,10 +478,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     adminCancelEditBtn.addEventListener("click", exitEditMode);
 
-    // Renderizar la lista de edición/borrado en Admin
-    function renderAdminProjectsList() {
+    // Renderizar la lista de edición/borrado en Admin (Asíncrono)
+    async function renderAdminProjectsList() {
         adminProjectsList.innerHTML = "";
-        const projects = getProjects();
+        const projects = await getProjects();
 
         projects.forEach(proj => {
             const item = document.createElement("div");
@@ -463,9 +505,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Event Listeners para botones de editar
         document.querySelectorAll(".btn-edit-proj").forEach(btn => {
-            btn.addEventListener("click", () => {
+            btn.addEventListener("click", async () => {
                 const id = btn.dataset.id;
-                const proj = getProjects().find(p => p.id === id);
+                const projectsList = await getProjects();
+                const proj = projectsList.find(p => p.id === id);
                 if (proj) {
                     isEditMode = true;
                     editingProjectId = id;
@@ -496,19 +539,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Event Listeners para botones de eliminar
         document.querySelectorAll(".btn-delete-proj").forEach(btn => {
-            btn.addEventListener("click", (e) => {
+            btn.addEventListener("click", async (e) => {
                 const id = btn.dataset.id;
                 const projName = btn.parentElement.parentElement.querySelector(".admin-project-name").textContent;
                 
                 if (confirm(`¿Estás seguro de eliminar el proyecto "${projName}"?`)) {
-                    deleteProject(id);
+                    await deleteProject(id);
                     if (isEditMode && editingProjectId === id) {
                         exitEditMode();
                     }
-                    renderAdminProjectsList();
+                    await renderAdminProjectsList();
                     // Refrescar portfolio general
                     const activeFilterBtn = document.querySelector(".filter-btn.active");
-                    renderPortfolio(activeFilterBtn ? activeFilterBtn.dataset.filter : "all");
+                    await renderPortfolio(activeFilterBtn ? activeFilterBtn.dataset.filter : "all");
                 }
             });
         });
@@ -661,21 +704,21 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Agregar nueva categoría
-    btnAddCategory.addEventListener("click", () => {
+    btnAddCategory.addEventListener("click", async () => {
         const label = newCategoryInput.value.trim();
         if (!label) {
             alert("Por favor escribe un nombre para la categoría.");
             return;
         }
 
-        const res = addCategory(label);
+        const res = await addCategory(label);
         if (res.error) {
             alert(res.error);
         } else {
             newCategoryInput.value = "";
-            renderFilters();
-            renderCategoryDropdown();
-            renderAdminCategoriesList();
+            await renderFilters();
+            await renderCategoryDropdown();
+            await renderAdminCategoriesList();
             alert(`Categoría "${label}" agregada con éxito.`);
         }
     });
@@ -687,9 +730,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Renderizar la lista de categorías en Admin
-    function renderAdminCategoriesList() {
+    async function renderAdminCategoriesList() {
         adminCategoriesList.innerHTML = "";
-        const categories = getCategories();
+        const categories = await getCategories();
         const defaultIds = ["landing", "ecommerce", "portfolio", "custom"];
 
         categories.forEach(cat => {
@@ -708,18 +751,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Event listeners para borrar categorías
         adminCategoriesList.querySelectorAll(".btn-delete-cat").forEach(btn => {
-            btn.addEventListener("click", () => {
+            btn.addEventListener("click", async () => {
                 const id = btn.dataset.id;
                 const catName = btn.parentElement.querySelector(".admin-category-name").textContent;
                 if (confirm(`¿Estás seguro de eliminar la categoría "${catName}"?`)) {
-                    const res = deleteCategory(id);
+                    const res = await deleteCategory(id);
                     if (res.error) {
                         alert(res.error);
                     } else {
-                        renderFilters();
-                        renderCategoryDropdown();
-                        renderAdminCategoriesList();
-                        renderPortfolio();
+                        await renderFilters();
+                        await renderCategoryDropdown();
+                        await renderAdminCategoriesList();
+                        await renderPortfolio();
                     }
                 }
             });
@@ -729,8 +772,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // ==========================================================================
     // 8. Inicialización al cargar la página
     // ==========================================================================
-    renderFilters();
-    renderCategoryDropdown();
-    renderPortfolio();
-    calculateQuotation();
+    async function init() {
+        // Cargar caché de categorías inicialmente
+        cachedCategories = await getCategories();
+        await renderFilters();
+        await renderCategoryDropdown();
+        await renderPortfolio();
+        calculateQuotation();
+    }
+    init();
 });

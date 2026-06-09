@@ -1,4 +1,6 @@
-// Proyectos por defecto para poblar el portfolio inicialmente (usando SVGs integrados estéticos)
+import { supabase } from "./supabase.js";
+
+// Proyectos por defecto para poblar el portfolio inicialmente si la DB está vacía
 const DEFAULT_PROJECTS = [
   {
     id: "proj-1",
@@ -38,52 +40,7 @@ const DEFAULT_PROJECTS = [
   }
 ];
 
-// Obtiene los proyectos guardados en localStorage o inicializa con los por defecto si no existen
-export function getProjects() {
-  const stored = localStorage.getItem("portfolio_projects");
-  if (!stored) {
-    localStorage.setItem("portfolio_projects", JSON.stringify(DEFAULT_PROJECTS));
-    return DEFAULT_PROJECTS;
-  }
-  try {
-    return JSON.parse(stored);
-  } catch (e) {
-    console.error("Error parseando los proyectos guardados", e);
-    return DEFAULT_PROJECTS;
-  }
-}
-
-// Guarda una lista de proyectos en localStorage
-export function saveProjects(projects) {
-  localStorage.setItem("portfolio_projects", JSON.stringify(projects));
-}
-
-// Agrega un proyecto nuevo
-export function addProject(project) {
-  const projects = getProjects();
-  project.id = "proj-" + Date.now();
-  projects.push(project);
-  saveProjects(projects);
-  return projects;
-}
-
-// Elimina un proyecto por id
-export function deleteProject(id) {
-  let projects = getProjects();
-  projects = projects.filter(p => p.id !== id);
-  saveProjects(projects);
-  return projects;
-}
-
-// Modifica un proyecto existente
-export function updateProject(updatedProject) {
-  let projects = getProjects();
-  projects = projects.map(p => p.id === updatedProject.id ? updatedProject : p);
-  saveProjects(projects);
-  return projects;
-}
-
-// Categorías por defecto para poblar la página inicialmente
+// Categorías por defecto
 const DEFAULT_CATEGORIES = [
   { id: "landing", label: "Landing Page" },
   { id: "ecommerce", label: "E-Commerce" },
@@ -91,56 +48,232 @@ const DEFAULT_CATEGORIES = [
   { id: "custom", label: "Custom App" }
 ];
 
-// Obtiene las categorías del almacenamiento o inicializa con las por defecto
-export function getCategories() {
-  const stored = localStorage.getItem("portfolio_categories");
-  if (!stored) {
-    localStorage.setItem("portfolio_categories", JSON.stringify(DEFAULT_CATEGORIES));
-    return DEFAULT_CATEGORIES;
-  }
+// 1. Obtener proyectos (Asíncrono con Supabase)
+export async function getProjects() {
   try {
-    return JSON.parse(stored);
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+
+    // Si la base de datos está vacía, intentamos popularla si hay sesión iniciada (Ariel logueado)
+    if (data.length === 0) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session) {
+        const mapped = DEFAULT_PROJECTS.map(p => ({
+          title: p.title,
+          description: p.description,
+          category: p.category,
+          image: p.image,
+          tags: p.tags,
+          demo_url: p.demoUrl
+        }));
+        await supabase.from("projects").insert(mapped);
+        const { data: newData } = await supabase.from("projects").select("*").order("created_at", { ascending: true });
+        return (newData || []).map(mapProjectFromDB);
+      }
+      return DEFAULT_PROJECTS;
+    }
+
+    return data.map(mapProjectFromDB);
   } catch (e) {
-    console.error("Error parseando las categorías guardadas", e);
-    return DEFAULT_CATEGORIES;
+    console.error("Supabase: Error al traer proyectos, usando LocalStorage como respaldo:", e);
+    const stored = localStorage.getItem("portfolio_projects");
+    if (!stored) {
+      localStorage.setItem("portfolio_projects", JSON.stringify(DEFAULT_PROJECTS));
+      return DEFAULT_PROJECTS;
+    }
+    return JSON.parse(stored);
   }
 }
 
-// Guarda la lista de categorías
-export function saveCategories(categories) {
-  localStorage.setItem("portfolio_categories", JSON.stringify(categories));
+// Mapper de formato DB (snake_case) a Frontend (camelCase)
+function mapProjectFromDB(p) {
+  return {
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    category: p.category,
+    image: p.image,
+    tags: p.tags || [],
+    demoUrl: p.demo_url || "#"
+  };
 }
 
-// Agrega una nueva categoría
-export function addCategory(label) {
-  const categories = getCategories();
+// 2. Obtener categorías
+export async function getCategories() {
+  try {
+    const { data, error } = await supabase
+      .from("categories")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+
+    // Poblar las categorías por defecto en Supabase si está vacío y hay sesión de Ariel
+    if (data.length === 0) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session) {
+        const mapped = DEFAULT_CATEGORIES.map(c => ({ id: c.id, label: c.label }));
+        await supabase.from("categories").insert(mapped);
+        const { data: newData } = await supabase.from("categories").select("*").order("created_at", { ascending: true });
+        return newData || DEFAULT_CATEGORIES;
+      }
+      return DEFAULT_CATEGORIES;
+    }
+
+    return data;
+  } catch (e) {
+    console.error("Supabase: Error al traer categorías, usando LocalStorage como respaldo:", e);
+    const stored = localStorage.getItem("portfolio_categories");
+    if (!stored) {
+      localStorage.setItem("portfolio_categories", JSON.stringify(DEFAULT_CATEGORIES));
+      return DEFAULT_CATEGORIES;
+    }
+    return JSON.parse(stored);
+  }
+}
+
+// 3. Agregar proyecto nuevo
+export async function addProject(project) {
+  try {
+    const { data, error } = await supabase
+      .from("projects")
+      .insert([{
+        title: project.title,
+        description: project.description,
+        category: project.category,
+        image: project.image,
+        tags: project.tags,
+        demo_url: project.demoUrl
+      }])
+      .select();
+
+    if (error) throw error;
+    return data;
+  } catch (e) {
+    console.error("Supabase: Error al agregar proyecto, guardando en LocalStorage:", e);
+    const stored = localStorage.getItem("portfolio_projects");
+    const projects = stored ? JSON.parse(stored) : [...DEFAULT_PROJECTS];
+    project.id = "proj-" + Date.now();
+    projects.push(project);
+    localStorage.setItem("portfolio_projects", JSON.stringify(projects));
+    return projects;
+  }
+}
+
+// 4. Modificar proyecto existente
+export async function updateProject(project) {
+  try {
+    const { data, error } = await supabase
+      .from("projects")
+      .update({
+        title: project.title,
+        description: project.description,
+        category: project.category,
+        image: project.image,
+        tags: project.tags,
+        demo_url: project.demoUrl
+      })
+      .eq("id", project.id)
+      .select();
+
+    if (error) throw error;
+    return data;
+  } catch (e) {
+    console.error("Supabase: Error al actualizar proyecto, guardando en LocalStorage:", e);
+    const stored = localStorage.getItem("portfolio_projects");
+    let projects = stored ? JSON.parse(stored) : [...DEFAULT_PROJECTS];
+    projects = projects.map(p => p.id === project.id ? project : p);
+    localStorage.setItem("portfolio_projects", JSON.stringify(projects));
+    return projects;
+  }
+}
+
+// 5. Eliminar proyecto por id
+export async function deleteProject(id) {
+  try {
+    const { error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+  } catch (e) {
+    console.error("Supabase: Error al eliminar proyecto, actualizando LocalStorage:", e);
+    const stored = localStorage.getItem("portfolio_projects");
+    let projects = stored ? JSON.parse(stored) : [...DEFAULT_PROJECTS];
+    projects = projects.filter(p => p.id !== id);
+    localStorage.setItem("portfolio_projects", JSON.stringify(projects));
+  }
+}
+
+// 6. Agregar una nueva categoría
+export async function addCategory(label) {
   const id = label.toLowerCase()
                   .trim()
                   .replace(/[\s_]+/g, "-")
                   .normalize("NFD")
                   .replace(/[\u0300-\u036f]/g, "")
                   .replace(/[^a-z0-9\-]/g, "");
-  
+
   if (!id) {
     return { error: "El nombre de la categoría no es válido." };
   }
-  if (categories.some(c => c.id === id)) {
-    return { error: "La categoría ya existe." };
+
+  try {
+    // Comprobar si ya existe
+    const { data: existing } = await supabase
+      .from("categories")
+      .select("id")
+      .eq("id", id);
+
+    if (existing && existing.length > 0) {
+      return { error: "La categoría ya existe." };
+    }
+
+    const { error } = await supabase
+      .from("categories")
+      .insert([{ id, label: label.trim() }]);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (e) {
+    console.error("Supabase: Error al crear categoría, guardando en LocalStorage:", e);
+    const stored = localStorage.getItem("portfolio_categories");
+    const categories = stored ? JSON.parse(stored) : [...DEFAULT_CATEGORIES];
+    if (categories.some(c => c.id === id)) {
+      return { error: "La categoría ya existe." };
+    }
+    categories.push({ id, label: label.trim() });
+    localStorage.setItem("portfolio_categories", JSON.stringify(categories));
+    return { success: true };
   }
-  const newCat = { id, label: label.trim() };
-  categories.push(newCat);
-  saveCategories(categories);
-  return { success: true, categories };
 }
 
-// Elimina una categoría (excepto las por defecto)
-export function deleteCategory(id) {
+// 7. Eliminar una categoría
+export async function deleteCategory(id) {
   const defaultIds = ["landing", "ecommerce", "portfolio", "custom"];
   if (defaultIds.includes(id)) {
     return { error: "No se pueden eliminar las categorías base por defecto." };
   }
-  let categories = getCategories();
-  categories = categories.filter(c => c.id !== id);
-  saveCategories(categories);
-  return { success: true, categories };
+
+  try {
+    const { error } = await supabase
+      .from("categories")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (e) {
+    console.error("Supabase: Error al eliminar categoría, actualizando LocalStorage:", e);
+    const stored = localStorage.getItem("portfolio_categories");
+    let categories = stored ? JSON.parse(stored) : [...DEFAULT_CATEGORIES];
+    categories = categories.filter(c => c.id !== id);
+    localStorage.setItem("portfolio_categories", JSON.stringify(categories));
+    return { success: true };
+  }
 }
