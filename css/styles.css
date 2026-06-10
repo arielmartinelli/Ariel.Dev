@@ -894,6 +894,14 @@ body.light-theme .avatar-inner {
     background-color: #ffffff;
 }
 
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 50%;
+}
+
 .avatar-text {
     font-family: var(--font-heading);
     font-weight: 800;
