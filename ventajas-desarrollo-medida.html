@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventajas del Desarrollo Web a Medida - Ariel.Dev</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ==========================================================================
+           Design Tokens (Matching Portfolio Theme)
+           ========================================================================== */
+        :root {
+            --bg-dark: #070913;
+            --bg-surface: rgba(15, 22, 42, 0.6);
+            --bg-surface-opaque: #0f172a;
+            --bg-card: rgba(22, 30, 57, 0.4);
+            
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.15);
+            --primary-light: #818cf8;
+            --secondary: #06b6d4;
+            --secondary-glow: rgba(6, 182, 212, 0.15);
+            --accent: #d946ef;
+            --accent-glow: rgba(217, 70, 239, 0.15);
+            
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.15);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.15);
+            
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.18);
+            
+            --font-heading: 'Outfit', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --glass-blur: blur(16px);
+        }
+
+        /* ==========================================================================
+           Base Styles
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            line-height: 1.6;
+            padding: 40px 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .report-wrapper {
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Decorative background glows */
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            z-index: -1;
+            opacity: 0.4;
+        }
+
+        .orb-1 {
+            top: 5%;
+            left: 10%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, var(--primary) 0%, rgba(99, 102, 241, 0) 70%);
+        }
+
+        .orb-2 {
+            bottom: 15%;
+            right: 5%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, var(--accent) 0%, rgba(217, 70, 239, 0) 70%);
+        }
+
+        /* ==========================================================================
+           Header Section
+           ========================================================================== */
+        header {
+            margin-bottom: 50px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 30px;
+            position: relative;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .brand {
+            font-family: var(--font-heading);
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: var(--text-primary);
+        }
+
+        .brand span {
+            color: var(--primary-light);
+        }
+
+        .doc-tag {
+            background-color: var(--primary-glow);
+            color: var(--primary-light);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        h1 {
+            font-family: var(--font-heading);
+            font-size: 2.8rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 15px;
+            letter-spacing: -0.02em;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 50%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            max-width: 800px;
+        }
+
+        /* ==========================================================================
+           Intro Card
+           ========================================================================== */
+        .intro-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 25px 30px;
+            margin-bottom: 40px;
+            backdrop-filter: var(--glass-blur);
+        }
+
+        .intro-section h3 {
+            font-family: var(--font-heading);
+            font-size: 1.3rem;
+            color: var(--primary-light);
+            margin-bottom: 10px;
+        }
+
+        .intro-section p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+        }
+
+        /* ==========================================================================
+           Comparison Table (Pros vs Cons)
+           ========================================================================== */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .comp-card {
+            border-radius: 16px;
+            padding: 35px 30px;
+            backdrop-filter: var(--glass-blur);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .comp-card.without-landing {
+            background: rgba(239, 68, 68, 0.03);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+        }
+
+        .comp-card.with-landing {
+            background: rgba(99, 102, 241, 0.05);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.08);
+        }
+
+        .comp-card h2 {
+            font-family: var(--font-heading);
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .without-landing h2 {
+            color: var(--danger);
+        }
+
+        .with-landing h2 {
+            color: var(--success);
+        }
+
+        .point-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .point-item {
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .point-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .without-landing .point-icon {
+            background-color: var(--danger-glow);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .with-landing .point-icon {
+            background-color: var(--success-glow);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .point-content h4 {
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        .point-content p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* ==========================================================================
+           Deep Dive Benefits Section
+           ========================================================================== */
+        .benefits-section {
+            margin-bottom: 50px;
+        }
+
+        .benefits-section h2 {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .benefit-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            transition: var(--transition);
+        }
+
+        .benefit-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+
+        .benefit-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .benefit-num {
+            font-family: var(--font-heading);
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--secondary);
+            background-color: var(--secondary-glow);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(6, 182, 212, 0.2);
+        }
+
+        .benefit-header h3 {
+            font-family: var(--font-heading);
+            font-size: 1.25rem;
+            color: var(--text-primary);
+        }
+
+        .benefit-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* ==========================================================================
+           ROI Highlight Box
+           ========================================================================== */
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(217, 70, 239, 0.1) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 50px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .highlight-box h3 {
+            font-family: var(--font-heading);
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .highlight-box p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .highlight-stat {
+            font-family: var(--font-heading);
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin: 15px 0;
+            letter-spacing: -0.03em;
+            text-shadow: 0 0 20px rgba(217, 70, 239, 0.3);
+        }
+
+        /* ==========================================================================
+           Footer & Action Buttons
+           ========================================================================== */
+        footer {
+            border-top: 1px solid var(--border);
+            padding-top: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .contact-info p {
+            margin-bottom: 4px;
+        }
+
+        .contact-info span {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .no-print-zone {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+
+        .btn {
+            font-family: var(--font-body);
+            font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-outline:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-color: var(--border-hover);
+        }
+
+        /* ==========================================================================
+           Print styles override
+           ========================================================================== */
+        @media print {
+            body {
+                background-color: #ffffff !important;
+                color: #0f172a !important;
+                padding: 0 !important;
+            }
+
+            .report-wrapper {
+                max-width: 100% !important;
+            }
+
+            .glow-orb {
+                display: none !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            header {
+                border-bottom: 2px solid #e2e8f0 !important;
+            }
+
+            .doc-tag {
+                background-color: #f1f5f9 !important;
+                color: #4f46e5 !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+
+            .gradient-text {
+                background: none !important;
+                -webkit-text-fill-color: initial !important;
+                color: #1e1b4b !important;
+            }
+
+            .intro-section {
+                background: #f8fafc !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+
+            .intro-section h3 {
+                color: #4f46e5 !important;
+            }
+
+            .intro-section p, .subtitle, .point-content p, .benefit-card p, .highlight-box p {
+                color: #334155 !important;
+            }
+
+            .comp-card {
+                page-break-inside: avoid;
+                break-inside: avoid;
+                box-shadow: none !important;
+            }
+
+            .comp-card.without-landing {
+                background: #fef2f2 !important;
+                border: 2px solid #fca5a5 !important;
+            }
+
+            .comp-card.with-landing {
+                background: #f0fdf4 !important;
+                border: 2px solid #86efac !important;
+            }
+
+            .without-landing h2 {
+                color: #dc2626 !important;
+            }
+
+            .with-landing h2 {
+                color: #16a34a !important;
+            }
+
+            .without-landing .point-icon {
+                background-color: #fee2e2 !important;
+                color: #b91c1c !important;
+                border: 1px solid #fca5a5 !important;
+            }
+
+            .with-landing .point-icon {
+                background-color: #dcfce7 !important;
+                color: #15803d !important;
+                border: 1px solid #86efac !important;
+            }
+
+            .point-content h4, .benefit-header h3, .highlight-box h3 {
+                color: #0f172a !important;
+            }
+
+            .benefit-card {
+                background: #f8fafc !important;
+                border: 1px solid #e2e8f0 !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .benefit-num {
+                background-color: #ecfeff !important;
+                color: #0891b2 !important;
+                border: 1px solid #a5f3fc !important;
+            }
+
+            .highlight-box {
+                background: #e0f2fe !important;
+                border: 2px solid #bae6fd !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .highlight-stat {
+                color: #0284c7 !important;
+                text-shadow: none !important;
+            }
+
+            footer {
+                border-top: 2px solid #e2e8f0 !important;
+                color: #64748b !important;
+            }
+
+            .contact-info span {
+                color: #334155 !important;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+
+        /* Responsive Design for Browser View */
+        @media (max-width: 768px) {
+            .comparison-grid, .benefits-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2.2rem;
+            }
+
+            body {
+                padding: 20px 10px;
+            }
+
+            .header-top {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-wrapper">
+        <!-- Background Orbs -->
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+
+        <!-- Header -->
+        <header>
+            <div class="header-top">
+                <div class="brand">Ariel<span>.Dev</span></div>
+                <div class="doc-tag">Estudio de Rendimiento Técnico</div>
+            </div>
+            <h1>¿Por qué tu negocio necesita un <span class="gradient-text">Desarrollo a Medida</span>?</h1>
+            <p class="subtitle">Análisis estratégico sobre velocidad, flexibilidad total y optimización SEO frente a las plantillas y constructores rígidos de suscripción.</p>
+        </header>
+
+        <!-- Intro Section -->
+        <section class="intro-section">
+            <h3>¿Qué es el Desarrollo Web a Medida?</h3>
+            <p>El <strong>Desarrollo Web a Medida (código limpio escrito desde cero)</strong> es un método de construcción de sitios web que utiliza lenguajes puros de programación estructurados específicamente para resolver tus objetivos de negocio. A diferencia de plataformas genéricas precargadas con plantillas rígidas (como WordPress, Wix o Shopify básico) que llenan tu página de código innecesario, el desarrollo a medida entrega una estructura ágil, veloz y completamente personalizada.</p>
+        </section>
+
+        <!-- Comparison Section -->
+        <section class="comparison-grid">
+            
+            <!-- SIN DESARROLLO A MEDIDA -->
+            <div class="comp-card without-landing">
+                <h2><span>🚫</span> Sin Código a Medida (Plantillas)</h2>
+                <ul class="point-list">
+                    <li class="point-item">
+                        <div class="point-icon">✕</div>
+                        <div class="point-content">
+                            <h4>Carga Lenta por Plugins</h4>
+                            <p>Para añadir funcionalidades debes instalar decenas de plugins que arrastran código basura, ralentizan el sitio y arruinan la experiencia de usuario móvil.</p>
+                        </div>
+                    </li>
+                    <li class="point-item">
+                        <div class="point-icon">✕</div>
+                        <div class="point-content">
+                            <h4>Limitaciones Técnicas Rígidas</h4>
+                            <p>Si quieres añadir un cotizador en tiempo real, un sistema de citas especial o un diseño interactivo único, las plantillas te limitan o exigen pagos costosos.</p>
+                        </div>
+                    </li>
+                    <li class="point-item">
+                        <div class="point-icon">✕</div>
+                        <div class="point-content">
+                            <h4>Costos Mensuales Ocultos</h4>
+                            <p>Muchas funciones básicas (carritos, filtros avanzados, optimización de velocidad) requieren licencias de pago mensual que encarecen la web a largo plazo.</p>
+                        </div>
+                    </li>
+                    <li class="point-item">
+                        <div class="point-icon">✕</div>
+                        <div class="point-content">
+                            <h4>Vulnerabilidades de Seguridad</h4>
+                            <p>Las plataformas masivas son el objetivo favorito de los ciberataques. Un plugin desactualizado puede dejar tu web fuera de servicio de la noche a la mañana.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- CON DESARROLLO A MEDIDA -->
+            <div class="comp-card with-landing">
+                <h2><span>⚡</span> Con Desarrollo a Medida</h2>
+                <ul class="point-list">
+                    <li class="point-item">
+                        <div class="point-icon">✓</div>
+                        <div class="point-content">
+                            <h4>Velocidad Extrema (Menos de 1s)</h4>
+                            <p>Código optimizado línea por línea. Carga instantánea que reduce la tasa de rebote al mínimo y mejora drásticamente el posicionamiento SEO en Google.</p>
+                        </div>
+                    </li>
+                    <li class="point-item">
+                        <div class="point-icon">✓</div>
+                        <div class="point-content">
+                            <h4>Flexibilidad y Libertad Absoluta</h4>
+                            <p>No hay límites de diseño ni funcionalidad. Podemos programar cualquier calculadora, base de datos integrada o panel interactivo que tu negocio necesite.</p>
+                        </div>
+                    </li>
+                    <li class="point-item">
+                        <div class="point-icon">✓</div>
+                        <div class="point-content">
+                            <h4>Diseño Exclusivo de Marca</h4>
+                            <p>Un sitio web único y desarrollado a la medida de tu identidad. Destaca frente a la competencia que usa las mismas plantillas aburridas de siempre.</p>
+                        </div>
+                    </li>
+                    <li class="point-item">
+                        <div class="point-icon">✓</div>
+                        <div class="point-content">
+                            <h4>Seguridad Robusta y Control</h4>
+                            <p>Al no usar infraestructura genérica, la web es extremadamente inmune a ataques masivos de bots. El código es de tu propiedad al 100% y no dependes de licencias.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+        </section>
+
+        <!-- Benefits Section -->
+        <section class="benefits-section">
+            <h2>Beneficios Clave del Desarrollo a Medida</h2>
+            <div class="benefits-grid">
+                
+                <div class="benefit-card">
+                    <div class="benefit-header">
+                        <div class="benefit-num">1</div>
+                        <h3>Rendimiento SEO Técnico Superior</h3>
+                    </div>
+                    <p>Google premia a los sitios rápidos y con buena estructura móvil. Al desarrollar con código limpio y sin código basura, tu web cumple con el 100% de los estándares de rendimiento (Core Web Vitals), escalando posiciones en Google de forma natural.</p>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="benefit-header">
+                        <div class="benefit-num">2</div>
+                        <h3>Integraciones de Negocio a Medida</h3>
+                    </div>
+                    <p>Conecta tu web a tus herramientas de trabajo diarias: pasarelas de pago, CRM, envíos automáticos de correos, bases de datos seguras (Supabase) o mensajería de WhatsApp automatizada para reducir la carga de trabajo administrativo.</p>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="benefit-header">
+                        <div class="benefit-num">3</div>
+                        <h3>Escalabilidad a Largo Plazo</h3>
+                    </div>
+                    <p>Un desarrollo a medida puede crecer de forma modular a medida que tu negocio avanza. Empieza con una landing page, luego conviértela en una tienda online y después añade paneles de control privados, sin tener que rediseñar desde cero.</p>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="benefit-header">
+                        <div class="benefit-num">4</div>
+                        <h3>Propiedad Total y Sin Suscripciones</h3>
+                    </div>
+                    <p>El sitio web es tuyo al 100% para siempre. Al no depender de plataformas propietarias rígidas que te atan a mensualidades por herramientas, tus únicos costos fijos serán el hosting y el dominio anual.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Highlight ROI -->
+        <section class="highlight-box">
+            <h3>Retención y Conversión del Usuario</h3>
+            <p>Cada segundo de retraso en la carga de una web móvil cuesta dinero:</p>
+            <div class="highlight-stat">Retención de Clientes</div>
+            <p>Un sitio web que carga en <strong>1 segundo</strong> retiene y convierte hasta un <strong>300% más usuarios</strong> <br> que una web que tarda 4 segundos en abrir debido al peso de las plantillas y plugins obsoletos.</p>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <div class="contact-info">
+                <p>Propuesta técnica desarrollada por: <span>Ariel Martinelli - Ariel.Dev</span></p>
+                <p>Email: <span>ariel.martinelli.dev@gmail.com</span> | WhatsApp: <span>+54 351 612 1498</span></p>
+            </div>
+            <div class="location-info">
+                <p>Córdoba, Argentina</p>
+            </div>
+        </footer>
+
+        <!-- Action Buttons (Hidden on Print) -->
+        <div class="no-print-zone no-print">
+            <button onclick="window.print()" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Imprimir o Guardar como PDF
+            </button>
+            <a href="/" class="btn btn-outline">Volver al Portfolio</a>
+        </div>
+    </div>
+</body>
+</html>

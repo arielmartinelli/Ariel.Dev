@@ -6,7 +6,11 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        reporte: resolve(__dirname, 'reporte-landing-page.html'),
+        landing: resolve(__dirname, 'ventajas-landing.html'),
+        ecommerce: resolve(__dirname, 'ventajas-ecommerce.html'),
+        portfolio: resolve(__dirname, 'ventajas-portfolio.html'),
+        desarrolloMedida: resolve(__dirname, 'ventajas-desarrollo-medida.html'),
+        invitaciones: resolve(__dirname, 'ventajas-invitaciones.html'),
       },
     },
   },

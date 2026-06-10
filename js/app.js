@@ -779,6 +779,16 @@ document.addEventListener("DOMContentLoaded", () => {
         await renderCategoryDropdown();
         await renderPortfolio();
         calculateQuotation();
+
+        // Redirección de "Beneficios de Tener"
+        const btnVerVentajas = document.getElementById("btn-ver-ventajas");
+        const selectServicio = document.getElementById("select-servicio");
+        if (btnVerVentajas && selectServicio) {
+            btnVerVentajas.addEventListener("click", () => {
+                const service = selectServicio.value;
+                window.location.href = `ventajas-${service}.html`;
+            });
+        }
     }
     init();
 });

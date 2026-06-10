@@ -2002,3 +2002,74 @@ body.light-theme .admin-category-item {
         grid-template-columns: 1fr;
     }
 }
+
+/* ==========================================================================
+   Beneficios de Tener Section
+   ========================================================================== */
+.beneficios-tener-section {
+    padding: 100px 0;
+    position: relative;
+    background-color: rgba(10, 15, 30, 0.2);
+}
+
+.selector-box {
+    max-width: 650px;
+    margin: 40px auto 0 auto;
+    padding: 30px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+    position: relative;
+    z-index: 10;
+}
+
+.selector-label {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.selector-controls {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+    justify-content: center;
+}
+
+.service-dropdown {
+    flex-grow: 1;
+    max-width: 380px;
+    background-color: var(--bg-surface-opaque);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-family: var(--font-body);
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.service-dropdown:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 10px var(--primary-glow);
+}
+
+body.light-theme .service-dropdown {
+    background-color: #ffffff;
+    color: #111827;
+}
+
+@media (max-width: 600px) {
+    .selector-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .service-dropdown {
+        max-width: 100%;
+    }
+}
