@@ -1475,6 +1475,16 @@ body.light-theme .builder-step {
     flex-shrink: 0;
 }
 
+.info-item a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.info-item a:hover {
+    color: var(--primary-light);
+}
+
 .contacto-form {
     padding: 40px;
 }

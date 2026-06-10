@@ -681,7 +681,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const subject = encodeURIComponent("Solicitud de Cotización Web - Ariel.Dev");
         const body = encodeURIComponent(messageText.replace(/\*/g, "")); // Quitar asteriscos de formato de WhatsApp
         
-        const mailToUrl = `mailto:arielmartinelli2019@gmail.com?subject=${subject}&body=${body}`;
+        const mailToUrl = `mailto:ariel.martinelli.dev@gmail.com?subject=${subject}&body=${body}`;
         window.open(mailToUrl, "_blank");
     });
 
