@@ -2073,3 +2073,98 @@ body.light-theme .service-dropdown {
         max-width: 100%;
     }
 }
+
+/* ==========================================================================
+   Cotizador Payment & Currency Display Styles
+   ========================================================================== */
+.summary-payment-section {
+    margin: 15px 0;
+    text-align: left;
+}
+
+.summary-payment-section h5 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+}
+
+.payment-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.payment-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.payment-option input {
+    accent-color: var(--primary);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.summary-total-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 15px;
+    background-color: rgba(255, 255, 255, 0.02);
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    text-align: left;
+}
+
+body.light-theme .summary-total-container {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.summary-total.ARS {
+    border-top: 1px dashed var(--border);
+    padding-top: 8px;
+}
+
+.total-price-ars {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--secondary);
+}
+
+.installments-detail {
+    font-size: 0.85rem;
+    color: var(--accent);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--accent-glow);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(217, 70, 239, 0.2);
+    margin-top: 6px;
+}
+
+.installments-detail.hidden {
+    display: none;
+}
+
+.dollar-rate-footer {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 12px;
+}

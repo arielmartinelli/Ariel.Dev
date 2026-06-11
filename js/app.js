@@ -64,6 +64,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const sumTotalPrice = document.getElementById("sum-total-price");
     const btnQuoteWhatsapp = document.getElementById("btn-quote-whatsapp");
     const btnQuoteMail = document.getElementById("btn-quote-mail");
+    const sumTotalPriceArs = document.getElementById("sum-total-price-ars");
+    const installmentsDetail = document.getElementById("installments-detail");
+    const installmentPriceValue = document.getElementById("installment-price-value");
+    const payCashRadio = document.getElementById("pay-cash");
+    const payInstallmentsRadio = document.getElementById("pay-installments");
+    const dollarRateDisplay = document.getElementById("dollar-rate-display");
 
     // Formulario de contacto
     const contactForm = document.getElementById("contact-form");
@@ -74,6 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let isEditMode = false;
     let editingProjectId = null;
     let cachedCategories = [];
+    let dollarRate = 1250; // Fallback
 
     // ==========================================================================
     // 2. Control de Tema (Oscuro / Claro)
@@ -560,8 +567,31 @@ document.addEventListener("DOMContentLoaded", () => {
     // ==========================================================================
     // 6. Cotizador Interactivo de Presupuestos
     // ==========================================================================
+    // ==========================================================================
+    // 6. Cotizador Interactivo de Presupuestos
+    // ==========================================================================
+    async function fetchDollarRate() {
+        try {
+            const res = await fetch("https://dolarapi.com/v1/dolares/blue");
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.venta) {
+                    dollarRate = parseFloat(data.venta);
+                    console.log("Cotización Dólar Blue cargada con éxito:", dollarRate);
+                }
+            }
+        } catch (error) {
+            console.error("Error cargando Dólar API, usando la cotización predeterminada:", error);
+        } finally {
+            if (dollarRateDisplay) {
+                dollarRateDisplay.textContent = `Cotización Dólar Blue: $${dollarRate} ARS`;
+            }
+            calculateQuotation();
+        }
+    }
+
     function calculateQuotation() {
-        let total = 0;
+        let baseTotal = 0;
         let totalTime = 0;
         
         // 1. Obtener combo seleccionado
@@ -572,7 +602,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const comboBasePrice = parseInt(activeComboCard.dataset.price);
         const comboBaseTime = parseInt(activeComboCard.dataset.time);
 
-        total += comboBasePrice;
+        baseTotal += comboBasePrice;
         totalTime += comboBaseTime;
 
         // Actualizar resumen de combo
@@ -590,7 +620,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const addonPrice = parseInt(checkbox.dataset.price);
                 const addonTime = parseInt(checkbox.dataset.time);
 
-                total += addonPrice;
+                baseTotal += addonPrice;
                 totalTime += addonTime;
 
                 // Agregar elemento a la lista visual del resumen
@@ -607,9 +637,33 @@ document.addEventListener("DOMContentLoaded", () => {
             sumAddonsList.innerHTML = `<li class="no-addons">Ningún adicional seleccionado</li>`;
         }
 
-        // 3. Escribir resultados finales en la tarjeta resumen
+        // 3. Evaluar método de pago (3 cuotas con +10% recargo)
+        const isInstallments = payInstallmentsRadio && payInstallmentsRadio.checked;
+        let finalTotalUsd = baseTotal;
+        
+        if (isInstallments) {
+            finalTotalUsd = Math.round(baseTotal * 1.10);
+            const installmentUsd = (finalTotalUsd / 3).toFixed(2);
+            const installmentArs = Math.round((finalTotalUsd * dollarRate) / 3);
+            
+            if (installmentsDetail && installmentPriceValue) {
+                installmentsDetail.classList.remove("hidden");
+                installmentPriceValue.textContent = `$${installmentUsd} USD ($${installmentArs.toLocaleString("es-AR")} ARS) c/u`;
+            }
+        } else {
+            if (installmentsDetail) {
+                installmentsDetail.classList.add("hidden");
+            }
+        }
+
+        const finalTotalArs = Math.round(finalTotalUsd * dollarRate);
+
+        // 4. Escribir resultados finales en la tarjeta resumen
         sumDeliveryTime.textContent = `${totalTime} días hábiles`;
-        sumTotalPrice.textContent = `$${total} USD`;
+        sumTotalPrice.textContent = `$${finalTotalUsd} USD`;
+        if (sumTotalPriceArs) {
+            sumTotalPriceArs.textContent = `$${finalTotalArs.toLocaleString("es-AR")} ARS`;
+        }
     }
 
     // Eventos para interactuar con los combos
@@ -625,6 +679,10 @@ document.addEventListener("DOMContentLoaded", () => {
     addonCheckboxes.forEach(checkbox => {
         checkbox.addEventListener("change", calculateQuotation);
     });
+
+    // Eventos para métodos de pago
+    if (payCashRadio) payCashRadio.addEventListener("change", calculateQuotation);
+    if (payInstallmentsRadio) payInstallmentsRadio.addEventListener("change", calculateQuotation);
 
     // ==========================================================================
     // 7. Envíos de Cotización (WhatsApp & Mail)
@@ -649,15 +707,29 @@ document.addEventListener("DOMContentLoaded", () => {
             addonsText = "   • Ninguno\n";
         }
 
-        const total = sumTotalPrice.textContent;
+        const isInstallments = payInstallmentsRadio && payInstallmentsRadio.checked;
+        const totalUsd = sumTotalPrice.textContent;
+        const totalArs = sumTotalPriceArs ? sumTotalPriceArs.textContent : "";
         const time = sumDeliveryTime.textContent;
+        
+        let paymentText = `💵 *Forma de pago:* Contado / Transferencia (1 pago)\n`;
+        if (isInstallments) {
+            const finalTotalUsd = parseInt(totalUsd.replace(/\D/g, ""));
+            const installmentUsd = (finalTotalUsd / 3).toFixed(2);
+            const installmentArs = Math.round((finalTotalUsd * dollarRate) / 3);
+            
+            paymentText = `💳 *Forma de pago:* 3 Cuotas sin interés (+10% recargo)\n` +
+                          `👉 *Cuotas:* 3 cuotas de $${installmentUsd} USD ($${installmentArs.toLocaleString("es-AR")} ARS) cada una\n`;
+        }
 
         const text = `Hola Ariel! Me contacto desde tu portfolio web. Mi nombre es *${clientName}*.\n\n` +
             `Me gustaría solicitar un presupuesto estimado basado en tu cotizador online:\n\n` +
             `🔹 *Combo seleccionado:* ${comboName} ($${comboBasePrice} USD)\n` +
             `➕ *Adicionales elegidos:*\n${addonsText}\n` +
+            `${paymentText}` +
             `🕒 *Tiempo de entrega estimado:* ${time}\n` +
-            `💰 *PRESUPUESTO TOTAL ESTIMADO:* ${total}\n\n` +
+            `💰 *PRESUPUESTO TOTAL ESTIMADO:* ${totalUsd} / ${totalArs}\n` +
+            `📈 *Tipo de cambio de referencia (Dólar Blue):* $${dollarRate} ARS\n\n` +
             `Quedo atento/a para que podamos coordinar los detalles. ¡Gracias!`;
 
         return text;
@@ -667,10 +739,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnQuoteWhatsapp.addEventListener("click", () => {
         const message = generateQuotationText();
         const encodedMessage = encodeURIComponent(message);
-        
-        // Número de WhatsApp de destino (reemplazable por el usuario)
         const phoneNumber = "543516121498"; 
-        
         const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
         window.open(whatsappUrl, "_blank");
     });
@@ -679,8 +748,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnQuoteMail.addEventListener("click", () => {
         const messageText = generateQuotationText();
         const subject = encodeURIComponent("Solicitud de Cotización Web - Ariel.Dev");
-        const body = encodeURIComponent(messageText.replace(/\*/g, "")); // Quitar asteriscos de formato de WhatsApp
-        
+        const body = encodeURIComponent(messageText.replace(/\*/g, "")); 
         const mailToUrl = `mailto:ariel.martinelli.dev@gmail.com?subject=${subject}&body=${body}`;
         window.open(mailToUrl, "_blank");
     });
@@ -778,7 +846,7 @@ document.addEventListener("DOMContentLoaded", () => {
         await renderFilters();
         await renderCategoryDropdown();
         await renderPortfolio();
-        calculateQuotation();
+        await fetchDollarRate();
 
         // Redirección de "Beneficios de Tener"
         const btnVerVentajas = document.getElementById("btn-ver-ventajas");
