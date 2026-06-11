@@ -833,12 +833,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const container = document.createElement("div");
             container.id = "quote-print-container";
-            container.style.position = "absolute";
-            container.style.left = "-9999px";
-            container.style.top = "-9999px";
-            container.style.width = "750px";
-            container.style.height = "auto";
-            container.style.overflow = "visible";
+            container.style.position = "fixed";
+            container.style.left = "0";
+            container.style.top = "0";
+            container.style.width = "1px";
+            container.style.height = "1px";
+            container.style.overflow = "hidden";
+            container.style.background = "transparent";
+            container.style.zIndex = "99999";
+            container.style.pointerEvents = "none";
 
             const tempDiv = document.createElement("div");
             tempDiv.id = "quote-print-temp";
@@ -1067,7 +1070,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 margin:       10,
                 filename:     pdfFilename,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2.5, useCORS: true, logging: false },
+                html2canvas:  { 
+                    scale: 2, 
+                    useCORS: true, 
+                    logging: false,
+                    scrollX: 0,
+                    scrollY: 0,
+                    x: 0,
+                    y: 0,
+                    windowWidth: 750
+                },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
