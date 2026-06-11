@@ -835,26 +835,37 @@ document.addEventListener("DOMContentLoaded", () => {
                 <title>Propuesta de Presupuesto - Ariel.Dev</title>
                 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
                 <style>
+                    @page {
+                        size: A4 portrait;
+                        margin: 12mm;
+                    }
+                    html, body {
+                        max-height: 297mm;
+                        overflow: hidden;
+                    }
                     body {
                         font-family: 'Inter', sans-serif;
                         color: #1e293b;
                         background-color: #ffffff;
                         margin: 0;
-                        padding: 40px;
-                        line-height: 1.5;
+                        padding: 0;
+                        line-height: 1.35;
+                        font-size: 12.5px;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                     .header {
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
                         border-bottom: 2px solid #e2e8f0;
-                        padding-bottom: 20px;
-                        margin-bottom: 30px;
+                        padding-bottom: 8px;
+                        margin-bottom: 15px;
                     }
                     .logo {
                         font-family: 'Outfit', sans-serif;
                         font-weight: 800;
-                        font-size: 1.8rem;
+                        font-size: 1.5rem;
                         color: #0f172a;
                     }
                     .logo span {
@@ -862,38 +873,42 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     .doc-info {
                         text-align: right;
-                        font-size: 0.9rem;
+                        font-size: 0.8rem;
                         color: #64748b;
                     }
                     .doc-title {
                         font-family: 'Outfit', sans-serif;
-                        font-size: 2.2rem;
+                        font-size: 1.6rem;
                         font-weight: 700;
                         color: #0f172a;
-                        margin: 0 0 10px 0;
+                        margin: 0 0 6px 0;
                     }
                     .client-info {
                         background-color: #f8fafc;
                         border: 1px solid #e2e8f0;
-                        border-radius: 12px;
-                        padding: 20px;
-                        margin-bottom: 30px;
+                        border-radius: 6px;
+                        padding: 12px;
+                        margin-bottom: 15px;
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 8px;
                     }
                     .client-info h3 {
-                        margin: 0 0 10px 0;
+                        grid-column: 1 / -1;
+                        margin: 0 0 4px 0;
                         font-family: 'Outfit', sans-serif;
-                        font-size: 1.1rem;
+                        font-size: 0.95rem;
                         color: #0f172a;
                     }
                     .client-info p {
-                        margin: 4px 0;
-                        font-size: 0.95rem;
+                        margin: 2px 0;
+                        font-size: 0.85rem;
                         color: #475569;
                     }
                     table {
                         width: 100%;
                         border-collapse: collapse;
-                        margin-bottom: 30px;
+                        margin-bottom: 15px;
                     }
                     th {
                         background-color: #f1f5f9;
@@ -901,13 +916,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         font-family: 'Outfit', sans-serif;
                         font-weight: 600;
                         text-align: left;
-                        padding: 12px;
-                        font-size: 0.95rem;
+                        padding: 8px 10px;
+                        font-size: 0.85rem;
                         border-bottom: 2px solid #cbd5e1;
                     }
                     td {
-                        padding: 12px;
-                        font-size: 0.95rem;
+                        padding: 8px 10px;
+                        font-size: 0.85rem;
                         border-bottom: 1px solid #e2e8f0;
                         color: #334155;
                     }
@@ -917,92 +932,60 @@ document.addEventListener("DOMContentLoaded", () => {
                     .totals-section {
                         display: flex;
                         justify-content: flex-end;
-                        margin-bottom: 40px;
+                        margin-bottom: 15px;
                     }
                     .totals-table {
-                        width: 350px;
+                        width: 320px;
                         margin-bottom: 0;
                     }
                     .totals-table td {
-                        padding: 8px 12px;
+                        padding: 4px 8px;
                         border-bottom: none;
                     }
                     .totals-table tr.grand-total td {
                         font-family: 'Outfit', sans-serif;
-                        font-size: 1.25rem;
+                        font-size: 1.15rem;
                         font-weight: 700;
                         color: #6366f1;
                         border-top: 2px solid #e2e8f0;
-                        padding-top: 12px;
+                        padding-top: 6px;
                     }
                     .installments-banner {
                         background-color: #fdf2f8;
                         border: 1px solid #fbcfe8;
-                        border-radius: 8px;
-                        padding: 15px;
-                        margin-bottom: 30px;
+                        border-radius: 6px;
+                        padding: 10px;
+                        margin-bottom: 15px;
                         color: #9d174d;
-                        font-size: 0.95rem;
+                        font-size: 0.85rem;
                     }
                     .installments-banner strong {
-                        font-size: 1.05rem;
+                        font-size: 0.9rem;
                     }
                     .footer {
                         border-top: 1px solid #e2e8f0;
-                        padding-top: 20px;
-                        margin-top: 60px;
-                        font-size: 0.85rem;
+                        padding-top: 10px;
+                        margin-top: 20px;
+                        font-size: 0.75rem;
                         color: #64748b;
                         display: flex;
                         justify-content: space-between;
                     }
                     .footer-left p {
-                        margin: 4px 0;
+                        margin: 2px 0;
                     }
                     .footer-left span {
                         color: #334155;
                         font-weight: 500;
                     }
-                    @media print {
-                        body {
-                            padding: 0;
-                        }
-                        .no-print {
-                            display: none;
-                        }
-                    }
-                    .print-btn-container {
-                        display: flex;
-                        justify-content: center;
-                        margin-bottom: 20px;
-                    }
-                    .print-btn {
-                        background-color: #6366f1;
-                        color: #ffffff;
-                        border: none;
-                        padding: 12px 24px;
-                        border-radius: 8px;
-                        font-family: 'Inter', sans-serif;
-                        font-weight: 600;
-                        cursor: pointer;
-                        box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2);
-                        transition: all 0.2s;
-                        font-size: 0.95rem;
-                    }
-                    .print-btn:hover {
-                        background-color: #4f46e5;
-                    }
                 </style>
             </head>
             <body>
-                <div class="print-btn-container no-print">
-                    <button onclick="window.print()" class="print-btn">Imprimir o Guardar como PDF</button>
-                </div>
                 <div class="header">
                     <div class="logo">Ariel<span>.Dev</span></div>
                     <div class="doc-info">
                         <p style="margin: 0; font-weight: 600; color: #0f172a;">Presupuesto Estimado</p>
-                        <p style="margin: 4px 0 0 0;">Fecha: ${dateStr}</p>
+                        <p style="margin: 2px 0 0 0;">Fecha: ${dateStr}</p>
                     </div>
                 </div>
                 
@@ -1054,7 +1037,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <td>Total Final:</td>
                             <td style="text-align: right;">$${finalTotalUsd} USD</td>
                         </tr>
-                        <tr class="grand-total" style="font-size: 1.15rem; color: #06b6d4;">
+                        <tr class="grand-total" style="font-size: 1.05rem; color: #06b6d4;">
                             <td>Total en Pesos:</td>
                             <td style="text-align: right;">$${finalTotalArs.toLocaleString("es-AR")} ARS</td>
                         </tr>
@@ -1074,20 +1057,29 @@ document.addEventListener("DOMContentLoaded", () => {
                     window.onload = function() {
                         setTimeout(function() {
                             window.print();
-                        }, 300);
+                        }, 250);
                     };
                 </script>
             </body>
             </html>
             `;
 
-            const printWindow = window.open("", "_blank");
-            if (printWindow) {
-                printWindow.document.write(htmlContent);
-                printWindow.document.close();
-            } else {
-                alert("Por favor, permite las ventanas emergentes (pop-ups) en tu navegador para generar el PDF.");
+            let iframe = document.getElementById("quote-print-iframe");
+            if (!iframe) {
+                iframe = document.createElement("iframe");
+                iframe.id = "quote-print-iframe";
+                iframe.style.position = "absolute";
+                iframe.style.left = "-9999px";
+                iframe.style.width = "1px";
+                iframe.style.height = "1px";
+                iframe.style.border = "none";
+                document.body.appendChild(iframe);
             }
+
+            const doc = iframe.contentWindow.document;
+            doc.open();
+            doc.write(htmlContent);
+            doc.close();
         });
     }
 
