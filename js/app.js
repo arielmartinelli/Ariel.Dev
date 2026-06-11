@@ -420,7 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const description = projDescInput.value.trim();
 
         if (!title || !description) {
-            alert("Por favor completa los campos requeridos.");
+            Swal.fire("Atención", "Por favor completa los campos requeridos.", "warning");
             return;
         }
 
@@ -452,11 +452,11 @@ document.addEventListener("DOMContentLoaded", () => {
             projectData.id = editingProjectId;
             await updateProject(projectData);
             exitEditMode();
-            alert("¡Proyecto actualizado con éxito!");
+            Swal.fire("¡Actualizado!", "¡Proyecto actualizado con éxito!", "success");
         } else {
             await addProject(projectData);
             resetAdminForm();
-            alert("¡Proyecto agregado con éxito!");
+            Swal.fire("¡Creado!", "¡Proyecto agregado con éxito!", "success");
         }
 
         await renderAdminProjectsList();
@@ -550,16 +550,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 const id = btn.dataset.id;
                 const projName = btn.parentElement.parentElement.querySelector(".admin-project-name").textContent;
                 
-                if (confirm(`¿Estás seguro de eliminar el proyecto "${projName}"?`)) {
-                    await deleteProject(id);
-                    if (isEditMode && editingProjectId === id) {
-                        exitEditMode();
+                Swal.fire({
+                    title: '¿Estás seguro?',
+                    text: `¿Estás seguro de eliminar el proyecto "${projName}"?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#6366f1',
+                    cancelButtonColor: '#ef4444',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        await deleteProject(id);
+                        if (isEditMode && editingProjectId === id) {
+                            exitEditMode();
+                        }
+                        await renderAdminProjectsList();
+                        // Refrescar portfolio general
+                        const activeFilterBtn = document.querySelector(".filter-btn.active");
+                        await renderPortfolio(activeFilterBtn ? activeFilterBtn.dataset.filter : "all");
+                        Swal.fire('¡Eliminado!', 'El proyecto ha sido eliminado con éxito.', 'success');
                     }
-                    await renderAdminProjectsList();
-                    // Refrescar portfolio general
-                    const activeFilterBtn = document.querySelector(".filter-btn.active");
-                    await renderPortfolio(activeFilterBtn ? activeFilterBtn.dataset.filter : "all");
-                }
+                });
             });
         });
     }
@@ -1060,7 +1072,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     document.body.removeChild(tempDiv);
                 });
             } else {
-                alert("La librería de descarga de PDF está cargando. Por favor, intenta de nuevo en unos segundos.");
+                Swal.fire("Descarga de PDF", "La librería de descarga de PDF está cargando. Por favor, intenta de nuevo en unos segundos.", "info");
                 document.body.removeChild(tempDiv);
             }
         });
@@ -1075,12 +1087,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const message = document.getElementById("contact-message").value.trim();
 
         if (!name || !email || !subject || !message) {
-            alert("Por favor, completa todos los campos del formulario.");
+            Swal.fire("Atención", "Por favor, completa todos los campos del formulario.", "warning");
             return;
         }
 
         // Mensaje de éxito de simulación
-        alert(`¡Gracias por tu mensaje, ${name}! Se ha enviado la consulta con éxito. Ariel se pondrá en contacto a la brevedad.`);
+        Swal.fire("¡Gracias!", `¡Gracias por tu mensaje, ${name}! Se ha enviado la consulta con éxito. Ariel se pondrá en contacto a la brevedad.`, "success");
         contactForm.reset();
     });
 
@@ -1088,19 +1100,19 @@ document.addEventListener("DOMContentLoaded", () => {
     btnAddCategory.addEventListener("click", async () => {
         const label = newCategoryInput.value.trim();
         if (!label) {
-            alert("Por favor escribe un nombre para la categoría.");
+            Swal.fire("Atención", "Por favor escribe un nombre para la categoría.", "warning");
             return;
         }
 
         const res = await addCategory(label);
         if (res.error) {
-            alert(res.error);
+            Swal.fire("Error", res.error, "error");
         } else {
             newCategoryInput.value = "";
             await renderFilters();
             await renderCategoryDropdown();
             await renderAdminCategoriesList();
-            alert(`Categoría "${label}" agregada con éxito.`);
+            Swal.fire("¡Éxito!", `Categoría "${label}" agregada con éxito.`, "success");
         }
     });
 
@@ -1135,17 +1147,29 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.addEventListener("click", async () => {
                 const id = btn.dataset.id;
                 const catName = btn.parentElement.querySelector(".admin-category-name").textContent;
-                if (confirm(`¿Estás seguro de eliminar la categoría "${catName}"?`)) {
-                    const res = await deleteCategory(id);
-                    if (res.error) {
-                        alert(res.error);
-                    } else {
-                        await renderFilters();
-                        await renderCategoryDropdown();
-                        await renderAdminCategoriesList();
-                        await renderPortfolio();
+                Swal.fire({
+                    title: '¿Estás seguro?',
+                    text: `¿Estás seguro de eliminar la categoría "${catName}"?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#6366f1',
+                    cancelButtonColor: '#ef4444',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then(async (result) => {
+                    if (result.isConfirmed) {
+                        const res = await deleteCategory(id);
+                        if (res.error) {
+                            Swal.fire("Error", res.error, "error");
+                        } else {
+                            await renderFilters();
+                            await renderCategoryDropdown();
+                            await renderAdminCategoriesList();
+                            await renderPortfolio();
+                            Swal.fire('¡Eliminado!', 'La categoría ha sido eliminada con éxito.', 'success');
+                        }
                     }
-                }
+                });
             });
         });
     }
