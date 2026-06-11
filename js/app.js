@@ -827,45 +827,38 @@ document.addEventListener("DOMContentLoaded", () => {
             const finalTotalArs = Math.round(finalTotalUsd * dollarRate);
             const time = sumDeliveryTime.textContent;
 
+            const tempDiv = document.createElement("div");
+            tempDiv.id = "quote-print-temp";
+            tempDiv.style.position = "absolute";
+            tempDiv.style.left = "-9999px";
+            tempDiv.style.top = "0";
+            tempDiv.style.width = "750px";
+            tempDiv.style.background = "#ffffff";
+            tempDiv.style.boxSizing = "border-box";
+
             const htmlContent = `
-            <!DOCTYPE html>
-            <html lang="es">
-            <head>
-                <meta charset="UTF-8">
-                <title>Propuesta de Presupuesto - Ariel.Dev</title>
-                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
                 <style>
-                    @page {
-                        size: A4 portrait;
-                        margin: 12mm;
-                    }
-                    html, body {
-                        max-height: 297mm;
-                        overflow: hidden;
-                    }
-                    body {
+                    .pdf-container {
                         font-family: 'Inter', sans-serif;
                         color: #1e293b;
                         background-color: #ffffff;
-                        margin: 0;
-                        padding: 0;
-                        line-height: 1.35;
-                        font-size: 12.5px;
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
+                        padding: 30px 40px;
+                        line-height: 1.4;
+                        font-size: 13px;
+                        box-sizing: border-box;
                     }
                     .header {
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
                         border-bottom: 2px solid #e2e8f0;
-                        padding-bottom: 8px;
-                        margin-bottom: 15px;
+                        padding-bottom: 12px;
+                        margin-bottom: 20px;
                     }
                     .logo {
                         font-family: 'Outfit', sans-serif;
                         font-weight: 800;
-                        font-size: 1.5rem;
+                        font-size: 1.8rem;
                         color: #0f172a;
                     }
                     .logo span {
@@ -873,22 +866,22 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     .doc-info {
                         text-align: right;
-                        font-size: 0.8rem;
+                        font-size: 0.9rem;
                         color: #64748b;
                     }
                     .doc-title {
                         font-family: 'Outfit', sans-serif;
-                        font-size: 1.6rem;
+                        font-size: 1.8rem;
                         font-weight: 700;
                         color: #0f172a;
-                        margin: 0 0 6px 0;
+                        margin: 0 0 10px 0;
                     }
                     .client-info {
                         background-color: #f8fafc;
                         border: 1px solid #e2e8f0;
-                        border-radius: 6px;
-                        padding: 12px;
-                        margin-bottom: 15px;
+                        border-radius: 8px;
+                        padding: 16px;
+                        margin-bottom: 20px;
                         display: grid;
                         grid-template-columns: 1fr 1fr;
                         gap: 8px;
@@ -897,18 +890,18 @@ document.addEventListener("DOMContentLoaded", () => {
                         grid-column: 1 / -1;
                         margin: 0 0 4px 0;
                         font-family: 'Outfit', sans-serif;
-                        font-size: 0.95rem;
+                        font-size: 1.05rem;
                         color: #0f172a;
                     }
                     .client-info p {
                         margin: 2px 0;
-                        font-size: 0.85rem;
+                        font-size: 0.9rem;
                         color: #475569;
                     }
                     table {
                         width: 100%;
                         border-collapse: collapse;
-                        margin-bottom: 15px;
+                        margin-bottom: 20px;
                     }
                     th {
                         background-color: #f1f5f9;
@@ -916,13 +909,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         font-family: 'Outfit', sans-serif;
                         font-weight: 600;
                         text-align: left;
-                        padding: 8px 10px;
-                        font-size: 0.85rem;
+                        padding: 10px 12px;
+                        font-size: 0.9rem;
                         border-bottom: 2px solid #cbd5e1;
                     }
                     td {
-                        padding: 8px 10px;
-                        font-size: 0.85rem;
+                        padding: 10px 12px;
+                        font-size: 0.9rem;
                         border-bottom: 1px solid #e2e8f0;
                         color: #334155;
                     }
@@ -932,19 +925,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     .totals-section {
                         display: flex;
                         justify-content: flex-end;
-                        margin-bottom: 15px;
+                        margin-bottom: 20px;
                     }
                     .totals-table {
                         width: 320px;
                         margin-bottom: 0;
                     }
                     .totals-table td {
-                        padding: 4px 8px;
+                        padding: 5px 10px;
                         border-bottom: none;
                     }
                     .totals-table tr.grand-total td {
                         font-family: 'Outfit', sans-serif;
-                        font-size: 1.15rem;
+                        font-size: 1.2rem;
                         font-weight: 700;
                         color: #6366f1;
                         border-top: 2px solid #e2e8f0;
@@ -954,19 +947,19 @@ document.addEventListener("DOMContentLoaded", () => {
                         background-color: #fdf2f8;
                         border: 1px solid #fbcfe8;
                         border-radius: 6px;
-                        padding: 10px;
-                        margin-bottom: 15px;
+                        padding: 10px 12px;
+                        margin-bottom: 20px;
                         color: #9d174d;
-                        font-size: 0.85rem;
+                        font-size: 0.9rem;
                     }
                     .installments-banner strong {
-                        font-size: 0.9rem;
+                        font-size: 0.95rem;
                     }
                     .footer {
                         border-top: 1px solid #e2e8f0;
-                        padding-top: 10px;
-                        margin-top: 20px;
-                        font-size: 0.75rem;
+                        padding-top: 12px;
+                        margin-top: 25px;
+                        font-size: 0.8rem;
                         color: #64748b;
                         display: flex;
                         justify-content: space-between;
@@ -979,107 +972,105 @@ document.addEventListener("DOMContentLoaded", () => {
                         font-weight: 500;
                     }
                 </style>
-            </head>
-            <body>
-                <div class="header">
-                    <div class="logo">Ariel<span>.Dev</span></div>
-                    <div class="doc-info">
-                        <p style="margin: 0; font-weight: 600; color: #0f172a;">Presupuesto Estimado</p>
-                        <p style="margin: 2px 0 0 0;">Fecha: ${dateStr}</p>
+                <div class="pdf-container">
+                    <div class="header">
+                        <div class="logo">Ariel<span>.Dev</span></div>
+                        <div class="doc-info">
+                            <p style="margin: 0; font-weight: 600; color: #0f172a;">Presupuesto Estimado</p>
+                            <p style="margin: 2px 0 0 0;">Fecha: ${dateStr}</p>
+                        </div>
                     </div>
-                </div>
-                
-                <h1 class="doc-title">Propuesta Técnica y Económica</h1>
-                
-                <div class="client-info">
-                    <h3>Detalles de la Propuesta</h3>
-                    <p><strong>Destinatario:</strong> ${clientName}</p>
-                    <p><strong>Desarrollador:</strong> Ariel Martinelli (Córdoba, Argentina)</p>
-                    <p><strong>Validez:</strong> 15 días desde la fecha de emisión</p>
-                </div>
+                    
+                    <h1 class="doc-title">Propuesta Técnica y Económica</h1>
+                    
+                    <div class="client-info">
+                        <h3>Detalles de la Propuesta</h3>
+                        <p><strong>Destinatario:</strong> ${clientName}</p>
+                        <p><strong>Desarrollador:</strong> Ariel Martinelli (Córdoba, Argentina)</p>
+                        <p><strong>Validez:</strong> 15 días desde la fecha de emisión</p>
+                    </div>
 
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Detalle del Componente / Servicio</th>
-                            <th class="price-col">Monto (USD)</th>
-                            <th class="price-col">Monto (ARS)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Combo Seleccionado:</strong> ${comboName}</td>
-                            <td class="price-col">$${comboPrice} USD</td>
-                            <td class="price-col">$${(comboPrice * dollarRate).toLocaleString("es-AR")} ARS</td>
-                        </tr>
-                        ${addonsMarkup}
-                    </tbody>
-                </table>
-
-                ${installmentsMarkup}
-
-                <div class="totals-section">
-                    <table class="totals-table">
-                        <tr>
-                            <td><strong>Tiempo de Entrega:</strong></td>
-                            <td style="text-align: right;"><strong>${time}</strong></td>
-                        </tr>
-                        <tr>
-                            <td>Subtotal USD:</td>
-                            <td style="text-align: right;">$${baseTotal} USD</td>
-                        </tr>
-                        <tr>
-                            <td>Subtotal ARS:</td>
-                            <td style="text-align: right;">$${(baseTotal * dollarRate).toLocaleString("es-AR")} ARS</td>
-                        </tr>
-                        ${chargeMarkup}
-                        <tr class="grand-total">
-                            <td>Total Final:</td>
-                            <td style="text-align: right;">$${finalTotalUsd} USD</td>
-                        </tr>
-                        <tr class="grand-total" style="font-size: 1.05rem; color: #06b6d4;">
-                            <td>Total en Pesos:</td>
-                            <td style="text-align: right;">$${finalTotalArs.toLocaleString("es-AR")} ARS</td>
-                        </tr>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Detalle del Componente / Servicio</th>
+                                <th class="price-col">Monto (USD)</th>
+                                <th class="price-col">Monto (ARS)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Combo Seleccionado:</strong> ${comboName}</td>
+                                <td class="price-col">$${comboPrice} USD</td>
+                                <td class="price-col">$${(comboPrice * dollarRate).toLocaleString("es-AR")} ARS</td>
+                            </tr>
+                            ${addonsMarkup}
+                        </tbody>
                     </table>
-                </div>
 
-                <div class="footer">
-                    <div class="footer-left">
-                        <p>Contacto: <span>ariel.martinelli.dev@gmail.com</span></p>
-                        <p>WhatsApp: <span>+54 351 612 1498</span></p>
+                    ${installmentsMarkup}
+
+                    <div class="totals-section">
+                        <table class="totals-table">
+                            <tr>
+                                <td><strong>Tiempo de Entrega:</strong></td>
+                                <td style="text-align: right;"><strong>${time}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Subtotal USD:</td>
+                                <td style="text-align: right;">$${baseTotal} USD</td>
+                            </tr>
+                            <tr>
+                                <td>Subtotal ARS:</td>
+                                <td style="text-align: right;">$${(baseTotal * dollarRate).toLocaleString("es-AR")} ARS</td>
+                            </tr>
+                            ${chargeMarkup}
+                            <tr class="grand-total">
+                                <td>Total Final:</td>
+                                <td style="text-align: right;">$${finalTotalUsd} USD</td>
+                            </tr>
+                            <tr class="grand-total" style="font-size: 1.1rem; color: #06b6d4;">
+                                <td>Total en Pesos:</td>
+                                <td style="text-align: right;">$${finalTotalArs.toLocaleString("es-AR")} ARS</td>
+                            </tr>
+                        </table>
                     </div>
-                    <div>
-                        <p>Córdoba, Argentina</p>
+
+                    <div class="footer">
+                        <div class="footer-left">
+                            <p>Contacto: <span>ariel.martinelli.dev@gmail.com</span></p>
+                            <p>WhatsApp: <span>+54 351 612 1498</span></p>
+                        </div>
+                        <div>
+                            <p>Córdoba, Argentina</p>
+                        </div>
                     </div>
                 </div>
-                <script>
-                    window.onload = function() {
-                        setTimeout(function() {
-                            window.print();
-                        }, 250);
-                    };
-                </script>
-            </body>
-            </html>
             `;
 
-            let iframe = document.getElementById("quote-print-iframe");
-            if (!iframe) {
-                iframe = document.createElement("iframe");
-                iframe.id = "quote-print-iframe";
-                iframe.style.position = "absolute";
-                iframe.style.left = "-9999px";
-                iframe.style.width = "1px";
-                iframe.style.height = "1px";
-                iframe.style.border = "none";
-                document.body.appendChild(iframe);
-            }
+            tempDiv.innerHTML = htmlContent;
+            document.body.appendChild(tempDiv);
 
-            const doc = iframe.contentWindow.document;
-            doc.open();
-            doc.write(htmlContent);
-            doc.close();
+            const pdfFilename = `Presupuesto_ArielDev_${clientName.replace(/\s+/g, "_")}.pdf`;
+            const opt = {
+                margin:       10,
+                filename:     pdfFilename,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2.5, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            if (typeof html2pdf !== "undefined") {
+                html2pdf().set(opt).from(tempDiv).save().then(() => {
+                    document.body.removeChild(tempDiv);
+                }).catch(err => {
+                    console.error("Error al descargar PDF:", err);
+                    document.body.removeChild(tempDiv);
+                });
+            } else {
+                alert("La librería de descarga de PDF está cargando. Por favor, intenta de nuevo en unos segundos.");
+                document.body.removeChild(tempDiv);
+            }
         });
     }
 
