@@ -63,7 +63,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const sumDeliveryTime = document.getElementById("sum-delivery-time");
     const sumTotalPrice = document.getElementById("sum-total-price");
     const btnQuoteWhatsapp = document.getElementById("btn-quote-whatsapp");
-    const btnQuoteMail = document.getElementById("btn-quote-mail");
     const btnQuotePdf = document.getElementById("btn-quote-pdf");
     const sumTotalPriceArs = document.getElementById("sum-total-price-ars");
     const installmentsDetail = document.getElementById("installments-detail");
@@ -745,14 +744,7 @@ document.addEventListener("DOMContentLoaded", () => {
         window.open(whatsappUrl, "_blank");
     });
 
-    // Botón de Email
-    btnQuoteMail.addEventListener("click", () => {
-        const messageText = generateQuotationText();
-        const subject = encodeURIComponent("Solicitud de Cotización Web - Ariel.Dev");
-        const body = encodeURIComponent(messageText.replace(/\*/g, "")); 
-        const mailToUrl = `mailto:ariel.martinelli.dev@gmail.com?subject=${subject}&body=${body}`;
-        window.open(mailToUrl, "_blank");
-    });
+
 
     // Botón de PDF
     if (btnQuotePdf) {
