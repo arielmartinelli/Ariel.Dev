@@ -833,12 +833,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const container = document.createElement("div");
             container.id = "quote-print-container";
-            container.style.height = "0";
-            container.style.overflow = "hidden";
-            container.style.position = "fixed";
-            container.style.top = "0";
-            container.style.left = "0";
-            container.style.zIndex = "-9999";
+            container.style.position = "absolute";
+            container.style.left = "-9999px";
+            container.style.top = "-9999px";
+            container.style.width = "750px";
+            container.style.height = "auto";
+            container.style.overflow = "visible";
 
             const tempDiv = document.createElement("div");
             tempDiv.id = "quote-print-temp";
