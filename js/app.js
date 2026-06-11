@@ -831,12 +831,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const finalTotalArs = Math.round(finalTotalUsd * dollarRate);
             const time = sumDeliveryTime.textContent;
 
+            const container = document.createElement("div");
+            container.id = "quote-print-container";
+            container.style.height = "0";
+            container.style.overflow = "hidden";
+            container.style.position = "fixed";
+            container.style.top = "0";
+            container.style.left = "0";
+            container.style.zIndex = "-9999";
+
             const tempDiv = document.createElement("div");
             tempDiv.id = "quote-print-temp";
-            tempDiv.style.position = "fixed";
-            tempDiv.style.left = "0";
-            tempDiv.style.top = "0";
-            tempDiv.style.zIndex = "-9999";
             tempDiv.style.width = "750px";
             tempDiv.style.background = "#ffffff";
             tempDiv.style.boxSizing = "border-box";
@@ -1054,7 +1059,8 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
 
             tempDiv.innerHTML = htmlContent;
-            document.body.appendChild(tempDiv);
+            container.appendChild(tempDiv);
+            document.body.appendChild(container);
 
             const pdfFilename = `Presupuesto_ArielDev_${clientName.replace(/\s+/g, "_")}.pdf`;
             const opt = {
@@ -1067,14 +1073,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (typeof html2pdf !== "undefined") {
                 html2pdf().set(opt).from(tempDiv).save().then(() => {
-                    document.body.removeChild(tempDiv);
+                    document.body.removeChild(container);
                 }).catch(err => {
                     console.error("Error al descargar PDF:", err);
-                    document.body.removeChild(tempDiv);
+                    document.body.removeChild(container);
                 });
             } else {
                 Swal.fire("Descarga de PDF", "La librería de descarga de PDF está cargando. Por favor, intenta de nuevo en unos segundos.", "info");
-                document.body.removeChild(tempDiv);
+                document.body.removeChild(container);
             }
         });
     }
