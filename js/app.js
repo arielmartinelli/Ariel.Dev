@@ -64,6 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const sumTotalPrice = document.getElementById("sum-total-price");
     const btnQuoteWhatsapp = document.getElementById("btn-quote-whatsapp");
     const btnQuoteMail = document.getElementById("btn-quote-mail");
+    const btnQuotePdf = document.getElementById("btn-quote-pdf");
     const sumTotalPriceArs = document.getElementById("sum-total-price-ars");
     const installmentsDetail = document.getElementById("installments-detail");
     const installmentPriceValue = document.getElementById("installment-price-value");
@@ -752,6 +753,343 @@ document.addEventListener("DOMContentLoaded", () => {
         const mailToUrl = `mailto:ariel.martinelli.dev@gmail.com?subject=${subject}&body=${body}`;
         window.open(mailToUrl, "_blank");
     });
+
+    // Botón de PDF
+    if (btnQuotePdf) {
+        btnQuotePdf.addEventListener("click", () => {
+            const clientName = contactName.value.trim() || "Cliente Interesado";
+            
+            const activeComboCard = document.querySelector(".combo-card.active");
+            if (!activeComboCard) return;
+            const comboName = activeComboCard.querySelector("h4").textContent;
+            const comboPrice = parseInt(activeComboCard.dataset.price);
+
+            const addons = [];
+            addonCheckboxes.forEach(cb => {
+                if (cb.checked) {
+                    addons.push({
+                        name: cb.parentElement.querySelector(".addon-title").textContent,
+                        price: parseInt(cb.dataset.price)
+                    });
+                }
+            });
+
+            const dateStr = new Date().toLocaleDateString("es-AR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+            });
+
+            let addonsMarkup = "";
+            let baseTotal = comboPrice;
+            addons.forEach(addon => {
+                baseTotal += addon.price;
+                addonsMarkup += `
+                    <tr>
+                        <td>Adicional: ${addon.name}</td>
+                        <td class="price-col">+$${addon.price} USD</td>
+                        <td class="price-col">+$${(addon.price * dollarRate).toLocaleString("es-AR")} ARS</td>
+                    </tr>
+                `;
+            });
+
+            const isInstallments = payInstallmentsRadio && payInstallmentsRadio.checked;
+            let finalTotalUsd = baseTotal;
+            let chargeMarkup = "";
+            let installmentsMarkup = "";
+
+            if (isInstallments) {
+                finalTotalUsd = Math.round(baseTotal * 1.10);
+                const chargeUsd = finalTotalUsd - baseTotal;
+                const chargeArs = chargeUsd * dollarRate;
+                chargeMarkup = `
+                    <tr>
+                        <td>Recargo 10% (Financiación):</td>
+                        <td style="text-align: right;">+$${chargeUsd} USD</td>
+                    </tr>
+                    <tr>
+                        <td>Recargo ARS:</td>
+                        <td style="text-align: right;">+$${chargeArs.toLocaleString("es-AR")} ARS</td>
+                    </tr>
+                `;
+
+                const installmentUsd = (finalTotalUsd / 3).toFixed(2);
+                const installmentArs = Math.round((finalTotalUsd * dollarRate) / 3).toLocaleString("es-AR");
+                
+                installmentsMarkup = `
+                    <div class="installments-banner">
+                        <strong>💳 Financiación seleccionada: 3 cuotas sin interés</strong>
+                        <p style="margin: 6px 0 0 0;">Esta propuesta se abonará en 3 cuotas mensuales de <strong>$${installmentUsd} USD ($${installmentArs} ARS)</strong> cada una.</p>
+                    </div>
+                `;
+            }
+
+            const finalTotalArs = Math.round(finalTotalUsd * dollarRate);
+            const time = sumDeliveryTime.textContent;
+
+            const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <title>Propuesta de Presupuesto - Ariel.Dev</title>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+                <style>
+                    body {
+                        font-family: 'Inter', sans-serif;
+                        color: #1e293b;
+                        background-color: #ffffff;
+                        margin: 0;
+                        padding: 40px;
+                        line-height: 1.5;
+                    }
+                    .header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        border-bottom: 2px solid #e2e8f0;
+                        padding-bottom: 20px;
+                        margin-bottom: 30px;
+                    }
+                    .logo {
+                        font-family: 'Outfit', sans-serif;
+                        font-weight: 800;
+                        font-size: 1.8rem;
+                        color: #0f172a;
+                    }
+                    .logo span {
+                        color: #6366f1;
+                    }
+                    .doc-info {
+                        text-align: right;
+                        font-size: 0.9rem;
+                        color: #64748b;
+                    }
+                    .doc-title {
+                        font-family: 'Outfit', sans-serif;
+                        font-size: 2.2rem;
+                        font-weight: 700;
+                        color: #0f172a;
+                        margin: 0 0 10px 0;
+                    }
+                    .client-info {
+                        background-color: #f8fafc;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 12px;
+                        padding: 20px;
+                        margin-bottom: 30px;
+                    }
+                    .client-info h3 {
+                        margin: 0 0 10px 0;
+                        font-family: 'Outfit', sans-serif;
+                        font-size: 1.1rem;
+                        color: #0f172a;
+                    }
+                    .client-info p {
+                        margin: 4px 0;
+                        font-size: 0.95rem;
+                        color: #475569;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 30px;
+                    }
+                    th {
+                        background-color: #f1f5f9;
+                        color: #0f172a;
+                        font-family: 'Outfit', sans-serif;
+                        font-weight: 600;
+                        text-align: left;
+                        padding: 12px;
+                        font-size: 0.95rem;
+                        border-bottom: 2px solid #cbd5e1;
+                    }
+                    td {
+                        padding: 12px;
+                        font-size: 0.95rem;
+                        border-bottom: 1px solid #e2e8f0;
+                        color: #334155;
+                    }
+                    .price-col {
+                        text-align: right;
+                    }
+                    .totals-section {
+                        display: flex;
+                        justify-content: flex-end;
+                        margin-bottom: 40px;
+                    }
+                    .totals-table {
+                        width: 350px;
+                        margin-bottom: 0;
+                    }
+                    .totals-table td {
+                        padding: 8px 12px;
+                        border-bottom: none;
+                    }
+                    .totals-table tr.grand-total td {
+                        font-family: 'Outfit', sans-serif;
+                        font-size: 1.25rem;
+                        font-weight: 700;
+                        color: #6366f1;
+                        border-top: 2px solid #e2e8f0;
+                        padding-top: 12px;
+                    }
+                    .installments-banner {
+                        background-color: #fdf2f8;
+                        border: 1px solid #fbcfe8;
+                        border-radius: 8px;
+                        padding: 15px;
+                        margin-bottom: 30px;
+                        color: #9d174d;
+                        font-size: 0.95rem;
+                    }
+                    .installments-banner strong {
+                        font-size: 1.05rem;
+                    }
+                    .footer {
+                        border-top: 1px solid #e2e8f0;
+                        padding-top: 20px;
+                        margin-top: 60px;
+                        font-size: 0.85rem;
+                        color: #64748b;
+                        display: flex;
+                        justify-content: space-between;
+                    }
+                    .footer-left p {
+                        margin: 4px 0;
+                    }
+                    .footer-left span {
+                        color: #334155;
+                        font-weight: 500;
+                    }
+                    @media print {
+                        body {
+                            padding: 0;
+                        }
+                        .no-print {
+                            display: none;
+                        }
+                    }
+                    .print-btn-container {
+                        display: flex;
+                        justify-content: center;
+                        margin-bottom: 20px;
+                    }
+                    .print-btn {
+                        background-color: #6366f1;
+                        color: #ffffff;
+                        border: none;
+                        padding: 12px 24px;
+                        border-radius: 8px;
+                        font-family: 'Inter', sans-serif;
+                        font-weight: 600;
+                        cursor: pointer;
+                        box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2);
+                        transition: all 0.2s;
+                        font-size: 0.95rem;
+                    }
+                    .print-btn:hover {
+                        background-color: #4f46e5;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="print-btn-container no-print">
+                    <button onclick="window.print()" class="print-btn">Imprimir o Guardar como PDF</button>
+                </div>
+                <div class="header">
+                    <div class="logo">Ariel<span>.Dev</span></div>
+                    <div class="doc-info">
+                        <p style="margin: 0; font-weight: 600; color: #0f172a;">Presupuesto Estimado</p>
+                        <p style="margin: 4px 0 0 0;">Fecha: ${dateStr}</p>
+                    </div>
+                </div>
+                
+                <h1 class="doc-title">Propuesta Técnica y Económica</h1>
+                
+                <div class="client-info">
+                    <h3>Detalles de la Propuesta</h3>
+                    <p><strong>Destinatario:</strong> ${clientName}</p>
+                    <p><strong>Desarrollador:</strong> Ariel Martinelli (Córdoba, Argentina)</p>
+                    <p><strong>Validez:</strong> 15 días desde la fecha de emisión</p>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Detalle del Componente / Servicio</th>
+                            <th class="price-col">Monto (USD)</th>
+                            <th class="price-col">Monto (ARS)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Combo Seleccionado:</strong> ${comboName}</td>
+                            <td class="price-col">$${comboPrice} USD</td>
+                            <td class="price-col">$${(comboPrice * dollarRate).toLocaleString("es-AR")} ARS</td>
+                        </tr>
+                        ${addonsMarkup}
+                    </tbody>
+                </table>
+
+                ${installmentsMarkup}
+
+                <div class="totals-section">
+                    <table class="totals-table">
+                        <tr>
+                            <td><strong>Tiempo de Entrega:</strong></td>
+                            <td style="text-align: right;"><strong>${time}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Subtotal USD:</td>
+                            <td style="text-align: right;">$${baseTotal} USD</td>
+                        </tr>
+                        <tr>
+                            <td>Subtotal ARS:</td>
+                            <td style="text-align: right;">$${(baseTotal * dollarRate).toLocaleString("es-AR")} ARS</td>
+                        </tr>
+                        ${chargeMarkup}
+                        <tr class="grand-total">
+                            <td>Total Final:</td>
+                            <td style="text-align: right;">$${finalTotalUsd} USD</td>
+                        </tr>
+                        <tr class="grand-total" style="font-size: 1.15rem; color: #06b6d4;">
+                            <td>Total en Pesos:</td>
+                            <td style="text-align: right;">$${finalTotalArs.toLocaleString("es-AR")} ARS</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="footer">
+                    <div class="footer-left">
+                        <p>Contacto: <span>ariel.martinelli.dev@gmail.com</span></p>
+                        <p>WhatsApp: <span>+54 351 612 1498</span></p>
+                    </div>
+                    <div>
+                        <p>Córdoba, Argentina</p>
+                    </div>
+                </div>
+                <script>
+                    window.onload = function() {
+                        setTimeout(function() {
+                            window.print();
+                        }, 300);
+                    };
+                </script>
+            </body>
+            </html>
+            `;
+
+            const printWindow = window.open("", "_blank");
+            if (printWindow) {
+                printWindow.document.write(htmlContent);
+                printWindow.document.close();
+            } else {
+                alert("Por favor, permite las ventanas emergentes (pop-ups) en tu navegador para generar el PDF.");
+            }
+        });
+    }
 
     // Formulario de Contacto General
     contactForm.addEventListener("submit", (e) => {
