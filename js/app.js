@@ -751,7 +751,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnQuoteWhatsapp.addEventListener("click", () => {
         const message = generateQuotationText();
         const encodedMessage = encodeURIComponent(message);
-        const phoneNumber = "543516121498"; 
+        const phoneNumber = "543517877753"; 
         const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
         window.open(whatsappUrl, "_blank");
     });
@@ -1052,7 +1052,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="footer">
                         <div class="footer-left">
                             <p>Contacto: <span>ariel.martinelli.dev@gmail.com</span></p>
-                            <p>WhatsApp: <span>+54 351 612 1498</span></p>
+                            <p>WhatsApp: <span>+54 351 787 7753</span></p>
                         </div>
                         <div>
                             <p>Córdoba, Argentina</p>
