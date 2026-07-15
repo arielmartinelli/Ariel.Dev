@@ -74,7 +74,7 @@ body {
     color: var(--text-primary);
     font-family: var(--font-body);
     line-height: 1.6;
-    overflow-x: hidden;
+    overflow-x: clip;
     transition: background-color 0.5s ease, color 0.3s ease;
 }
 
@@ -2168,3 +2168,458 @@ body.light-theme .summary-total-container {
     text-align: center;
     margin-top: 12px;
 }
+
+/* ==========================================================================
+   REDISEÑO PREMIUM: Efectos 3D y Stacking Cards
+   ========================================================================== */
+
+/* 1. Efecto Magnético */
+.magnet-target {
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform;
+}
+
+/* 2. Inclinación 3D en Servicios */
+.service-card-3d {
+    perspective: 1200px;
+    transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.5s ease;
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
+    outline: 1px solid transparent;
+}
+
+.service-card-3d:hover {
+    box-shadow: 0 15px 35px rgba(99, 102, 241, 0.15);
+}
+
+.service-card-3d-inner {
+    height: 100%;
+    width: 100%;
+}
+
+/* 3. Tarjetas Apilables (Sticky Stacking Cards) */
+.projects-stack-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.sticky-stack-card {
+    position: sticky;
+    top: 120px;
+    background: #0f121d !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 28px;
+    padding: 40px;
+    margin-bottom: 80px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 40px;
+    align-items: center;
+    overflow: hidden;
+    will-change: transform, filter;
+    transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+.sticky-stack-card.revealed {
+    transition: filter 0.3s ease, opacity 0.3s ease !important;
+}
+
+@media (max-width: 768px) {
+    .sticky-stack-card {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding: 24px;
+        margin-bottom: 40px;
+    }
+}
+
+.stack-card-tag {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--secondary);
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 12px;
+}
+
+.stack-card-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 16px;
+    line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+    .stack-card-title {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+}
+
+.stack-card-desc {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(215, 226, 234, 0.7);
+    margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+    .stack-card-desc {
+        font-size: 0.9rem;
+        margin-bottom: 16px;
+    }
+}
+
+.stack-card-img {
+    width: 100%;
+    height: auto;
+    max-height: 280px;
+    object-fit: cover;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.stack-card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.stack-card-link:hover {
+    color: var(--secondary);
+    transform: translateX(5px);
+}
+
+.sticky-stack-card .tag {
+    font-size: 0.7rem;
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(215, 226, 234, 0.8);
+    padding: 4px 10px;
+    border-radius: 50px;
+    font-weight: 500;
+}
+
+/* 4. Cursor Premium */
+body {
+    cursor: none;
+}
+
+input, select, textarea, button, a, [role="button"], .admin-panel-trigger {
+    cursor: none;
+}
+
+@media (pointer: coarse) {
+    body, input, select, textarea, button, a, [role="button"] {
+        cursor: auto;
+    }
+    .custom-cursor {
+        display: none !important;
+    }
+}
+
+.custom-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10000;
+    display: none;
+}
+
+.cursor-dot {
+    width: 26px;
+    height: 26px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    position: fixed;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 0.65rem;
+    color: #0c0f19;
+    transition: width 0.2s, height 0.2s, background-color 0.2s, color 0.2s, border-radius 0.2s;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.cursor-follower {
+    width: 42px;
+    height: 42px;
+    border: 1px solid #ffffff;
+    border-radius: 50%;
+    position: fixed;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10001;
+    mix-blend-mode: difference;
+    transition: width 0.2s, height 0.2s, border-color 0.2s, background-color 0.2s;
+}
+
+body.cursor-hover .cursor-dot {
+    width: 32px;
+    height: 32px;
+    background-color: var(--secondary);
+    color: #ffffff;
+    border-radius: 6px;
+    box-shadow: 0 0 15px var(--secondary-glow);
+}
+
+body.cursor-hover .cursor-follower {
+    width: 56px;
+    height: 56px;
+    border-color: var(--secondary);
+    background-color: rgba(99, 102, 241, 0.05);
+}
+
+body.cursor-hover-code .cursor-dot {
+    width: 36px;
+    height: 36px;
+    background-color: var(--accent);
+    color: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 0 15px var(--accent-glow);
+}
+
+body.cursor-hover-code .cursor-follower {
+    width: 60px;
+    height: 60px;
+    border-color: var(--accent);
+    background-color: rgba(217, 70, 239, 0.05);
+}
+
+/* 5. Barra de progreso superior */
+.scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--secondary) 0%, var(--accent) 100%);
+    z-index: 99999;
+    box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+    transition: width 0.05s ease-out;
+}
+
+/* 6. Animaciones de revelado al scroll */
+.reveal-on-scroll {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: opacity, transform;
+}
+
+.reveal-on-scroll.revealed {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 7. Lenis Smooth Scroll Configuration */
+html.lenis, html.lenis body {
+    height: auto;
+}
+
+.lenis-smooth {
+    scroll-behavior: auto !important;
+}
+
+.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+}
+
+.lenis-stopped {
+    overflow: hidden;
+}
+
+.lenis-scrolling iframe {
+    pointer-events: none;
+}
+
+/* 8. Stats Section Styles */
+.stats-section {
+    padding: 60px 0;
+    position: relative;
+    z-index: 10;
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    text-align: center;
+}
+
+@media (max-width: 992px) {
+    .stats-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+}
+
+@media (max-width: 576px) {
+    .stats-container {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}
+
+.stat-item {
+    padding: 35px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 24px;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), border-color 0.3s ease;
+}
+
+body.light-theme .stat-item {
+    background: rgba(255, 255, 255, 0.45);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.stat-item:hover {
+    transform: translateY(-5px);
+    border-color: var(--secondary);
+}
+
+.stat-number {
+    font-family: var(--font-heading);
+    font-size: 3.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+}
+
+/* 9. Card Glow Effect (Vercel Style) */
+.service-card-3d, .sticky-stack-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.service-card-3d::before, .sticky-stack-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background: radial-gradient(400px circle at var(--mx, 0px) var(--my, 0px), rgba(99, 102, 241, 0.08), transparent 80%);
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.service-card-3d:hover::before, .sticky-stack-card:hover::before {
+    opacity: 1;
+}
+
+/* Forzar que los hijos de tarjetas estén por encima del brillo */
+.service-card-3d > *, .sticky-stack-card > * {
+    position: relative;
+    z-index: 2;
+}
+
+/* 10. Light Theme Premium Styling Overrides */
+body.light-theme {
+    --bg-dark: #f8fafc;
+    --bg-surface: rgba(255, 255, 255, 0.65);
+    --bg-surface-opaque: #ffffff;
+    --bg-card: rgba(255, 255, 255, 0.75);
+    --border: rgba(15, 23, 42, 0.06);
+    --border-hover: rgba(15, 23, 42, 0.12);
+}
+
+body.light-theme .glass {
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03), 0 2px 8px -1px rgba(15, 23, 42, 0.01);
+    border: 1px solid rgba(15, 23, 42, 0.05);
+}
+
+body.light-theme .shape {
+    opacity: 0.12 !important;
+    filter: blur(140px) !important;
+}
+
+body.light-theme .mockup-code {
+    color: #1e293b !important;
+}
+
+body.light-theme .c-blue { color: #0969da !important; font-weight: 600; }
+body.light-theme .c-green { color: #1a7f37 !important; }
+body.light-theme .c-orange { color: #cf222e !important; }
+body.light-theme .c-comment { color: #6e7781 !important; font-style: italic; }
+
+body.light-theme .floating-badge {
+    background-color: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(15, 23, 42, 0.06) !important;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
+    color: #0f172a !important;
+}
+
+body.light-theme .floating-badge .badge-title {
+    color: #1e293b !important;
+}
+body.light-theme .floating-badge .badge-desc {
+    color: #64748b !important;
+}
+
+/* Light theme overrides for dynamic sticky stack cards */
+body.light-theme .sticky-stack-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 15px 30px rgba(15, 23, 42, 0.05);
+}
+
+body.light-theme .stack-card-title {
+    color: var(--text-primary) !important;
+}
+
+body.light-theme .stack-card-desc {
+    color: var(--text-secondary) !important;
+}
+
+body.light-theme .stack-card-link {
+    color: var(--primary) !important;
+}
+
+body.light-theme .stack-card-link:hover {
+    color: var(--secondary) !important;
+}
+
+body.light-theme .sticky-stack-card .tag {
+    background-color: rgba(15, 23, 42, 0.04) !important;
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+    color: var(--text-secondary) !important;
+}
+
+
+
+

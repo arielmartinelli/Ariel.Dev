@@ -75,6 +75,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const contactForm = document.getElementById("contact-form");
     const contactName = document.getElementById("contact-name");
 
+    let scrollRevealObserver;
+    let bindCursorHoverEvents;
+    let bindCardGlowTracker;
+
     // Variables de Estado
     let uploadedImageBase64 = "";
     let isEditMode = false;
@@ -165,58 +169,71 @@ document.addEventListener("DOMContentLoaded", () => {
     // 4. Renderizado e Interacción del Portfolio (Filtros)
     // ==========================================================================
     async function renderPortfolio(filter = "all") {
-        portfolioGrid.innerHTML = "";
-        const projects = await getProjects();
+        const container = document.getElementById("projects-stack-container");
+        if (!container) return;
 
-        const filteredProjects = filter === "all" 
-            ? projects 
-            : projects.filter(p => p.category === filter);
+        container.style.opacity = "0";
+        container.style.transition = "opacity 0.2s ease";
 
-        if (filteredProjects.length === 0) {
-            portfolioGrid.innerHTML = `
-                <div class="glass text-center w-full" style="grid-column: 1/-1; padding: 40px;">
-                    <p style="color: var(--text-secondary);">No hay proyectos cargados en esta categoría.</p>
-                </div>
-            `;
-            return;
-        }
+        setTimeout(async () => {
+            container.innerHTML = "";
+            const projects = await getProjects();
 
-        filteredProjects.forEach(proj => {
-            const card = document.createElement("div");
-            card.className = "project-card glass";
-            card.style.opacity = "0";
-            card.style.transform = "scale(0.95)";
-            card.style.transition = "opacity 0.4s ease, transform 0.4s ease";
+            const filteredProjects = filter === "all" 
+                ? projects 
+                : projects.filter(p => p.category === filter);
 
-            // Creación de tags HTML
-            const tagsHTML = proj.tags.map(t => `<span class="tag">${t.trim()}</span>`).join("");
-
-            card.innerHTML = `
-                <div class="project-image-box">
-                    <img src="${proj.image}" alt="${proj.title}" loading="lazy">
-                    <div class="project-overlay">
-                        <div class="project-tags">${tagsHTML}</div>
+            if (filteredProjects.length === 0) {
+                container.innerHTML = `
+                    <div class="glass text-center w-full" style="padding: 40px; border-radius: 28px;">
+                        <p style="color: var(--text-secondary);">No hay proyectos cargados en esta categoría.</p>
                     </div>
-                </div>
-                <div class="project-info">
-                    <span class="project-category">${getCategoryLabel(proj.category)}</span>
-                    <h3>${proj.title}</h3>
-                    <p>${proj.description}</p>
-                    <a href="${proj.demoUrl || '#'}" target="_blank" rel="noopener" class="project-link">
-                        Visitar demo
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                    </a>
-                </div>
-            `;
+                `;
+                container.style.opacity = "1";
+                return;
+            }
 
-            portfolioGrid.appendChild(card);
-            
-            // Micro-delay para disparar animación
-            setTimeout(() => {
-                card.style.opacity = "1";
-                card.style.transform = "scale(1)";
-            }, 50);
-        });
+            filteredProjects.forEach((proj, i) => {
+                const card = document.createElement("div");
+                card.className = "sticky-stack-card reveal-on-scroll";
+                card.style.zIndex = i + 1;
+
+                const tagsHTML = (proj.tags || []).map(t => `<span class="tag">${t.trim()}</span>`).join("");
+
+                card.innerHTML = `
+                    <div class="stack-card-info">
+                        <span class="stack-card-tag">${getCategoryLabel(proj.category)}</span>
+                        <h3 class="stack-card-title">${proj.title}</h3>
+                        <p class="stack-card-desc">${proj.description}</p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;">${tagsHTML}</div>
+                        ${proj.demoUrl && proj.demoUrl !== '#' ? `
+                        <a href="${proj.demoUrl}" target="_blank" rel="noopener" class="stack-card-link">
+                            Visitar demo
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </a>
+                        ` : ''}
+                    </div>
+                    <div class="stack-card-image-box">
+                        <img src="${proj.image}" alt="${proj.title}" class="stack-card-img" onerror="this.style.display='none'">
+                    </div>
+                `;
+
+                container.appendChild(card);
+
+                if (scrollRevealObserver) {
+                    scrollRevealObserver.observe(card);
+                }
+            });
+
+            container.style.opacity = "1";
+
+            if (typeof bindCursorHoverEvents === "function") {
+                bindCursorHoverEvents();
+            }
+            if (typeof bindCardGlowTracker === "function") {
+                bindCardGlowTracker();
+            }
+        }, 200);
     }
 
     function getCategoryLabel(catId) {
@@ -1213,6 +1230,387 @@ document.addEventListener("DOMContentLoaded", () => {
                 window.location.href = `ventajas-${service}.html`;
             });
         }
+
+        // ---- REDISEÑO PREMIUM ----
+        // initSmoothScroll();
+        initCustomCursor();
+        initScrollEffects();
+        initMagnetEffect();
+        initCodeTypingEffect();
+        init3DTilt();
+        initStackingProjectsScroll();
+        initCardGlowTracker();
     }
+
+    // ==========================================================================
+    // 9. REDISEÑO PREMIUM: Efectos 3D y Escritura en Vivo
+    // ==========================================================================
+
+    /**
+     * Efecto magnético en el cuadro de código del Hero (magnet-target)
+     */
+    function initMagnetEffect() {
+        const magnets = document.querySelectorAll('.magnet-target');
+        magnets.forEach(magnet => {
+            magnet.addEventListener('mousemove', (e) => {
+                if (window.innerWidth < 1024) {
+                    magnet.style.transform = 'translate(0, 0)';
+                    return;
+                }
+                const rect = magnet.getBoundingClientRect();
+                const x = e.clientX - rect.left - (rect.width / 2);
+                const y = e.clientY - rect.top - (rect.height / 2);
+                
+                const strength = magnet.dataset.strength || 15;
+                magnet.style.transform = `translate(${x / strength}px, ${y / strength}px)`;
+            });
+
+            magnet.addEventListener('mouseleave', () => {
+                magnet.style.transform = 'translate(0, 0)';
+            });
+        });
+    }
+
+    /**
+     * Efecto de escritura en vivo para el cuadro de código del Hero
+     */
+    function initCodeTypingEffect() {
+        const codeContainer = document.querySelector('.mockup-code');
+        if (!codeContainer) return;
+
+        const originalHTML = codeContainer.innerHTML;
+
+        // Extraer todos los nodos de texto de forma recursiva
+        function getTextNodes(node) {
+            let textNodes = [];
+            if (node.nodeType === Node.TEXT_NODE) {
+                textNodes.push(node);
+            } else {
+                for (let child of node.childNodes) {
+                    textNodes = textNodes.concat(getTextNodes(child));
+                }
+            }
+            return textNodes;
+        }
+
+        const textNodes = getTextNodes(codeContainer);
+        const texts = textNodes.map(node => {
+            const text = node.nodeValue;
+            node.nodeValue = '';
+            return text;
+        });
+
+        let nodeIndex = 0;
+        let charIndex = 0;
+        const typingSpeed = 8; // velocidad de escritura ultra rápida por letra (8ms)
+        const delayBeforeRestart = 4000; // pausa de 4 segundos antes de reiniciar
+
+        function type() {
+            if (nodeIndex >= textNodes.length) {
+                setTimeout(() => {
+                    codeContainer.innerHTML = originalHTML;
+                    initCodeTypingEffect();
+                }, delayBeforeRestart);
+                return;
+            }
+
+            const currentNode = textNodes[nodeIndex];
+            const currentFullText = texts[nodeIndex];
+
+            // Si es un espacio o salto de línea en blanco, escribir instantáneamente (2ms)
+            const currentSpeed = (currentFullText.trim() === '') ? 2 : typingSpeed;
+
+            if (charIndex < currentFullText.length) {
+                currentNode.nodeValue += currentFullText.charAt(charIndex);
+                charIndex++;
+                setTimeout(type, currentSpeed);
+            } else {
+                nodeIndex++;
+                charIndex = 0;
+                setTimeout(type, typingSpeed * 1.5);
+            }
+        }
+
+        setTimeout(type, 1000);
+    }
+
+    /**
+     * Rotación física 3D en las tarjetas de servicios (3D Tilt Effect)
+     */
+    function init3DTilt() {
+        const cards = document.querySelectorAll('.service-card-3d');
+        
+        cards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                if (window.innerWidth < 1024) {
+                    card.style.transform = '';
+                    return;
+                }
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const xc = rect.width / 2;
+                const yc = rect.height / 2;
+                
+                // Divisor a 12 para hacer la inclinación de presión consistente y fluida
+                const angleX = (y - yc) / 12;
+                const angleY = (x - xc) / 12;
+                
+                card.style.transition = 'transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.5s ease';
+                card.style.transform = `rotateX(${angleX}deg) rotateY(${angleY}deg) translateZ(0)`;
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'rotateX(0deg) rotateY(0deg) translateZ(0)';
+                card.style.transition = 'transform 0.5s ease';
+            });
+
+            card.addEventListener('mouseenter', () => {
+                if (window.innerWidth < 1024) return;
+                card.style.transition = 'transform 0.1s ease-out';
+            });
+        });
+    }
+
+    /**
+     * Apilamiento 3D interactivo en la sección de proyectos al hacer scroll
+     */
+    function initStackingProjectsScroll() {
+        const container = document.getElementById('projects-stack-container');
+        if (!container) return;
+
+        window.addEventListener('scroll', () => {
+            const cards = container.querySelectorAll('.sticky-stack-card');
+            if (cards.length === 0) return;
+
+            cards.forEach((card, index) => {
+                const cardRect = card.getBoundingClientRect();
+                const cardTop = cardRect.top;
+                const stickyOffset = 120;
+
+                if (cardTop <= stickyOffset + 5) {
+                    const nextCards = Array.from(cards).slice(index + 1);
+                    let progress = 0;
+
+                    if (nextCards.length > 0) {
+                        const nextCardRect = nextCards[0].getBoundingClientRect();
+                        const nextCardTop = nextCardRect.top;
+                        const diff = nextCardTop - stickyOffset;
+                        const maxOverlapDistance = 350;
+                        progress = Math.max(0, Math.min(1, 1 - (diff / maxOverlapDistance)));
+                    }
+
+                    const scale = 1 - (progress * 0.05);
+                    const brightness = 1 - (progress * 0.4);
+                    const translateY = progress * -15;
+
+                    card.style.transform = `perspective(1000px) scale(${scale}) translateY(${translateY}px) rotateX(${progress * -3}deg)`;
+                    card.style.filter = `brightness(${brightness * 100}%)`;
+                } else {
+                    card.style.transform = 'perspective(1000px) scale(1) translateY(0px) rotateX(0deg)';
+                    card.style.filter = 'brightness(100%)';
+                }
+            });
+        });
+    }
+
+    /**
+     * Inicializa el cursor premium personalizado.
+     */
+    function initCustomCursor() {
+        const cursor = document.getElementById('custom-cursor');
+        if (!cursor) return;
+
+        const dot = cursor.querySelector('.cursor-dot');
+        const follower = cursor.querySelector('.cursor-follower');
+        if (!dot || !follower) return;
+
+        let mouseX = 0, mouseY = 0;
+        let followerX = 0, followerY = 0;
+
+        window.addEventListener('mousemove', (e) => {
+            if (window.matchMedia('(pointer: coarse)').matches) {
+                cursor.style.display = 'none';
+                return;
+            } else {
+                cursor.style.display = 'block';
+            }
+
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            dot.style.left = `${mouseX}px`;
+            dot.style.top = `${mouseY}px`;
+        });
+
+        // Suavizado LERP para el aro
+        function animateFollower() {
+            followerX += (mouseX - followerX) * 0.15;
+            followerY += (mouseY - followerY) * 0.15;
+
+            follower.style.left = `${followerX}px`;
+            follower.style.top = `${followerY}px`;
+
+            requestAnimationFrame(animateFollower);
+        }
+        animateFollower();
+
+        bindCursorHoverEvents = function() {
+            const interactives = document.querySelectorAll('a, button, input, select, textarea, .interactive, .combo-card, .addon-item, [role="button"], .filter-btn');
+            interactives.forEach(el => {
+                el.removeEventListener('mouseenter', onMouseEnter);
+                el.removeEventListener('mouseleave', onMouseLeave);
+                
+                el.addEventListener('mouseenter', onMouseEnter);
+                el.addEventListener('mouseleave', onMouseLeave);
+            });
+        };
+
+        function onMouseEnter(e) {
+            const el = e.currentTarget;
+            document.body.classList.add('cursor-hover');
+            if (el.classList.contains('magnet-target') || el.id === 'hero-code-mockup') {
+                document.body.classList.add('cursor-hover-code');
+            }
+        }
+
+        function onMouseLeave() {
+            document.body.classList.remove('cursor-hover', 'cursor-hover-code');
+        }
+
+        bindCursorHoverEvents();
+    }
+
+    /**
+     * Inicializa la barra de progreso de scroll superior y efectos de aparición en scroll.
+     */
+    function initScrollEffects() {
+        const progressBar = document.getElementById('scroll-progress');
+        
+        // 1. Barra de progreso
+        window.addEventListener('scroll', () => {
+            if (!progressBar) return;
+            const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+            if (totalScroll > 0) {
+                const progress = (window.scrollY / totalScroll) * 100;
+                progressBar.style.width = `${progress}%`;
+            }
+        });
+
+        // 2. Efecto de aparición al hacer scroll (Intersection Observer)
+        const revealElements = document.querySelectorAll('.reveal-on-scroll');
+        
+        scrollRevealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('revealed');
+                    
+                    // Si es un stat-item, disparar el conteo
+                    if (entry.target.classList.contains('stat-item')) {
+                        const numEl = entry.target.querySelector('.stat-number');
+                        if (numEl && !numEl.classList.contains('counted')) {
+                            numEl.classList.add('counted');
+                            animateStatCounter(numEl);
+                        }
+                    }
+                    
+                    scrollRevealObserver.unobserve(entry.target); // Dejar de observar una vez visible
+                }
+            });
+        }, { threshold: 0.05 });
+
+        revealElements.forEach(el => scrollRevealObserver.observe(el));
+    }
+
+    /**
+     * Anima el conteo incremental progresivo de una estadística usando requestAnimationFrame
+     */
+    function animateStatCounter(el) {
+        const target = +el.getAttribute('data-target');
+        const duration = 2500; // 2.5 segundos (más lento y elegante)
+        const startTime = performance.now();
+        
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Easing cuadrático de salida para desaceleración suave
+            const easeProgress = progress * (2 - progress);
+            const currentVal = Math.floor(easeProgress * target);
+            
+            const isPercent = el.parentNode.textContent.includes('%');
+            el.textContent = currentVal + (isPercent ? '%' : '+');
+            
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            } else {
+                el.textContent = target + (isPercent ? '%' : '+');
+            }
+        }
+        requestAnimationFrame(update);
+    }
+
+    /**
+     * Inicializa Lenis Smooth Scroll con soporte de inercia
+     */
+    function initSmoothScroll() {
+        if (typeof Lenis !== 'undefined') {
+            const lenis = new Lenis({
+                duration: 1.2,
+                easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+                direction: 'vertical',
+                gestureDirection: 'vertical',
+                smooth: true,
+                mouseMultiplier: 1.0,
+                smoothTouch: false,
+                touchMultiplier: 2,
+                infinite: false,
+            });
+
+            function raf(time) {
+                lenis.raf(time);
+                requestAnimationFrame(raf);
+            }
+            requestAnimationFrame(raf);
+
+            // Vinculación de Lenis con los saltos de menú
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    const target = document.querySelector(targetId);
+                    if (target) {
+                        lenis.scrollTo(target, { offset: -20 });
+                    }
+                });
+            });
+        }
+    }
+
+    /**
+     * Mapea coordenadas del cursor para el brillo radial de fondo en las tarjetas (Glow Effect)
+     */
+    function initCardGlowTracker() {
+        bindCardGlowTracker = function() {
+            const glowCards = document.querySelectorAll('.service-card-3d, .sticky-stack-card');
+            glowCards.forEach(card => {
+                card.removeEventListener('mousemove', onCardMouseMove);
+                card.addEventListener('mousemove', onCardMouseMove);
+            });
+        };
+
+        function onCardMouseMove(e) {
+            const card = e.currentTarget;
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            card.style.setProperty('--mx', `${x}px`);
+            card.style.setProperty('--my', `${y}px`);
+        }
+
+        bindCardGlowTracker();
+    }
+
     init();
 });

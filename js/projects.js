@@ -45,7 +45,8 @@ const DEFAULT_CATEGORIES = [
   { id: "landing", label: "Landing Page" },
   { id: "ecommerce", label: "E-Commerce" },
   { id: "portfolio", label: "Portfolio" },
-  { id: "custom", label: "Custom App" }
+  { id: "custom", label: "Custom App" },
+  { id: "invitacion", label: "Tarjeta de Invitación" }
 ];
 
 // 1. Obtener proyectos (Asíncrono con Supabase)
