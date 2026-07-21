@@ -2646,7 +2646,9 @@ body.light-theme .sticky-stack-card .tag {
 
 /* El contenedor interior recibe el transform: scale() y filter sin interferir con sticky */
 .stage-card-inner {
-    background: rgba(15, 18, 29, 0.85) !important;
+    background: #0f121d !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-radius: 28px;
     padding: 36px 40px;
