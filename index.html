@@ -377,24 +377,42 @@
         <!-- Portfolio Gallery Section -->
         <section id="portfolio" class="portfolio-section">
             <div class="container">
-                <div class="section-header flex-header">
-                    <div>
-                        <span class="section-tag">Mis Trabajos</span>
-                        <h2 class="section-title">Explora mis creaciones</h2>
+                <div class="portfolio-header-sticky">
+                    <div class="section-header flex-header">
+                        <div>
+                            <span class="section-tag">Mis Trabajos</span>
+                            <h2 class="section-title">Explora mis creaciones</h2>
+                        </div>
+                        <!-- Filter Buttons -->
+                        <div class="filter-wrapper" id="filter-wrapper">
+                            <button class="filter-btn active" data-filter="all">Todos</button>
+                            <button class="filter-btn" data-filter="landing">Landings</button>
+                            <button class="filter-btn" data-filter="ecommerce">E-Commerce</button>
+                            <button class="filter-btn" data-filter="portfolio">Portfolios</button>
+                            <button class="filter-btn" data-filter="custom">Custom Apps</button>
+                        </div>
                     </div>
-                    <!-- Filter Buttons -->
-                    <div class="filter-wrapper" id="filter-wrapper">
-                        <button class="filter-btn active" data-filter="all">Todos</button>
-                        <button class="filter-btn" data-filter="landing">Landings</button>
-                        <button class="filter-btn" data-filter="ecommerce">E-Commerce</button>
-                        <button class="filter-btn" data-filter="portfolio">Portfolios</button>
-                        <button class="filter-btn" data-filter="custom">Custom Apps</button>
+
+                    <!-- Design Mode Switcher Toolbar (Prueba Local) -->
+                    <div class="design-mode-switcher-container" style="display: flex; justify-content: center; margin-top: 20px; margin-bottom: 10px;">
+                        <div class="design-mode-switcher" id="design-mode-switcher">
+                            <span class="switcher-label">🎨 Probar Diseño:</span>
+                            <button class="design-mode-btn active" data-mode="bento">
+                                <span class="mode-icon">🔮</span> Bento Grid
+                            </button>
+                            <button class="design-mode-btn" data-mode="stage">
+                                <span class="mode-icon">🏎️</span> 3D Stage
+                            </button>
+                            <button class="design-mode-btn" data-mode="split">
+                                <span class="mode-icon">🌌</span> Split Deck
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Projects Stack Container -->
-                <div class="projects-stack-wrapper" style="width: 100%; margin-top: 50px;">
-                    <div class="w-full flex flex-col gap-24 relative mb-20" id="projects-stack-container">
+                <div class="projects-stack-wrapper" style="width: 100%; margin-top: 20px;">
+                    <div class="w-full relative mb-20" id="projects-stack-container">
                         <!-- Loaded dynamically via JS -->
                     </div>
                 </div>

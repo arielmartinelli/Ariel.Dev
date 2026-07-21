@@ -168,6 +168,35 @@ document.addEventListener("DOMContentLoaded", () => {
     // ==========================================================================
     // 4. Renderizado e Interacción del Portfolio (Filtros)
     // ==========================================================================
+    // Selector de Modo de Diseño de Proyectos (Local)
+    // ==========================================================================
+    let currentDesignMode = localStorage.getItem("portfolio_design_mode") || "bento";
+
+    function initProjectDesignSwitcher() {
+        const switcherContainer = document.getElementById("design-mode-switcher");
+        if (!switcherContainer) return;
+
+        const btns = switcherContainer.querySelectorAll(".design-mode-btn");
+        btns.forEach(btn => {
+            if (btn.dataset.mode === currentDesignMode) {
+                btn.classList.add("active");
+            } else {
+                btn.classList.remove("active");
+            }
+
+            btn.addEventListener("click", () => {
+                btns.forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+                currentDesignMode = btn.dataset.mode;
+                localStorage.setItem("portfolio_design_mode", currentDesignMode);
+
+                const activeFilterBtn = document.querySelector("#filter-wrapper .filter-btn.active");
+                const currentFilter = activeFilterBtn ? activeFilterBtn.dataset.filter : "all";
+                renderPortfolio(currentFilter);
+            });
+        });
+    }
+
     async function renderPortfolio(filter = "all") {
         const container = document.getElementById("projects-stack-container");
         if (!container) return;
@@ -177,6 +206,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         setTimeout(async () => {
             container.innerHTML = "";
+            container.className = `w-full relative mb-20 projects-mode-${currentDesignMode}`;
+            
             const projects = await getProjects();
 
             const filteredProjects = filter === "all" 
@@ -195,28 +226,65 @@ document.addEventListener("DOMContentLoaded", () => {
 
             filteredProjects.forEach((proj, i) => {
                 const card = document.createElement("div");
-                card.className = "sticky-stack-card reveal-on-scroll";
-                card.style.zIndex = i + 1;
-
+                const safeImgSrc = (proj.image || "").replace(/"/g, "'");
                 const tagsHTML = (proj.tags || []).map(t => `<span class="tag">${t.trim()}</span>`).join("");
+                const demoLinkHTML = proj.demoUrl && proj.demoUrl !== '#' ? `
+                    <a href="${proj.demoUrl}" target="_blank" rel="noopener" class="stack-card-link">
+                        Visitar demo
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                    </a>
+                ` : '';
 
-                card.innerHTML = `
-                    <div class="stack-card-info">
-                        <span class="stack-card-tag">${getCategoryLabel(proj.category)}</span>
-                        <h3 class="stack-card-title">${proj.title}</h3>
-                        <p class="stack-card-desc">${proj.description}</p>
-                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;">${tagsHTML}</div>
-                        ${proj.demoUrl && proj.demoUrl !== '#' ? `
-                        <a href="${proj.demoUrl}" target="_blank" rel="noopener" class="stack-card-link">
-                            Visitar demo
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                        </a>
-                        ` : ''}
-                    </div>
-                    <div class="stack-card-image-box">
-                        <img src="${proj.image}" alt="${proj.title}" class="stack-card-img" onerror="this.style.display='none'">
-                    </div>
-                `;
+                if (currentDesignMode === "bento") {
+                    // Opción 1: Bento Grid (Cyber-Glass)
+                    card.className = `bento-card reveal-on-scroll ${i === 0 ? 'bento-card-featured' : ''}`;
+                    card.innerHTML = `
+                        <div class="bento-card-img-wrapper">
+                            <img src="${safeImgSrc}" alt="${proj.title}" class="bento-card-img" onerror="this.style.display='none'">
+                        </div>
+                        <div class="stack-card-info">
+                            <span class="stack-card-tag">${getCategoryLabel(proj.category)}</span>
+                            <h3 class="stack-card-title">${proj.title}</h3>
+                            <p class="stack-card-desc">${proj.description}</p>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;">${tagsHTML}</div>
+                            ${demoLinkHTML}
+                        </div>
+                    `;
+                } else if (currentDesignMode === "stage") {
+                    // Opción 2: 3D Stage (Stacking Deck fijado a 240px bajo la cabecera sticky)
+                    card.className = "stage-card reveal-on-scroll";
+                    card.style.zIndex = i + 1;
+                    card.style.top = `calc(240px + ${i * 35}px)`;
+                    card.innerHTML = `
+                        <div class="stage-card-inner" data-number="0${i + 1}">
+                            <div class="stack-card-info">
+                                <span class="stack-card-tag">${getCategoryLabel(proj.category)}</span>
+                                <h3 class="stack-card-title">${proj.title}</h3>
+                                <p class="stack-card-desc">${proj.description}</p>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;">${tagsHTML}</div>
+                                ${demoLinkHTML}
+                            </div>
+                            <div class="stage-img-box">
+                                <img src="${safeImgSrc}" alt="${proj.title}" class="stage-img" onerror="this.style.display='none'">
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Opción 3: Holographic Split-Screen (3D Tilt Magnet)
+                    card.className = "split-card reveal-on-scroll";
+                    card.innerHTML = `
+                        <div class="stack-card-info">
+                            <span class="stack-card-tag">${getCategoryLabel(proj.category)}</span>
+                            <h3 class="stack-card-title">${proj.title}</h3>
+                            <p class="stack-card-desc">${proj.description}</p>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;">${tagsHTML}</div>
+                            ${demoLinkHTML}
+                        </div>
+                        <div class="split-card-img-container">
+                            <img src="${safeImgSrc}" alt="${proj.title}" class="split-card-img" onerror="this.style.display='none'">
+                        </div>
+                    `;
+                }
 
                 container.appendChild(card);
 
@@ -232,6 +300,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             if (typeof bindCardGlowTracker === "function") {
                 bindCardGlowTracker();
+            }
+            if (typeof init3DTilt === "function") {
+                init3DTilt();
             }
         }, 200);
     }
@@ -1216,6 +1287,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function init() {
         // Cargar caché de categorías inicialmente
         cachedCategories = await getCategories();
+        initProjectDesignSwitcher();
         await renderFilters();
         await renderCategoryDropdown();
         await renderPortfolio();
@@ -1338,7 +1410,7 @@ document.addEventListener("DOMContentLoaded", () => {
      * Rotación física 3D en las tarjetas de servicios (3D Tilt Effect)
      */
     function init3DTilt() {
-        const cards = document.querySelectorAll('.service-card-3d');
+        const cards = document.querySelectorAll('.service-card-3d, .split-card');
         
         cards.forEach(card => {
             card.addEventListener('mousemove', (e) => {
@@ -1380,39 +1452,52 @@ document.addEventListener("DOMContentLoaded", () => {
         const container = document.getElementById('projects-stack-container');
         if (!container) return;
 
-        window.addEventListener('scroll', () => {
-            const cards = container.querySelectorAll('.sticky-stack-card');
+        const updateStacking = () => {
+            const cards = container.querySelectorAll('.sticky-stack-card, .stage-card');
             if (cards.length === 0) return;
 
+            const totalCards = cards.length;
+            const isMobile = window.innerWidth < 768;
+            const stepOffset = isMobile ? 24 : 35;
+            const startTop = isMobile ? 80 : 105;
+
             cards.forEach((card, index) => {
-                const cardRect = card.getBoundingClientRect();
-                const cardTop = cardRect.top;
-                const stickyOffset = 120;
+                const baseTop = startTop + (index * stepOffset);
+                card.style.top = `${baseTop}px`;
 
-                if (cardTop <= stickyOffset + 5) {
-                    const nextCards = Array.from(cards).slice(index + 1);
-                    let progress = 0;
+                const overlapThreshold = 220;
+                let stackedAbove = 0;
 
-                    if (nextCards.length > 0) {
-                        const nextCardRect = nextCards[0].getBoundingClientRect();
-                        const nextCardTop = nextCardRect.top;
-                        const diff = nextCardTop - stickyOffset;
-                        const maxOverlapDistance = 350;
-                        progress = Math.max(0, Math.min(1, 1 - (diff / maxOverlapDistance)));
+                for (let k = index + 1; k < totalCards; k++) {
+                    const nextCard = cards[k];
+                    const nextBaseTop = startTop + (k * stepOffset);
+                    const nextTop = nextCard.getBoundingClientRect().top;
+                    const diff = nextTop - nextBaseTop;
+
+                    if (diff < overlapThreshold) {
+                        const progress = Math.max(0, Math.min(1, 1 - (diff / overlapThreshold)));
+                        stackedAbove += progress;
                     }
+                }
 
-                    const scale = 1 - (progress * 0.05);
-                    const brightness = 1 - (progress * 0.4);
-                    const translateY = progress * -15;
+                const innerCard = card.querySelector('.stage-card-inner') || card;
+                const currentTop = card.getBoundingClientRect().top;
+                if (currentTop <= baseTop + 20) {
+                    const targetScale = Math.max(0.78, 1 - (stackedAbove * 0.035));
+                    const brightness = Math.max(0.45, 1 - (stackedAbove * 0.1));
 
-                    card.style.transform = `perspective(1000px) scale(${scale}) translateY(${translateY}px) rotateX(${progress * -3}deg)`;
-                    card.style.filter = `brightness(${brightness * 100}%)`;
+                    innerCard.style.transform = `perspective(1200px) scale(${targetScale})`;
+                    innerCard.style.filter = `brightness(${Math.round(brightness * 100)}%)`;
                 } else {
-                    card.style.transform = 'perspective(1000px) scale(1) translateY(0px) rotateX(0deg)';
-                    card.style.filter = 'brightness(100%)';
+                    innerCard.style.transform = 'perspective(1200px) scale(1)';
+                    innerCard.style.filter = 'brightness(100%)';
                 }
             });
-        });
+        };
+
+        window.addEventListener('scroll', updateStacking, { passive: true });
+        window.addEventListener('resize', updateStacking, { passive: true });
+        updateStacking();
     }
 
     /**
