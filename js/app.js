@@ -1435,11 +1435,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // ---- REDISEÑO PREMIUM ----
         // initSmoothScroll();
-        // initCustomCursor(); // Desactivado por performance — loop rAF + mousemove + mix-blend-mode
+        initCustomCursor();
         initScrollEffects();
-        // initMagnetEffect(); // Desactivado — getBoundingClientRect en cada mousemove
+        initMagnetEffect();
         initCodeTypingEffect();
-        // init3DTilt(); // Desactivado — transform en cada mousemove
+        init3DTilt();
         initStackingProjectsScroll();
         // initCardGlowTracker(); // Desactivado — CSS vars en cada mousemove
     }
