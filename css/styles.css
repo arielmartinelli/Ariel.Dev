@@ -2327,14 +2327,8 @@ input, select, textarea, button, a, [role="button"], .admin-panel-trigger {
 }
 
 .custom-cursor {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    display: none !important;
     pointer-events: none;
-    z-index: 10000;
-    display: none;
 }
 
 .cursor-dot {
@@ -2647,8 +2641,6 @@ body.light-theme .sticky-stack-card .tag {
 /* El contenedor interior recibe el transform: scale() y filter sin interferir con sticky */
 .stage-card-inner {
     background: #0f121d !important;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-radius: 28px;
     padding: 36px 40px;

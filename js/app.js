@@ -137,7 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             header.classList.remove("scrolled");
         }
-    });
+    }, { passive: true });
 
     // Navegación Activa al hacer Scroll (Intersection Observer)
     const sections = document.querySelectorAll("section");
@@ -1435,13 +1435,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // ---- REDISEÑO PREMIUM ----
         // initSmoothScroll();
-        initCustomCursor();
+        // initCustomCursor(); // Desactivado por performance — loop rAF + mousemove + mix-blend-mode
         initScrollEffects();
-        initMagnetEffect();
+        // initMagnetEffect(); // Desactivado — getBoundingClientRect en cada mousemove
         initCodeTypingEffect();
-        init3DTilt();
+        // init3DTilt(); // Desactivado — transform en cada mousemove
         initStackingProjectsScroll();
-        initCardGlowTracker();
+        // initCardGlowTracker(); // Desactivado — CSS vars en cada mousemove
     }
 
     // ==========================================================================
@@ -1505,14 +1505,10 @@ document.addEventListener("DOMContentLoaded", () => {
         let nodeIndex = 0;
         let charIndex = 0;
         const typingSpeed = 8; // velocidad de escritura ultra rápida por letra (8ms)
-        const delayBeforeRestart = 4000; // pausa de 4 segundos antes de reiniciar
 
         function type() {
             if (nodeIndex >= textNodes.length) {
-                setTimeout(() => {
-                    codeContainer.innerHTML = originalHTML;
-                    initCodeTypingEffect();
-                }, delayBeforeRestart);
+                // Fin: no reiniciar para evitar loop infinito de setTimeout
                 return;
             }
 
@@ -1582,16 +1578,20 @@ document.addEventListener("DOMContentLoaded", () => {
         const container = document.getElementById('projects-stack-container');
         if (!container) return;
 
-        const updateStacking = () => {
-            const cards = container.querySelectorAll('.sticky-stack-card, .stage-card');
-            if (cards.length === 0) return;
+        // Cache de referencia a las tarjetas para evitar querySelectorAll en cada frame
+        let cachedCards = container.querySelectorAll('.sticky-stack-card, .stage-card');
+        let ticking = false;
 
-            const totalCards = cards.length;
+        const updateStacking = () => {
+            if (cachedCards.length === 0) return;
+
+            const totalCards = cachedCards.length;
             const isMobile = window.innerWidth < 768;
             const stepOffset = isMobile ? 24 : 35;
             const startTop = isMobile ? 80 : 160;
 
-            cards.forEach((card, index) => {
+            for (let index = 0; index < totalCards; index++) {
+                const card = cachedCards[index];
                 const baseTop = startTop + (index * stepOffset);
                 card.style.top = `${baseTop}px`;
 
@@ -1599,7 +1599,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 let stackedAbove = 0;
 
                 for (let k = index + 1; k < totalCards; k++) {
-                    const nextCard = cards[k];
+                    const nextCard = cachedCards[k];
                     const nextBaseTop = startTop + (k * stepOffset);
                     const nextTop = nextCard.getBoundingClientRect().top;
                     const diff = nextTop - nextBaseTop;
@@ -1622,11 +1622,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     innerCard.style.transform = 'perspective(1200px) scale(1)';
                     innerCard.style.filter = 'brightness(100%)';
                 }
-            });
+            }
+            ticking = false;
         };
 
-        window.addEventListener('scroll', updateStacking, { passive: true });
-        window.addEventListener('resize', updateStacking, { passive: true });
+        const onScrollThrottled = () => {
+            if (!ticking) {
+                ticking = true;
+                requestAnimationFrame(updateStacking);
+            }
+        };
+
+        window.addEventListener('scroll', onScrollThrottled, { passive: true });
+        window.addEventListener('resize', onScrollThrottled, { passive: true });
         updateStacking();
     }
 
@@ -1704,14 +1712,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const progressBar = document.getElementById('scroll-progress');
         
         // 1. Barra de progreso
+        let progressTicking = false;
         window.addEventListener('scroll', () => {
-            if (!progressBar) return;
-            const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
-            if (totalScroll > 0) {
-                const progress = (window.scrollY / totalScroll) * 100;
-                progressBar.style.width = `${progress}%`;
-            }
-        });
+            if (!progressBar || progressTicking) return;
+            progressTicking = true;
+            requestAnimationFrame(() => {
+                const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
+                if (totalScroll > 0) {
+                    const progress = (window.scrollY / totalScroll) * 100;
+                    progressBar.style.width = `${progress}%`;
+                }
+                progressTicking = false;
+            });
+        }, { passive: true });
 
         // 2. Efecto de aparición al hacer scroll (Intersection Observer)
         const revealElements = document.querySelectorAll('.reveal-on-scroll');
