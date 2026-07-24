@@ -1123,35 +1123,11 @@ document.addEventListener("DOMContentLoaded", () => {
                         line-height: 1;
                     }
 
-                    /* ── Terms ── */
-                    .terms-section {
-                        background: #fafafa;
-                        border: 1px solid #e5e7eb;
-                        border-radius: 8px;
-                        padding: 12px 16px;
-                        margin-bottom: 18px;
-                    }
-                    .terms-section h4 {
-                        margin: 0 0 6px 0;
-                        font-family: 'Outfit', sans-serif;
-                        font-size: 0.85rem;
-                        color: #6b7280;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                    }
-                    .terms-section ul {
-                        margin: 0;
-                        padding-left: 18px;
-                        font-size: 0.8rem;
-                        color: #6b7280;
-                        line-height: 1.6;
-                    }
-
                     /* ── Footer ── */
                     .pdf-footer {
                         border-top: 2px solid #e2e8f0;
-                        padding-top: 14px;
-                        margin-top: 10px;
+                        padding-top: 12px;
+                        margin-top: 15px;
                         font-size: 0.8rem;
                         color: #64748b;
                         display: flex;
@@ -1253,17 +1229,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             </table>
                         </div>
 
-                        <!-- Términos -->
-                        <div class="terms-section">
-                            <h4>Términos y condiciones</h4>
-                            <ul>
-                                <li>Los precios en ARS están sujetos a la cotización del dólar al momento del pago.</li>
-                                <li>El presupuesto tiene una validez de 15 días corridos desde la fecha de emisión.</li>
-                                <li>El tiempo de entrega comienza a correr desde la confirmación del proyecto y recepción del adelanto.</li>
-                                <li>Se requiere un adelanto del 50% para iniciar el desarrollo.</li>
-                            </ul>
-                        </div>
-
                         <!-- Footer -->
                         <div class="pdf-footer">
                             <div>
@@ -1299,6 +1264,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     y: 0,
                     windowWidth: 750
                 },
+                pagebreak:    { mode: 'avoid-all' },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
