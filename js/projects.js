@@ -5,36 +5,36 @@ const DEFAULT_PROJECTS = [
   {
     id: "proj-1",
     title: "Aura Store",
-    description: "Tienda online de indumentaria con carrito de compras interactivo, filtros avanzados y pasarela de pago simulada. Diseño ultra minimalista.",
+    description: "Plataforma e-commerce de indumentaria exclusiva. Integra catálogo interactivo con filtros dinámicos, carrito flotante de alta conversión, simulación de pagos y diseño responsivo ultra minimalista.",
     category: "ecommerce",
-    image: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500"><defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%238a2be2"/><stop offset="100%" stop-color="%234a00e0"/></linearGradient></defs><rect width="800" height="500" fill="url(%23g1)"/><circle cx="400" cy="250" r="150" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="20"/><path d="M350 200 L450 200 L480 380 L320 380 Z" fill="rgba(255,255,255,0.1)" stroke="white" stroke-width="6" stroke-linejoin="round"/><circle cx="370" cy="200" r="15" fill="none" stroke="white" stroke-width="4"/><circle cx="430" cy="200" r="15" fill="none" stroke="white" stroke-width="4"/><text x="400" y="440" fill="white" font-family="sans-serif" font-size="28" font-weight="bold" text-anchor="middle">AURA STORE</text></svg>`,
+    image: "/images/aura-store.jpg",
     tags: ["HTML5", "CSS Grid", "JS Vanilla", "E-commerce"],
     demoUrl: "https://aura-store-demo.example.com"
   },
   {
     id: "proj-2",
     title: "Apex SaaS Landing",
-    description: "Landing page de alta conversión para una plataforma de software en la nube, optimizada para SEO con animaciones al hacer scroll y diseño móvil impecable.",
+    description: "Landing page de alto impacto para software en la nube (SaaS). Diseñada con enfoque en captación de leads, animaciones fluidas al hacer scroll, tiempos de carga ultra rápidos (<1s) y optimización SEO integral.",
     category: "landing",
-    image: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500"><defs><linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%2300c6ff"/><stop offset="100%" stop-color="%230072ff"/></linearGradient></defs><rect width="800" height="500" fill="url(%23g2)"/><path d="M250 380 L350 200 L450 320 L550 150 L650 250" fill="none" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="550" cy="150" r="15" fill="white"/><text x="400" y="440" fill="white" font-family="sans-serif" font-size="28" font-weight="bold" text-anchor="middle">APEX LANDING</text></svg>`,
+    image: "/images/apex-landing.jpg",
     tags: ["Landing Page", "CSS Flexbox", "Intersection Observer"],
     demoUrl: "https://apex-saas-demo.example.com"
   },
   {
     id: "proj-3",
     title: "Lens & Light",
-    description: "Portfolio fotográfico y cinematográfico interactivo con galería de imágenes en cuadrícula masonry, visor a pantalla completa y tema oscuro nativo.",
+    description: "Portfolio cinematográfico y fotográfico de alta gama. Cuenta con galería interactiva en cuadrícula Masonry, visor inmersivo de fotos en pantalla completa, tema oscuro nativo y transiciones visuales de calidad premium.",
     category: "portfolio",
-    image: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500"><defs><linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23ff007f"/><stop offset="100%" stop-color="%237f00ff"/></linearGradient></defs><rect width="800" height="500" fill="url(%23g3)"/><rect x="250" y="180" width="300" height="200" rx="20" fill="rgba(255,255,255,0.1)" stroke="white" stroke-width="6"/><circle cx="400" cy="280" r="50" fill="none" stroke="white" stroke-width="6"/><circle cx="500" cy="220" r="10" fill="white"/><text x="400" y="440" fill="white" font-family="sans-serif" font-size="28" font-weight="bold" text-anchor="middle">LENS &amp; LIGHT</text></svg>`,
+    image: "/images/lens-light.jpg",
     tags: ["Portfolio", "Masonry CSS", "Animations", "Modal Gallery"],
     demoUrl: "https://lens-light-demo.example.com"
   },
   {
     id: "proj-4",
     title: "TaskFlow Dashboard",
-    description: "Aplicación de gestión de tareas con sistema Drag and Drop, tableros Kanban interactivos y estadísticas de productividad visuales.",
+    description: "Web App interactiva para la gestión inteligente de proyectos y tareas. Incluye tableros Kanban con tecnología Drag & Drop, seguimiento de progreso en tiempo real y métricas visuales de productividad.",
     category: "custom",
-    image: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500"><defs><linearGradient id="g4" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%2311998e"/><stop offset="100%" stop-color="%2338ef7d"/></linearGradient></defs><rect width="800" height="500" fill="url(%23g4)"/><rect x="200" y="150" width="110" height="200" rx="10" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="4"/><rect x="340" y="150" width="110" height="200" rx="10" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="4"/><rect x="480" y="150" width="110" height="200" rx="10" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="4"/><line x1="220" y1="180" x2="290" y2="180" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="360" y1="180" x2="430" y2="180" stroke="white" stroke-width="4" stroke-linecap="round"/><line x1="360" y1="210" x2="410" y2="210" stroke="white" stroke-width="4" stroke-linecap="round"/><text x="400" y="440" fill="white" font-family="sans-serif" font-size="28" font-weight="bold" text-anchor="middle">TASKFLOW DASHBOARD</text></svg>`,
+    image: "/images/taskflow.jpg",
     tags: ["Custom App", "Drag & Drop", "Charts", "Local Storage"],
     demoUrl: "https://taskflow-demo.example.com"
   }
@@ -86,7 +86,20 @@ export async function getProjects() {
       localStorage.setItem("portfolio_projects", JSON.stringify(DEFAULT_PROJECTS));
       return DEFAULT_PROJECTS;
     }
-    return JSON.parse(stored);
+    let parsed = JSON.parse(stored);
+    parsed = parsed.map(p => {
+      const def = DEFAULT_PROJECTS.find(dp => dp.id === p.id);
+      if (def) {
+        return {
+          ...p,
+          description: def.description,
+          image: p.image.startsWith("data:image/svg") ? def.image : p.image
+        };
+      }
+      return p;
+    });
+    localStorage.setItem("portfolio_projects", JSON.stringify(parsed));
+    return parsed;
   }
 }
 
