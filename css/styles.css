@@ -1863,6 +1863,49 @@ body.light-theme .admin-category-item {
         justify-content: center;
     }
 
+    /* Cuadrícula 2x2 en vista móvil para "Qué puedo desarrollar para ti" */
+    .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .service-card {
+        padding: 20px 12px;
+    }
+
+    .service-icon-box {
+        width: 42px;
+        height: 42px;
+        margin-bottom: 12px;
+        border-radius: 10px;
+    }
+
+    .service-icon-box svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .service-card h3 {
+        font-size: 1rem;
+        margin-bottom: 6px;
+    }
+
+    .service-card p {
+        font-size: 0.78rem;
+        line-height: 1.35;
+        margin-bottom: 10px;
+    }
+
+    .service-features {
+        padding-top: 10px;
+        gap: 4px;
+        font-size: 0.72rem;
+    }
+
+    .service-features li {
+        gap: 4px;
+    }
+
     .hide-mobile {
         display: none !important;
     }
