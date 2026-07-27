@@ -238,6 +238,58 @@ document.addEventListener("DOMContentLoaded", () => {
 
             container.style.opacity = "1";
 
+            // Generar dots de navegación para vista móvil (slider horizontal)
+            let dotsContainer = document.getElementById("projects-mobile-dots");
+            if (!dotsContainer && container.parentNode) {
+                dotsContainer = document.createElement("div");
+                dotsContainer.id = "projects-mobile-dots";
+                dotsContainer.className = "projects-mobile-dots";
+                container.parentNode.appendChild(dotsContainer);
+            }
+
+            if (dotsContainer) {
+                if (filteredProjects.length > 1) {
+                    dotsContainer.style.display = "";
+                    dotsContainer.innerHTML = filteredProjects.map((_, idx) => `
+                        <button class="mobile-dot ${idx === 0 ? 'active' : ''}" data-index="${idx}" aria-label="Ver proyecto ${idx + 1}"></button>
+                    `).join("");
+
+                    dotsContainer.querySelectorAll(".mobile-dot").forEach(dot => {
+                        dot.addEventListener("click", () => {
+                            const index = parseInt(dot.dataset.index);
+                            const cards = container.querySelectorAll(".stage-card");
+                            if (cards[index]) {
+                                cards[index].scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+                            }
+                        });
+                    });
+
+                    const syncMobileDots = () => {
+                        if (window.innerWidth >= 768) return;
+                        const cards = container.querySelectorAll(".stage-card");
+                        const containerLeft = container.getBoundingClientRect().left;
+                        let activeIdx = 0;
+                        let minDiff = Infinity;
+                        cards.forEach((card, idx) => {
+                            const diff = Math.abs(card.getBoundingClientRect().left - containerLeft);
+                            if (diff < minDiff) {
+                                minDiff = diff;
+                                activeIdx = idx;
+                            }
+                        });
+                        dotsContainer.querySelectorAll(".mobile-dot").forEach((d, idx) => {
+                            d.classList.toggle("active", idx === activeIdx);
+                        });
+                    };
+
+                    container.removeEventListener("scroll", container._syncDots);
+                    container._syncDots = syncMobileDots;
+                    container.addEventListener("scroll", syncMobileDots, { passive: true });
+                } else {
+                    dotsContainer.style.display = "none";
+                }
+            }
+
             if (typeof bindCursorHoverEvents === "function") {
                 bindCursorHoverEvents();
             }
@@ -1550,6 +1602,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const updateStacking = () => {
             if (cachedCards.length === 0) return;
+
+            if (window.innerWidth < 768) {
+                cachedCards.forEach(card => {
+                    card.style.top = '';
+                    const innerCard = card.querySelector('.stage-card-inner') || card;
+                    innerCard.style.transform = '';
+                    innerCard.style.filter = '';
+                });
+                ticking = false;
+                return;
+            }
 
             const totalCards = cachedCards.length;
             const isMobile = window.innerWidth < 768;

@@ -2745,6 +2745,33 @@ body.light-theme .sticky-stack-card .tag {
     transform: scale(1.04);
 }
 
+/* Dots de navegación para Slider Móvil */
+.projects-mobile-dots {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.mobile-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mobile-dot.active {
+    width: 24px;
+    border-radius: 12px;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+}
+
 @media (max-width: 992px) {
     .stage-card-inner {
         grid-template-columns: 1fr;
@@ -2759,13 +2786,58 @@ body.light-theme .sticky-stack-card .tag {
 }
 
 @media (max-width: 768px) {
+    .projects-stack-wrapper {
+        margin-top: 20px !important;
+    }
+
+    #projects-stack-container {
+        display: flex !important;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        scroll-snap-type: x mandatory !important;
+        scroll-behavior: smooth;
+        gap: 16px !important;
+        padding: 4px 4px 16px 4px !important;
+        margin-bottom: 0 !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    #projects-stack-container::-webkit-scrollbar {
+        display: none;
+    }
+
     .stage-card {
-        top: 80px;
-        margin-bottom: 100px;
+        position: relative !important;
+        top: 0 !important;
+        left: 0 !important;
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        margin-bottom: 0 !important;
+        scroll-snap-align: start !important;
+        z-index: 1 !important;
+    }
+
+    .stage-card-inner {
+        transform: none !important;
+        filter: none !important;
+        grid-template-columns: 1fr !important;
+        padding: 24px 20px !important;
+        gap: 20px !important;
+    }
+
+    .stage-card-inner::after {
+        font-size: 6rem;
+        right: 15px;
+        bottom: -10px;
     }
 
     .stage-img {
-        height: 200px;
+        height: 200px !important;
+    }
+
+    .projects-mobile-dots {
+        display: flex;
     }
 }
 
