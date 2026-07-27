@@ -1453,7 +1453,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // ---- REDISEÑO PREMIUM ----
         // initSmoothScroll();
-        initCustomCursor();
+        // initCustomCursor(); // Desactivado
         initScrollEffects();
         initMagnetEffect();
         initCodeTypingEffect();
