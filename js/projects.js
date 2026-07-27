@@ -78,6 +78,17 @@ export async function getProjects() {
       return DEFAULT_PROJECTS;
     }
 
+    // Si Supabase devuelve datos, sincronizamos imágenes SVG o viejas con las nuevas portadas
+    data.forEach(p => {
+      const def = DEFAULT_PROJECTS.find(dp => dp.title.toLowerCase().trim() === (p.title || "").toLowerCase().trim() || dp.id === p.id);
+      if (def && (p.image?.startsWith("data:image/svg") || p.description !== def.description)) {
+        supabase.from("projects").update({
+          image: def.image,
+          description: def.description
+        }).eq("id", p.id).then(() => {}).catch(() => {});
+      }
+    });
+
     return data.map(mapProjectFromDB);
   } catch (e) {
     console.error("Supabase: Error al traer proyectos, usando LocalStorage como respaldo:", e);
@@ -88,12 +99,12 @@ export async function getProjects() {
     }
     let parsed = JSON.parse(stored);
     parsed = parsed.map(p => {
-      const def = DEFAULT_PROJECTS.find(dp => dp.id === p.id);
+      const def = DEFAULT_PROJECTS.find(dp => dp.title.toLowerCase().trim() === (p.title || "").toLowerCase().trim() || dp.id === p.id);
       if (def) {
         return {
           ...p,
           description: def.description,
-          image: p.image.startsWith("data:image/svg") ? def.image : p.image
+          image: def.image
         };
       }
       return p;
@@ -105,12 +116,27 @@ export async function getProjects() {
 
 // Mapper de formato DB (snake_case) a Frontend (camelCase)
 function mapProjectFromDB(p) {
+  const def = DEFAULT_PROJECTS.find(dp => 
+    dp.title.toLowerCase().trim() === (p.title || "").toLowerCase().trim() || 
+    dp.id === p.id
+  );
+
+  let finalImage = p.image;
+  if (!finalImage || finalImage.startsWith("data:image/svg") || (def && finalImage !== def.image)) {
+    finalImage = def ? def.image : (p.image || "");
+  }
+
+  let finalDescription = p.description;
+  if (def && (!finalDescription || finalDescription !== def.description)) {
+    finalDescription = def.description;
+  }
+
   return {
     id: p.id,
     title: p.title,
-    description: p.description,
+    description: finalDescription,
     category: p.category,
-    image: p.image,
+    image: finalImage,
     tags: p.tags || [],
     demoUrl: p.demo_url || "#"
   };
