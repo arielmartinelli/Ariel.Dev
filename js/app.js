@@ -1641,15 +1641,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 const innerCard = card.querySelector('.stage-card-inner') || card;
                 const currentTop = card.getBoundingClientRect().top;
+                const isLightTheme = document.body.classList.contains('light-theme');
+
                 if (currentTop <= baseTop + 20) {
                     const targetScale = Math.max(0.78, 1 - (stackedAbove * 0.035));
-                    const brightness = Math.max(0.45, 1 - (stackedAbove * 0.1));
-
                     innerCard.style.transform = `perspective(1200px) scale(${targetScale})`;
-                    innerCard.style.filter = `brightness(${Math.round(brightness * 100)}%)`;
+                    if (!isLightTheme) {
+                        const brightness = Math.max(0.45, 1 - (stackedAbove * 0.1));
+                        innerCard.style.filter = `brightness(${Math.round(brightness * 100)}%)`;
+                    } else {
+                        innerCard.style.filter = 'none';
+                    }
                 } else {
                     innerCard.style.transform = 'perspective(1200px) scale(1)';
-                    innerCard.style.filter = 'brightness(100%)';
+                    innerCard.style.filter = 'none';
                 }
             }
             ticking = false;

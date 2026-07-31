@@ -2544,19 +2544,32 @@ body.light-theme .floating-badge .badge-desc {
     color: #64748b !important;
 }
 
-/* Light theme overrides for dynamic sticky stack cards */
-body.light-theme .sticky-stack-card {
-    background: var(--bg-card) !important;
-    border: 1px solid var(--border) !important;
-    box-shadow: 0 15px 30px rgba(15, 23, 42, 0.05);
+/* Light theme overrides for dynamic sticky stack cards & stage cards */
+body.light-theme .stage-card-inner {
+    background: #ffffff !important;
+    border: 1px solid rgba(226, 232, 240, 0.9) !important;
+    box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08) !important;
+}
+
+body.light-theme .stage-card-inner::after {
+    -webkit-text-stroke: 2px rgba(15, 23, 42, 0.06) !important;
+}
+
+body.light-theme .stage-card-inner:hover {
+    border-color: var(--primary) !important;
+    box-shadow: 0 20px 45px rgba(99, 102, 241, 0.15) !important;
 }
 
 body.light-theme .stack-card-title {
-    color: var(--text-primary) !important;
+    color: #0f172a !important;
 }
 
 body.light-theme .stack-card-desc {
-    color: var(--text-secondary) !important;
+    color: #475569 !important;
+}
+
+body.light-theme .stack-card-tag {
+    color: var(--primary) !important;
 }
 
 body.light-theme .stack-card-link {
@@ -2567,10 +2580,23 @@ body.light-theme .stack-card-link:hover {
     color: var(--secondary) !important;
 }
 
-body.light-theme .sticky-stack-card .tag {
-    background-color: rgba(15, 23, 42, 0.04) !important;
-    border: 1px solid rgba(15, 23, 42, 0.08) !important;
-    color: var(--text-secondary) !important;
+body.light-theme .stage-card .tag {
+    background-color: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #475569 !important;
+}
+
+body.light-theme .stage-img-box {
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.1) !important;
+}
+
+body.light-theme .mobile-dot {
+    background: rgba(15, 23, 42, 0.18) !important;
+}
+
+body.light-theme .mobile-dot.active {
+    background: var(--primary) !important;
+    box-shadow: 0 0 12px var(--primary-glow) !important;
 }
 
 /* ==========================================================================
@@ -2600,8 +2626,8 @@ body.light-theme .sticky-stack-card .tag {
 
 /* El contenedor interior recibe el transform: scale() y filter sin interferir con sticky */
 .stage-card-inner {
-    background: #0f121d !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: #0f121d;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 28px;
     padding: 36px 40px;
     position: relative;
@@ -2614,7 +2640,7 @@ body.light-theme .sticky-stack-card .tag {
     transform-origin: center top;
     will-change: transform, filter;
     /* transform y filter se controlan desde JS, fuera de transition para evitar conflictos */
-    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    transition: border-color 0.4s ease, box-shadow 0.4s ease, background-color 0.3s ease;
 }
 
 .stage-card-inner::after {
