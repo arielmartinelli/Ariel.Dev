@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sitemap de arieldev.com
+  Se copia a la raíz del sitio en el build (está en public/).
+
+  Las páginas ventajas-* se declaran acá porque hoy NO se puede llegar a ellas
+  siguiendo enlaces: se abren por JavaScript y Googlebot no pulsa botones.
+  El sitemap las hace descubribles mientras se agrega el enlazado real
+  (hallazgo SEO-01 de SEO.md).
+
+  Actualizar <lastmod> cuando cambie el contenido de una página.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <url>
+    <loc>https://arieldev.com/</loc>
+    <lastmod>2026-08-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://arieldev.com/ventajas-landing.html</loc>
+    <lastmod>2026-08-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://arieldev.com/ventajas-ecommerce.html</loc>
+    <lastmod>2026-08-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://arieldev.com/ventajas-portfolio.html</loc>
+    <lastmod>2026-08-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://arieldev.com/ventajas-desarrollo-medida.html</loc>
+    <lastmod>2026-08-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://arieldev.com/ventajas-invitaciones.html</loc>
+    <lastmod>2026-08-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+</urlset>

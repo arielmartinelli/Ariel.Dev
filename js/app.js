@@ -1439,13 +1439,48 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Formulario de Contacto General
-    contactForm.addEventListener("submit", (e) => {
+    // ==========================================================================
+    // Formulario de Contacto (FUNC-01)
+    //
+    // Si VITE_FORMSPREE_ID está definido, el mensaje se envía por email.
+    // Si no lo está, degrada solo a WhatsApp — nunca se muestra "enviado"
+    // sin haber enviado, que era el problema original.
+    // ==========================================================================
+    const FORMSPREE_ID = import.meta.env.VITE_FORMSPREE_ID || "";
+    const WHATSAPP_NUMBER = "543517877753";
+
+    /** Última marca de tiempo de envío, para frenar clics repetidos. */
+    let lastContactSubmit = 0;
+
+    function abrirWhatsAppContacto({ name, email, subject, message }) {
+        const body =
+            `Hola Ariel! Consulta desde el portfolio.\n\n` +
+            `Nombre: ${name}\n` +
+            `Email: ${email}\n` +
+            `Asunto: ${subject}\n\n${message}`;
+        window.open(
+            `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(body)}`,
+            "_blank",
+            "noopener,noreferrer"
+        );
+    }
+
+    contactForm.addEventListener("submit", async (e) => {
         e.preventDefault();
+
         const name = sanitizeText(contactName.value, LIMITS.NAME);
         const email = document.getElementById("contact-email").value.trim();
         const subject = sanitizeText(document.getElementById("contact-subject").value, LIMITS.SUBJECT);
         const message = sanitizeText(document.getElementById("contact-message").value, LIMITS.MESSAGE);
+        const gotcha = document.getElementById("contact-gotcha")?.value || "";
+
+        // Honeypot: si este campo oculto viene lleno, es un bot.
+        // Se simula éxito para no darle información sobre por qué falló.
+        if (gotcha) {
+            contactForm.reset();
+            Swal.fire("¡Gracias!", "Tu mensaje fue enviado.", "success");
+            return;
+        }
 
         if (!name || !email || !subject || !message) {
             Swal.fire("Atención", "Por favor, completa todos los campos del formulario.", "warning");
@@ -1457,20 +1492,72 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // El sitio es estático: no hay backend que reciba el formulario. Antes se
-        // mostraba "enviado con éxito" sin enviar nada — el mensaje se perdía.
-        // Se deriva a WhatsApp, que sí entrega el mensaje. Ver SECURITY.md (FUNC-01)
-        // para migrar a un endpoint real (Formspree / Supabase Edge Function).
-        const body =
-            `Hola Ariel! Consulta desde el portfolio.\n\n` +
-            `Nombre: ${name}\n` +
-            `Email: ${email}\n` +
-            `Asunto: ${subject}\n\n${message}`;
+        // Freno básico: un envío cada 15 segundos desde el mismo navegador.
+        // No reemplaza al control de Formspree, solo evita el doble clic.
+        const ahora = Date.now();
+        if (ahora - lastContactSubmit < 15000) {
+            Swal.fire("Esperá unos segundos", "Ya enviaste una consulta recién.", "info");
+            return;
+        }
 
-        window.open(`https://wa.me/543517877753?text=${encodeURIComponent(body)}`, "_blank", "noopener,noreferrer");
+        const datos = { name, email, subject, message };
 
-        Swal.fire("¡Gracias!", "Se abrió WhatsApp con tu consulta lista para enviar. Confirmá el envío para que me llegue.", "success");
-        contactForm.reset();
+        // Sin Formspree configurado: WhatsApp, avisando con claridad.
+        if (!FORMSPREE_ID) {
+            abrirWhatsAppContacto(datos);
+            lastContactSubmit = ahora;
+            Swal.fire("¡Gracias!", "Se abrió WhatsApp con tu consulta lista para enviar. Confirmá el envío para que me llegue.", "success");
+            contactForm.reset();
+            return;
+        }
+
+        const submitBtn = contactForm.querySelector('button[type="submit"]');
+        const textoOriginal = submitBtn ? submitBtn.textContent : "";
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Enviando...";
+        }
+
+        try {
+            const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                body: JSON.stringify({
+                    name,
+                    email,
+                    subject,
+                    message,
+                    _subject: `Portfolio — ${subject}`,
+                }),
+            });
+
+            if (!res.ok) throw new Error(`Formspree respondió ${res.status}`);
+
+            lastContactSubmit = ahora;
+            contactForm.reset();
+            Swal.fire("¡Mensaje enviado!", "Gracias por escribirme. Te respondo en menos de 24 horas.", "success");
+        } catch (err) {
+            // Falla el envío: en vez de perder la consulta, se ofrece WhatsApp.
+            console.error("Error enviando el formulario:", err?.message || err);
+            const { isConfirmed } = await Swal.fire({
+                title: "No se pudo enviar",
+                text: "Hubo un problema con el envío. ¿Querés mandármelo por WhatsApp?",
+                icon: "error",
+                showCancelButton: true,
+                confirmButtonText: "Enviar por WhatsApp",
+                cancelButtonText: "Cancelar",
+                confirmButtonColor: "#6366f1",
+            });
+            if (isConfirmed) {
+                abrirWhatsAppContacto(datos);
+                contactForm.reset();
+            }
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = textoOriginal;
+            }
+        }
     });
 
     // Agregar nueva categoría

@@ -1,0 +1,6 @@
+# robots.txt — arieldev.com
+
+User-agent: *
+Allow: /
+
+Sitemap: https://arieldev.com/sitemap.xml

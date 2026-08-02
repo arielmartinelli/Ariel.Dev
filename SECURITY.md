@@ -16,9 +16,22 @@ Segundo hallazgo: había una contraseña maestra (`admin123`) escrita en el cód
 
 | Severidad | Cantidad | Estado |
 |---|---|---|
-| Crítica | 3 | 2 corregidas · 1 requiere tu acción en Supabase |
-| Alta | 4 | 3 corregidas · 1 requiere tu acción |
-| Media | 5 | 4 corregidas · 1 requiere tu acción |
+| Crítica | 3 | **3 cerradas** |
+| Alta | 4 | **4 cerradas** |
+| Media | 5 | 4 cerradas · 1 abierta (FUNC-01, formulario de contacto) |
+
+### Estado final verificado — 2 de agosto de 2026
+
+| Verificación | Resultado |
+|---|---|
+| RLS activo en `projects` y `categories` | Sí |
+| Policies de escritura | Atadas al UID del admin. Ninguna con `cmd = ALL` |
+| Registro público de usuarios | Desactivado |
+| Usuarios en `auth.users` | Solo el admin. Sin intrusos |
+| Cabeceras de seguridad (securityheaders.com) | **A+** (antes: F) |
+| `script-src` de la CSP | `'self'` — sin scripts de terceros |
+| Backdoor `admin123` | Eliminado y desplegado |
+| Variables de entorno en Vercel | Cargadas y verificadas |
 
 ---
 
@@ -151,39 +164,27 @@ La CSP es la más valiosa: convierte un XSS que se escape de las validaciones en
 ---
 
 ### HIGH-03 · Script de terceros sin verificación de integridad
-**Estado: REQUIERE TU ACCIÓN**
+**Estado: CORREGIDO — resuelto eliminando el script**
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.29/dist/lenis.min.js"></script>
 ```
 
-Está bien que la versión esté fijada (`@1.0.29`, no `@latest`). Pero no hay atributo `integrity`: si ese CDN fuera comprometido, el código alterado se ejecutaría en tu sitio con acceso total a la página.
+Cargado sin atributo `integrity`: si ese CDN fuera comprometido, el código alterado se ejecutaría en tu sitio con acceso total a la página.
 
-No pude calcular el hash porque no logré descargar el archivo desde este entorno, y **prefiero no inventar un valor**: un hash incorrecto rompe el scroll suave del sitio.
+Al verificarlo en producción apareció algo más: **el script nunca funcionó**. Lanzaba `ReferenceError: module is not defined` en cada carga. La ruta `cdn.jsdelivr.net/gh/` sirve el archivo crudo del repositorio, que es un build CommonJS incompatible con el navegador.
 
-Tenés dos opciones. La segunda es mejor:
+`app.js` lo envuelve en `if (typeof Lenis !== 'undefined')`, así que el fallo era silencioso: el smooth scroll nunca se inicializó y el sitio venía usando scroll nativo. Nadie lo notó porque no había nada que notar.
 
-**Opción A — agregar SRI.** Generá el hash real:
+Resuelto eliminando el `<script>`. Beneficio adicional: `script-src` de la CSP pasó de `'self' https://cdn.jsdelivr.net` a **`'self'`**. Ningún script de terceros puede ejecutarse en el sitio.
 
-```bash
-curl -s https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.29/dist/lenis.min.js | openssl dgst -sha384 -binary | openssl base64 -A
-```
-
-Y pegalo en `index.html`:
-
-```html
-<script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.29/dist/lenis.min.js"
-        integrity="sha384-EL_HASH_QUE_TE_DEVOLVIO"
-        crossorigin="anonymous"></script>
-```
-
-**Opción B (recomendada) — descargarlo a tu propio dominio**, igual que ya hacés con `html2pdf` y `sweetalert2`:
+Si querés recuperar el smooth scroll, la forma correcta es como dependencia, no por CDN:
 
 ```bash
-curl -o public/lenis.min.js https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.29/dist/lenis.min.js
+npm i lenis
 ```
 
-Y cambiá el `src` a `/lenis.min.js`. Elimina la dependencia externa, mejora el tiempo de carga (una conexión menos) y te permite sacar `cdn.jsdelivr.net` de la CSP.
+Importándolo en `app.js` y dejando que Vite lo empaquete: queda fijado en `package-lock.json`, se sirve desde tu dominio, no necesita SRI y la CSP no se toca.
 
 ---
 
@@ -239,24 +240,21 @@ Corregido: ahora deriva a WhatsApp con el mensaje armado, que sí entrega. Si pr
 
 ## Plan de acción priorizado
 
-### Ahora mismo — 15 minutos, riesgo crítico abierto
+### Completado el 2 de agosto de 2026
 
-1. **Aplicar `supabase/rls-policies.sql`** en el SQL Editor de Supabase.
-2. **Ejecutar la prueba con `curl`** del paso 5 del script. Si el POST devuelve 201, no quedó protegido.
-3. **Verificar que tu usuario admin exista** en *Supabase → Authentication → Users*. Al eliminar el backdoor `admin123`, si no hay usuario creado, no vas a poder entrar al panel. Creá uno con una contraseña de 16+ caracteres desde un gestor de contraseñas.
+1. ~~Aplicar `supabase/rls-policies.sql`~~ — hecho, con las policies atadas al UID del admin.
+2. ~~Desactivar el registro público de usuarios~~ — hecho.
+3. ~~Crear el usuario admin en Supabase Auth~~ — hecho.
+4. ~~Desplegar cabeceras de seguridad~~ — hecho. Calificación A+.
+5. ~~Resolver HIGH-03 (lenis)~~ — hecho, eliminando el script.
 
-### Esta semana
+### Pendiente
 
-4. Desplegar con el `.htaccess` incluido y verificar en https://securityheaders.com.
-5. Confirmar que el certificado SSL funciona **antes** de que HSTS tome efecto.
-6. Resolver HIGH-03: descargar lenis a tu dominio (opción B).
-7. Activar 2FA en tu cuenta de Supabase y en el panel de Hostinger. Es el acceso que compromete todo lo demás.
-
-### Este mes
-
-8. Migrar el formulario de contacto a un endpoint real (FUNC-01).
-9. Configurar backups automáticos de la base (ver mantenimiento).
-10. Ejecutar `npm audit` y actualizar dependencias.
+6. **Activar 2FA** en tu cuenta de Supabase, en Vercel y en el registrador del dominio. Hoy es el eslabón más débil: quien entre a cualquiera de esas cuentas se saltea todo lo demás.
+7. **FUNC-01** — migrar el formulario de contacto a un endpoint real.
+8. **Backups de la base** — ver `MANTENIMIENTO.md`.
+9. **`npm audit`** mensual.
+10. **Medir PageSpeed** para tener el número de referencia posterior a las optimizaciones.
 
 ---
 
