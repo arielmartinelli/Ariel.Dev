@@ -1653,10 +1653,20 @@ document.addEventListener("DOMContentLoaded", () => {
         const btnVerVentajas = document.getElementById("btn-ver-ventajas");
         const selectServicio = document.getElementById("select-servicio");
         if (btnVerVentajas && selectServicio) {
-            btnVerVentajas.addEventListener("click", () => {
+            // El elemento ya es un <a> con href válido. El JS solo sincroniza
+            // el destino con la opción elegida; la navegación la hace el
+            // navegador. Si el JS falla, el enlace sigue llevando a algún lado.
+            const SERVICIOS_VALIDOS = ["landing", "ecommerce", "portfolio", "desarrollo-medida", "invitaciones"];
+
+            const sincronizarDestino = () => {
                 const service = selectServicio.value;
-                window.location.href = `ventajas-${service}.html`;
-            });
+                if (SERVICIOS_VALIDOS.includes(service)) {
+                    btnVerVentajas.href = `ventajas-${service}.html`;
+                }
+            };
+
+            sincronizarDestino();
+            selectServicio.addEventListener("change", sincronizarDestino);
         }
 
         // ---- REDISEÑO PREMIUM ----

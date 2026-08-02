@@ -29,11 +29,15 @@ Las páginas `ventajas-*` son tu mejor contenido para posicionar: responden bús
 - Meta description recortada de 202 a 155 caracteres
 - `meta keywords` eliminada
 
+**Segunda tanda:**
+
+- **SEO-01 resuelto** — el botón "Ver ventajas" ahora es un `<a href>` real cuyo destino sincroniza el JS al cambiar el select, y se agregó una fila de 5 enlaces de texto bajo el selector. Las 5 páginas quedaron enlazadas desde la home. Como efecto secundario, la navegación ya no depende de JavaScript.
+- **SEO-04 resuelto** — meta description propia en las 5 páginas (144-150 caracteres), más Open Graph y Twitter Card completos.
+- **SEO-07 resuelto** — canonical en las 5 páginas.
+- **SEO-12 resuelto** — tres páginas (`landing`, `ecommerce`, `portfolio`) tenían el mismo `H2` copiado: *"Beneficios Clave del Desarrollo a Medida"*. Un encabezado que no corresponde al contenido confunde a Google sobre el tema de la página y al lector sobre qué está leyendo. Corregido en las tres.
+
 ### Pendiente
 
-- **SEO-01** — enlaces `<a href>` reales a las páginas `ventajas-*` (el de mayor impacto)
-- **SEO-04** — meta descriptions de las 5 páginas `ventajas-*`
-- **SEO-07** — canonical en las 5 páginas `ventajas-*`
 - **SEO-10** — `og-banner.png` a JPG (570 KB → ~120 KB)
 - **SEO-11** — enlaces sociales del footer apuntan a las home de GitHub, LinkedIn e Instagram, no a tus perfiles. Sin URLs reales no se puede completar `sameAs` en el JSON-LD, que es lo que le confirma a Google que esos perfiles son tuyos.
 - Alta en **Google Search Console** y envío del sitemap

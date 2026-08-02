@@ -2073,6 +2073,48 @@ body.light-theme .admin-category-item {
     font-weight: 500;
 }
 
+/* Enlaces rastreables a las páginas ventajas-* (SEO-01).
+   Discretos a propósito: existen para que Google descubra las páginas
+   sin competirle atención al selector, que es la vía principal. */
+.ventajas-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px 16px;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    font-size: 0.85rem;
+}
+
+.ventajas-links-label {
+    color: var(--text-secondary);
+    opacity: 0.75;
+}
+
+.ventajas-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 2px;
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.ventajas-links a:hover,
+.ventajas-links a:focus-visible {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+@media (max-width: 600px) {
+    .ventajas-links {
+        gap: 6px 12px;
+        font-size: 0.8rem;
+    }
+}
+
 .selector-controls {
     display: flex;
     gap: 15px;
