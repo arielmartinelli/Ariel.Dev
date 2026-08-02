@@ -7,7 +7,7 @@ const DEFAULT_PROJECTS = [
     title: "Aura Store",
     description: "Plataforma e-commerce de indumentaria exclusiva. Integra catálogo interactivo con filtros dinámicos, carrito flotante de alta conversión, simulación de pagos y diseño responsivo ultra minimalista.",
     category: "ecommerce",
-    image: "/images/aura-store.jpg",
+    image: "/images/aura-store.webp",
     tags: ["HTML5", "CSS Grid", "JS Vanilla", "E-commerce"],
     demoUrl: "https://aura-store-demo.example.com"
   },
@@ -16,7 +16,7 @@ const DEFAULT_PROJECTS = [
     title: "Apex SaaS Landing",
     description: "Landing page de alto impacto para software en la nube (SaaS). Diseñada con enfoque en captación de leads, animaciones fluidas al hacer scroll, tiempos de carga ultra rápidos (<1s) y optimización SEO integral.",
     category: "landing",
-    image: "/images/apex-landing.jpg",
+    image: "/images/apex-landing.webp",
     tags: ["Landing Page", "CSS Flexbox", "Intersection Observer"],
     demoUrl: "https://apex-saas-demo.example.com"
   },
@@ -25,7 +25,7 @@ const DEFAULT_PROJECTS = [
     title: "Lens & Light",
     description: "Portfolio cinematográfico y fotográfico de alta gama. Cuenta con galería interactiva en cuadrícula Masonry, visor inmersivo de fotos en pantalla completa, tema oscuro nativo y transiciones visuales de calidad premium.",
     category: "portfolio",
-    image: "/images/lens-light.jpg",
+    image: "/images/lens-light.webp",
     tags: ["Portfolio", "Masonry CSS", "Animations", "Modal Gallery"],
     demoUrl: "https://lens-light-demo.example.com"
   },
@@ -34,7 +34,7 @@ const DEFAULT_PROJECTS = [
     title: "TaskFlow Dashboard",
     description: "Web App interactiva para la gestión inteligente de proyectos y tareas. Incluye tableros Kanban con tecnología Drag & Drop, seguimiento de progreso en tiempo real y métricas visuales de productividad.",
     category: "custom",
-    image: "/images/taskflow.jpg",
+    image: "/images/taskflow.webp",
     tags: ["Custom App", "Drag & Drop", "Charts", "Local Storage"],
     demoUrl: "https://taskflow-demo.example.com"
   }

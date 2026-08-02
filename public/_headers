@@ -1,0 +1,41 @@
+# Cabeceras de seguridad — Netlify / Cloudflare Pages
+# Este archivo se copia a dist/ en el build y lo lee el hosting automáticamente.
+# Para Hostinger/Apache el equivalente es public/.htaccess
+# Para Vercel, vercel.json
+# Verificar en https://securityheaders.com despues de desplegar.
+
+/*
+  # Fuerza HTTPS por 2 anios. Aplicar SOLO con el certificado ya funcionando:
+  # si el sitio queda sin TLS, el navegador se niega a abrirlo hasta que expire.
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+
+  # Impide que el sitio se cargue dentro de un iframe ajeno (clickjacking).
+  X-Frame-Options: DENY
+
+  # Evita que el navegador adivine el tipo MIME y ejecute como script algo que no lo es.
+  X-Content-Type-Options: nosniff
+
+  # No filtrar la URL completa hacia terceros.
+  Referrer-Policy: strict-origin-when-cross-origin
+
+  # El sitio no usa camara, microfono, ubicacion ni pagos: se desactivan.
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()
+
+  # Aisla el contexto de navegacion de otros origenes.
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+
+  # CSP: lista blanca de origenes. Es la defensa que convierte un XSS en un error de consola.
+  # - script-src sin 'unsafe-inline' ni 'unsafe-eval': el codigo solo puede venir del propio dominio.
+  # - style-src necesita 'unsafe-inline' por los atributos style="" del HTML y de Google Fonts.
+  # - connect-src limita a donde puede hablar el JS: solo Supabase y la API del dolar.
+  # - Si agregas una libreria o API nueva y la consola marca "Refused to load", agregala aca.
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://dolarapi.com https://api.bluelytics.com.ar; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me; object-src 'none'; upgrade-insecure-requests
+
+# Cache agresivo para los assets con hash en el nombre (los genera Vite).
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# El HTML nunca se cachea: asi un despliegue nuevo se ve al instante.
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate

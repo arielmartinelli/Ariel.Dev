@@ -23,6 +23,14 @@ if (isConfigured) {
 
 export const supabase = supabaseInstance;
 
+/**
+ * Indica si hay credenciales reales de Supabase.
+ * Se exporta para poder distinguir "falta configuración" de "credenciales
+ * incorrectas" al iniciar sesión. NO es un dato sensible: cualquiera puede
+ * deducirlo mirando si el sitio hace peticiones a supabase.co.
+ */
+export const isSupabaseConfigured = Boolean(isConfigured);
+
 // Genera un cliente de Supabase falso que imita las firmas para evitar errores en consola y activar el fallback
 function createMockClient() {
   return {

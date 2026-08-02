@@ -1,5 +1,38 @@
 import { getProjects, addProject, deleteProject, updateProject, getCategories, addCategory, deleteCategory } from "./projects.js";
-import { supabase } from "./supabase.js";
+import { supabase, isSupabaseConfigured } from "./supabase.js";
+import {
+    escapeHtml,
+    safeUrl,
+    safeImageSrc,
+    sanitizeText,
+    isValidEmail,
+    LIMITS,
+    ALLOWED_IMAGE_TYPES,
+} from "./security.js";
+
+/**
+ * Carga html2pdf (885 KB) bajo demanda, una sola vez.
+ * Antes se descargaba en cada visita aunque nadie exportara un presupuesto.
+ * Se sirve desde el propio dominio, no desde un CDN externo: así la CSP puede
+ * mantener script-src acotado y no dependemos de la disponibilidad de terceros.
+ */
+let html2pdfPromise = null;
+function loadHtml2Pdf() {
+    if (window.html2pdf) return Promise.resolve(window.html2pdf);
+    if (html2pdfPromise) return html2pdfPromise;
+
+    html2pdfPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "/html2pdf.bundle.min.js";
+        script.onload = () => resolve(window.html2pdf);
+        script.onerror = () => {
+            html2pdfPromise = null; // permite reintentar si falló la red
+            reject(new Error("No se pudo cargar html2pdf."));
+        };
+        document.head.appendChild(script);
+    });
+    return html2pdfPromise;
+}
 
 // Espera a que el DOM esté completamente cargado
 document.addEventListener("DOMContentLoaded", () => {
@@ -201,10 +234,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
             filteredProjects.forEach((proj, i) => {
                 const card = document.createElement("div");
-                const safeImgSrc = (proj.image || "").replace(/"/g, "'");
-                const tagsHTML = (proj.tags || []).map(t => `<span class="tag">${t.trim()}</span>`).join("");
-                const demoLinkHTML = proj.demoUrl && proj.demoUrl !== '#' ? `
-                    <a href="${proj.demoUrl}" target="_blank" rel="noopener" class="stack-card-link">
+                // Todo dato de proyecto proviene de la base y debe tratarse como
+                // no confiable: se escapa en contexto HTML y se validan los esquemas de URL.
+                const safeImgSrc = escapeHtml(safeImageSrc(proj.image));
+                const safeTitle = escapeHtml(proj.title);
+                const safeDemoUrl = safeUrl(proj.demoUrl);
+                const tagsHTML = (proj.tags || [])
+                    .slice(0, LIMITS.TAGS_COUNT)
+                    .map(t => `<span class="tag">${escapeHtml(String(t).trim().slice(0, LIMITS.TAG))}</span>`)
+                    .join("");
+                const demoLinkHTML = safeDemoUrl && safeDemoUrl !== '#' ? `
+                    <a href="${escapeHtml(safeDemoUrl)}" target="_blank" rel="noopener noreferrer" class="stack-card-link">
                         Visitar demo
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                     </a>
@@ -217,14 +257,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 card.innerHTML = `
                     <div class="stage-card-inner" data-number="0${i + 1}">
                         <div class="stack-card-info">
-                            <span class="stack-card-tag">${getCategoryLabel(proj.category)}</span>
-                            <h3 class="stack-card-title">${proj.title}</h3>
-                            <p class="stack-card-desc">${proj.description}</p>
+                            <span class="stack-card-tag">${escapeHtml(getCategoryLabel(proj.category))}</span>
+                            <h3 class="stack-card-title">${safeTitle}</h3>
+                            <p class="stack-card-desc">${escapeHtml(proj.description)}</p>
                             <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px;">${tagsHTML}</div>
                             ${demoLinkHTML}
                         </div>
                         <div class="stage-img-box">
-                            <img src="${safeImgSrc}" alt="${proj.title}" class="stage-img" onerror="this.style.display='none'">
+                            <img src="${safeImgSrc}" alt="${safeTitle}" class="stage-img" loading="lazy" decoding="async" onerror="this.style.display='none'">
                         </div>
                     </div>
                 `;
@@ -316,7 +356,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const categories = await getCategories();
         cachedCategories = categories; // Actualizar caché
         categories.forEach(cat => {
-            filterWrapper.innerHTML += `<button class="filter-btn" data-filter="${cat.id}">${cat.label}</button>`;
+            filterWrapper.innerHTML += `<button class="filter-btn" data-filter="${escapeHtml(cat.id)}">${escapeHtml(cat.label)}</button>`;
         });
 
         const buttons = filterWrapper.querySelectorAll(".filter-btn");
@@ -366,20 +406,19 @@ document.addEventListener("DOMContentLoaded", () => {
         mobileDrawer.classList.remove("open");
         drawerOverlay.classList.remove("open");
 
-        // Comprobación si ya se logueó esta sesión (Supabase Session o Fallback)
+        // La única fuente de verdad es la sesión firmada por Supabase.
+        // Ningún flag de sessionStorage/localStorage concede acceso: el usuario
+        // controla ese almacenamiento y podría escribirlo desde la consola.
         try {
             const { data } = await supabase.auth.getSession();
-            if (data?.session || sessionStorage.getItem("admin_logged_in") === "true") {
+            if (data?.session?.access_token) {
                 showAdminDashboard();
             } else {
                 showPasswordScreen();
             }
         } catch (e) {
-            if (sessionStorage.getItem("admin_logged_in") === "true") {
-                showAdminDashboard();
-            } else {
-                showPasswordScreen();
-            }
+            console.error("No se pudo verificar la sesión:", e);
+            showPasswordScreen();
         }
     };
 
@@ -419,31 +458,54 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        // Sin credenciales no hay login posible. Se avisa explícitamente en vez
+        // de mostrar "credenciales incorrectas", que haría perder tiempo
+        // probando contraseñas correctas contra un cliente simulado.
+        if (!isSupabaseConfigured) {
+            passwordError.textContent = "Supabase no está configurado en este entorno (falta el .env). El panel no puede validar credenciales.";
+            console.warn("Login imposible: no hay credenciales de Supabase. Copiá las variables VITE_ desde Vercel a tu archivo .env local.");
+            return;
+        }
+
+        btnSubmitPassword.disabled = true;
+        passwordError.textContent = "";
+
         try {
-            // Intentar autenticación con Supabase Auth
+            // Única vía de acceso: Supabase Auth. No existe contraseña de
+            // respaldo embebida en el bundle (ver SECURITY.md, hallazgo CRIT-02).
             const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password
             });
 
-            if (error) {
-                // Si la URL de Supabase es la por defecto (offline) y la clave es admin123, permitimos modo local
-                const isConfigured = import.meta.env.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL.includes("tu-proyecto-id");
-                if (!isConfigured && password === "admin123") {
-                    sessionStorage.setItem("admin_logged_in", "true");
-                    await showAdminDashboard();
-                    return;
-                }
-                throw error;
-            }
+            if (error) throw error;
+            if (!data?.session?.access_token) throw new Error("Sesión inválida.");
 
-            // Login exitoso
             await showAdminDashboard();
         } catch (err) {
-            console.error("Error de Login:", err);
-            passwordError.textContent = err.message || "Credenciales incorrectas.";
+            // En consola sí va el error real: es tu propio navegador y sin esto
+            // no hay forma de diagnosticar. Lo que no se revela es el motivo
+            // EN PANTALLA, que es donde lo vería un atacante enumerando usuarios.
+            console.error("Error de Login:", err?.message || err);
+            passwordError.textContent = "Credenciales incorrectas.";
+        } finally {
+            btnSubmitPassword.disabled = false;
+            adminPasswordInput.value = "";
         }
     });
+
+    // Cierre de sesión real: invalida el token en el servidor.
+    const btnAdminLogout = document.getElementById("admin-logout-btn");
+    if (btnAdminLogout) {
+        btnAdminLogout.addEventListener("click", async () => {
+            try {
+                await supabase.auth.signOut();
+            } finally {
+                showPasswordScreen();
+                closeAdminModal();
+            }
+        });
+    }
 
     adminPasswordInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") {
@@ -481,9 +543,33 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function processFile(file) {
+        // Validación de tipo: se rechaza SVG explícitamente (puede contener
+        // <script> y ejecutarse en el contexto de la página al renderizarse).
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+            Swal.fire("Formato no permitido", "Usá PNG, JPG, WEBP, GIF o AVIF. Los SVG están bloqueados por seguridad.", "error");
+            return;
+        }
+
+        // Validación de tamaño: la imagen se guarda como Base64 en la base de
+        // datos y crece ~33%. Sin límite, un archivo grande rompe la fila/cuota.
+        if (file.size > LIMITS.IMAGE_BYTES) {
+            const mb = (LIMITS.IMAGE_BYTES / (1024 * 1024)).toFixed(0);
+            Swal.fire("Imagen demasiado pesada", `El máximo es ${mb} MB. Comprimila antes de subirla.`, "error");
+            return;
+        }
+
         const reader = new FileReader();
+        reader.onerror = () => {
+            Swal.fire("Error", "No se pudo leer el archivo seleccionado.", "error");
+        };
         reader.onload = (e) => {
-            uploadedImageBase64 = e.target.result;
+            const result = String(e.target.result || "");
+            // Confirmación final sobre el contenido real, no sobre la extensión.
+            if (!/^data:image\/(png|jpe?g|gif|webp|avif);base64,/i.test(result)) {
+                Swal.fire("Archivo inválido", "El contenido no corresponde a una imagen soportada.", "error");
+                return;
+            }
+            uploadedImageBase64 = result;
             imagePreview.src = uploadedImageBase64;
             imagePreview.classList.remove("hidden");
             uploadDropzone.classList.add("hidden");
@@ -495,15 +581,26 @@ document.addEventListener("DOMContentLoaded", () => {
     adminAddProjectForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
-        // Validaciones
-        const title = projTitleInput.value.trim();
-        const category = projCategorySelect.value;
-        const demoUrl = projDemoInput.value.trim() || "#";
-        const tags = projTagsInput.value.split(",").map(t => t.trim()).filter(t => t !== "");
-        const description = projDescInput.value.trim();
+        // Validaciones: se normaliza y se acota TODO antes de persistir.
+        const title = sanitizeText(projTitleInput.value, LIMITS.TITLE);
+        const category = sanitizeText(projCategorySelect.value, LIMITS.CATEGORY);
+        const rawDemoUrl = projDemoInput.value.trim();
+        const description = sanitizeText(projDescInput.value, LIMITS.DESCRIPTION);
+        const tags = projTagsInput.value
+            .split(",")
+            .map(t => sanitizeText(t, LIMITS.TAG))
+            .filter(t => t !== "")
+            .slice(0, LIMITS.TAGS_COUNT);
 
         if (!title || !description) {
             Swal.fire("Atención", "Por favor completa los campos requeridos.", "warning");
+            return;
+        }
+
+        // Solo se aceptan http/https en el enlace de demo: bloquea javascript:.
+        const demoUrl = rawDemoUrl ? safeUrl(rawDemoUrl, "") : "#";
+        if (rawDemoUrl && !demoUrl) {
+            Swal.fire("Enlace inválido", "El enlace de demo debe empezar con http:// o https://", "error");
             return;
         }
 
@@ -517,8 +614,13 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             // Si no hay imagen, generamos un SVG de gradiente dinámico
             if (!projectImage) {
+                // Placeholder generado localmente. El título se escapa y el SVG
+                // completo se codifica: sin escapar, un título con "</text><..."
+                // rompe el marcado y queda persistido en la base de datos.
                 const hue = Math.floor(Math.random() * 360);
-                projectImage = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500"><defs><linearGradient id="rand" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="hsl(${hue}, 80%, 45%)"/><stop offset="100%" stop-color="hsl(${(hue + 60) % 360}, 85%, 25%)"/></linearGradient></defs><rect width="800" height="500" fill="url(%23rand)"/><text x="400" y="260" fill="white" font-family="sans-serif" font-size="36" font-weight="bold" text-anchor="middle">${title.toUpperCase()}</text></svg>`;
+                const label = escapeHtml(title.toUpperCase().slice(0, 40));
+                const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500"><defs><linearGradient id="rand" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="hsl(${hue}, 80%, 45%)"/><stop offset="100%" stop-color="hsl(${(hue + 60) % 360}, 85%, 25%)"/></linearGradient></defs><rect width="800" height="500" fill="url(%23rand)"/><text x="400" y="260" fill="white" font-family="sans-serif" font-size="36" font-weight="bold" text-anchor="middle">${label}</text></svg>`;
+                projectImage = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
             }
         }
 
@@ -578,14 +680,14 @@ document.addEventListener("DOMContentLoaded", () => {
             item.className = "admin-project-item";
             item.innerHTML = `
                 <div class="admin-project-meta">
-                    <div class="admin-project-name">${proj.title}</div>
-                    <div class="admin-project-cat">${getCategoryLabel(proj.category)}</div>
+                    <div class="admin-project-name">${escapeHtml(proj.title)}</div>
+                    <div class="admin-project-cat">${escapeHtml(getCategoryLabel(proj.category))}</div>
                 </div>
                 <div class="admin-project-actions">
-                    <button class="btn-edit-proj" data-id="${proj.id}" title="Editar proyecto">
+                    <button class="btn-edit-proj" data-id="${escapeHtml(proj.id)}" title="Editar proyecto">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                     </button>
-                    <button class="btn-delete-proj" data-id="${proj.id}" title="Eliminar proyecto">
+                    <button class="btn-delete-proj" data-id="${escapeHtml(proj.id)}" title="Eliminar proyecto">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                     </button>
                 </div>
@@ -720,9 +822,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // Agregar elemento a la lista visual del resumen
                 const li = document.createElement("li");
+                const safeAddon = escapeHtml(addonName);
                 li.innerHTML = `
-                    <span class="add-item-name" title="${addonName}">${addonName}</span>
-                    <span>+$${addonPrice} USD</span>
+                    <span class="add-item-name" title="${safeAddon}">${safeAddon}</span>
+                    <span>+$${Number.isFinite(addonPrice) ? addonPrice : 0} USD</span>
                 `;
                 sumAddonsList.appendChild(li);
             }
@@ -836,7 +939,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const encodedMessage = encodeURIComponent(message);
         const phoneNumber = "543517877753"; 
         const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-        window.open(whatsappUrl, "_blank");
+        // noopener/noreferrer: impide que la pestaña destino acceda a window.opener.
+        window.open(whatsappUrl, "_blank", "noopener,noreferrer");
     });
 
 
@@ -1215,7 +1319,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class="info-grid">
                             <div class="info-card">
                                 <h4>Destinatario</h4>
-                                <p style="font-weight: 600; font-size: 1rem; color: #0f172a;">${clientName}</p>
+                                <p style="font-weight: 600; font-size: 1rem; color: #0f172a;">${escapeHtml(clientName)}</p>
                             </div>
                             <div class="info-card">
                                 <h4>Desarrollador</h4>
@@ -1301,7 +1405,9 @@ document.addEventListener("DOMContentLoaded", () => {
             container.appendChild(tempDiv);
             document.body.appendChild(container);
 
-            const pdfFilename = `Presupuesto_ArielDev_${clientName.replace(/\s+/g, "_")}.pdf`;
+            // Se neutraliza el nombre de archivo: evita path traversal y caracteres inválidos.
+            const safeFilePart = clientName.replace(/[^\p{L}\p{N}_-]+/gu, "_").slice(0, 60) || "Cliente";
+            const pdfFilename = `Presupuesto_ArielDev_${safeFilePart}.pdf`;
             const opt = {
                 margin:       0,
                 filename:     pdfFilename,
@@ -1320,16 +1426,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
-            if (typeof html2pdf !== "undefined") {
-                html2pdf().set(opt).from(tempDiv).save().then(() => {
-                    document.body.removeChild(container);
-                }).catch(err => {
-                    console.error("Error al descargar PDF:", err);
-                    document.body.removeChild(container);
-                });
-            } else {
-                Swal.fire("Descarga de PDF", "La librería de descarga de PDF está cargando. Por favor, intenta de nuevo en unos segundos.", "info");
-                document.body.removeChild(container);
+            try {
+                // La librería (885 KB) se descarga recién en este punto.
+                await loadHtml2Pdf();
+                await html2pdf().set(opt).from(tempDiv).save();
+            } catch (err) {
+                console.error("Error al descargar PDF:", err);
+                Swal.fire("No se pudo generar el PDF", "Revisá tu conexión e intentá de nuevo.", "error");
+            } finally {
+                if (container.parentNode) document.body.removeChild(container);
             }
         });
     }
@@ -1337,18 +1442,34 @@ document.addEventListener("DOMContentLoaded", () => {
     // Formulario de Contacto General
     contactForm.addEventListener("submit", (e) => {
         e.preventDefault();
-        const name = contactName.value.trim();
+        const name = sanitizeText(contactName.value, LIMITS.NAME);
         const email = document.getElementById("contact-email").value.trim();
-        const subject = document.getElementById("contact-subject").value.trim();
-        const message = document.getElementById("contact-message").value.trim();
+        const subject = sanitizeText(document.getElementById("contact-subject").value, LIMITS.SUBJECT);
+        const message = sanitizeText(document.getElementById("contact-message").value, LIMITS.MESSAGE);
 
         if (!name || !email || !subject || !message) {
             Swal.fire("Atención", "Por favor, completa todos los campos del formulario.", "warning");
             return;
         }
 
-        // Mensaje de éxito de simulación
-        Swal.fire("¡Gracias!", `¡Gracias por tu mensaje, ${name}! Se ha enviado la consulta con éxito. Ariel se pondrá en contacto a la brevedad.`, "success");
+        if (!isValidEmail(email)) {
+            Swal.fire("Email inválido", "Revisá la dirección de correo ingresada.", "warning");
+            return;
+        }
+
+        // El sitio es estático: no hay backend que reciba el formulario. Antes se
+        // mostraba "enviado con éxito" sin enviar nada — el mensaje se perdía.
+        // Se deriva a WhatsApp, que sí entrega el mensaje. Ver SECURITY.md (FUNC-01)
+        // para migrar a un endpoint real (Formspree / Supabase Edge Function).
+        const body =
+            `Hola Ariel! Consulta desde el portfolio.\n\n` +
+            `Nombre: ${name}\n` +
+            `Email: ${email}\n` +
+            `Asunto: ${subject}\n\n${message}`;
+
+        window.open(`https://wa.me/543517877753?text=${encodeURIComponent(body)}`, "_blank", "noopener,noreferrer");
+
+        Swal.fire("¡Gracias!", "Se abrió WhatsApp con tu consulta lista para enviar. Confirmá el envío para que me llegue.", "success");
         contactForm.reset();
     });
 
@@ -1390,8 +1511,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const isDefault = defaultIds.includes(cat.id);
             
             item.innerHTML = `
-                <div class="admin-category-name">${cat.label}</div>
-                <button class="btn-delete-cat" data-id="${cat.id}" ${isDefault ? 'disabled' : ''} title="${isDefault ? 'Las categorías por defecto no se pueden borrar' : 'Eliminar categoría'}">
+                <div class="admin-category-name">${escapeHtml(cat.label)}</div>
+                <button class="btn-delete-cat" data-id="${escapeHtml(cat.id)}" ${isDefault ? 'disabled' : ''} title="${isDefault ? 'Las categorías por defecto no se pueden borrar' : 'Eliminar categoría'}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </button>
             `;

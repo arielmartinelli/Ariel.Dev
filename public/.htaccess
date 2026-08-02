@@ -1,0 +1,53 @@
+# ============================================================
+# Cabeceras de seguridad y rendimiento — Hostinger / Apache
+# Se copia a dist/ en el build. Subir junto con el resto de dist/.
+# Verificar el resultado en https://securityheaders.com
+# ============================================================
+
+# ---------- 1. Forzar HTTPS ----------
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Redirige todo el trafico http:// a https://
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# ---------- 2. Cabeceras de seguridad ----------
+<IfModule mod_headers.c>
+  # ATENCION: activar HSTS solo con el certificado SSL ya funcionando.
+  # Si el sitio queda sin TLS, el navegador se niega a abrirlo hasta que expire.
+  Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+
+  Header always set X-Frame-Options "DENY"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()"
+  Header always set Cross-Origin-Opener-Policy "same-origin"
+  Header always set Cross-Origin-Resource-Policy "same-origin"
+
+  # CSP: lista blanca de origenes. Convierte un XSS en un error de consola.
+  # Si agregas una libreria o API nueva y la consola marca "Refused to load", agregala aca.
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://dolarapi.com https://api.bluelytics.com.ar; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me; object-src 'none'; upgrade-insecure-requests"
+
+  # Nunca cachear el HTML: un despliegue nuevo se ve al instante.
+  <FilesMatch "\.(html)$">
+    Header set Cache-Control "public, max-age=0, must-revalidate"
+  </FilesMatch>
+
+  # Assets con hash en el nombre (los genera Vite): cache de 1 anio.
+  <FilesMatch "\.(js|css|woff2|webp|avif|jpg|jpeg|png|svg|gif)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
+# ---------- 3. No exponer la estructura ni archivos sensibles ----------
+Options -Indexes
+
+<FilesMatch "(^\.env|^\.git|package(-lock)?\.json|vite\.config\.js|\.md$)">
+  Require all denied
+</FilesMatch>
+
+# ---------- 4. Compresion ----------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
