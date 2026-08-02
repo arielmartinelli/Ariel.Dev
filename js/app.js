@@ -835,15 +835,15 @@ document.addEventListener("DOMContentLoaded", () => {
             sumAddonsList.innerHTML = `<li class="no-addons">Ningún adicional seleccionado</li>`;
         }
 
-        // 3. Evaluar método de pago (3 cuotas con +10% recargo)
+        // 3. Evaluar método de pago (3 cuotas SIN interés: el total no cambia)
         const isInstallments = payInstallmentsRadio && payInstallmentsRadio.checked;
         let finalTotalUsd = baseTotal;
         
         if (isInstallments) {
-            finalTotalUsd = Math.round(baseTotal * 1.10);
+            // Sin interés: el total financiado es igual al total al contado.
             const installmentUsd = (finalTotalUsd / 3).toFixed(2);
             const installmentArs = Math.round((finalTotalUsd * dollarRate) / 3);
-            
+
             if (installmentsDetail && installmentPriceValue) {
                 installmentsDetail.classList.remove("hidden");
                 installmentPriceValue.textContent = `$${installmentUsd} USD ($${installmentArs.toLocaleString("es-AR")} ARS) c/u`;
@@ -916,7 +916,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const installmentUsd = (finalTotalUsd / 3).toFixed(2);
             const installmentArs = Math.round((finalTotalUsd * dollarRate) / 3);
             
-            paymentText = `💳 *Forma de pago:* 3 Cuotas sin interés (+10% recargo)\n` +
+            paymentText = `💳 *Forma de pago:* 3 Cuotas sin interés\n` +
                           `👉 *Cuotas:* 3 cuotas de $${installmentUsd} USD ($${installmentArs.toLocaleString("es-AR")} ARS) cada una\n`;
         }
 
@@ -1013,25 +1013,12 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             const isInstallments = payInstallmentsRadio && payInstallmentsRadio.checked;
-            let finalTotalUsd = baseTotal;
-            let chargeMarkup = "";
+            const finalTotalUsd = baseTotal;
             let installmentsMarkup = "";
 
             if (isInstallments) {
-                finalTotalUsd = Math.round(baseTotal * 1.10);
-                const chargeUsd = finalTotalUsd - baseTotal;
-                const chargeArs = chargeUsd * dollarRate;
-                chargeMarkup = `
-                    <tr>
-                        <td>Recargo 10% (Financiación)</td>
-                        <td style="text-align: right;">+$${chargeUsd} USD</td>
-                    </tr>
-                    <tr>
-                        <td>Recargo ARS</td>
-                        <td style="text-align: right;">+$${chargeArs.toLocaleString("es-AR")} ARS</td>
-                    </tr>
-                `;
-
+                // Sin interés: el total financiado es igual al total al contado,
+                // así que no hay fila de recargo en el presupuesto.
                 const installmentUsd = (finalTotalUsd / 3).toFixed(2);
                 const installmentArs = Math.round((finalTotalUsd * dollarRate) / 3).toLocaleString("es-AR");
                 
@@ -1039,7 +1026,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="installments-box">
                         <div class="installments-icon">💳</div>
                         <div>
-                            <strong>Financiación en 3 cuotas</strong>
+                            <strong>Financiación en 3 cuotas sin interés</strong>
                             <p style="margin: 4px 0 0 0;">3 cuotas mensuales de <strong>$${installmentUsd} USD</strong> ($${installmentArs} ARS) cada una.</p>
                         </div>
                     </div>
@@ -1373,7 +1360,6 @@ document.addEventListener("DOMContentLoaded", () => {
                                     <td>Subtotal ARS</td>
                                     <td style="text-align: right; font-weight: 500;">$${(baseTotal * dollarRate).toLocaleString("es-AR")}</td>
                                 </tr>
-                                ${chargeMarkup}
                                 <tr class="grand-total">
                                     <td>Total USD</td>
                                     <td style="text-align: right;">$${finalTotalUsd}</td>
