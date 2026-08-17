@@ -131,7 +131,7 @@ function ficha(c) {
   cont.className = "admin-cliente-ficha";
 
   const link = urlPortal(c.access_token);
-  const notasStr = c.admin_notes || "";
+  const notasStr = (c.admin_notes || "") + " " + (c.project_brief || "");
 
   const pasoActual = c.status === "finalizado" || Boolean(c.production_url)
     ? 4

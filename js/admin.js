@@ -147,7 +147,9 @@ function cambiarVista(vista) {
   });
 
   document.querySelectorAll(".admin-vista").forEach((sec) => {
-    sec.classList.toggle("hidden", sec.id !== `vista-${vista}`);
+    const activa = sec.id === `vista-${vista}`;
+    sec.classList.toggle("hidden", !activa);
+    sec.hidden = !activa;
   });
 
   $("admin-titulo").textContent = TITULOS[vista] || "Panel";
