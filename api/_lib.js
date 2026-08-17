@@ -25,13 +25,10 @@ export function leerConfig() {
 
   const cfg = {
     supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
-    serviceRole: process.env.SUPABASE_SERVICE_ROLE,
-    mpAccessToken: process.env.MP_ACCESS_TOKEN,
+    serviceRole: process.env.SUPABASE_SERVICE_ROLE || process.env.VITE_SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY,
+    mpAccessToken: process.env.MP_ACCESS_TOKEN || process.env.VITE_MP_ACCESS_TOKEN,
     mpWebhookSecret: process.env.MP_WEBHOOK_SECRET,
-    siteUrl: process.env.SITE_URL || "",
-    // Cotizacion de respaldo si la API del dolar no responde. Mercado Pago
-    // cobra en ARS: si se manda un precio en USD, el cliente paga 1/1000 de lo
-    // que corresponde.
+    siteUrl: process.env.SITE_URL || process.env.VITE_SITE_URL || "",
     usdArsFallback: Number(process.env.USD_ARS_FALLBACK || 1250),
   };
 
