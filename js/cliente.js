@@ -265,6 +265,16 @@ async function render() {
     if (linkFinal) linkFinal.href = safeUrl(production_url, "#");
   }
 
+  // --- Dejanos tu Reseña (Aparece al finalizar en Paso 4) ---
+  const mostrarResena = pasoActual === 4 || finalizado || progreso >= 99;
+  mostrarBloque("pc-bloque-resena", mostrarResena);
+  if (mostrarResena) {
+    const inputEmpresa = $("pc-resena-empresa");
+    if (inputEmpresa && !inputEmpresa.value) {
+      inputEmpresa.value = domain_name || (production_url ? production_url.replace(/^https?:\/\//, "") : "");
+    }
+  }
+
   // --- Roadmap Timeline ---
   actualizarRoadmap(pasoActual);
   if (pasoActual === 4) verificarCelebracion(status, progreso);
