@@ -158,17 +158,17 @@ async function cargarCotizacionDolar() {
  */
 function obtenerPasoActual(datos) {
   if (!datos) return 1;
-  const { status, desarrollo_listo, dominio_listo, production_url } = datos;
+  const { status, desarrollo_listo, dominio_listo, production_url, admin_notes = "" } = datos;
 
   if (status === "finalizado" || Boolean(production_url)) {
     return 4; // Paso 4: Publicado
   }
 
-  if (status === "dominio_listo" || Boolean(dominio_listo)) {
+  if (status === "dominio_listo" || Boolean(dominio_listo) || String(admin_notes).includes("[DOMINIO_LISTO]")) {
     return 3; // Paso 3: Pago Final (50%)
   }
 
-  if (status === "desarrollo_listo" || Boolean(desarrollo_listo)) {
+  if (status === "desarrollo_listo" || Boolean(desarrollo_listo) || String(admin_notes).includes("[DESARROLLO_LISTO]")) {
     return 2; // Paso 2: Elección de Dominio
   }
 

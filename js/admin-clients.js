@@ -131,6 +131,15 @@ function ficha(c) {
   cont.className = "admin-cliente-ficha";
 
   const link = urlPortal(c.access_token);
+  const notasStr = c.admin_notes || "";
+
+  const pasoActual = c.status === "finalizado" || Boolean(c.production_url)
+    ? 4
+    : (c.status === "dominio_listo" || Boolean(c.dominio_listo) || notasStr.includes("[DOMINIO_LISTO]"))
+      ? 3
+      : (c.status === "desarrollo_listo" || Boolean(c.desarrollo_listo) || notasStr.includes("[DESARROLLO_LISTO]"))
+        ? 2
+        : 1;
 
   cont.innerHTML = `
     <div class="admin-bloque">
@@ -148,42 +157,67 @@ function ficha(c) {
       </p>
     </div>
 
-    <div class="admin-bloque" style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 14px 16px;">
-      <label class="admin-bloque-label" style="color: #4f46e5; font-weight: 700; margin-bottom: 10px;">
-        ⚡ Control de Pasos del Proyecto
-      </label>
-      
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 10px 14px; border-radius: 6px; border: 1px solid #e2e8f0;">
-          <div>
-            <strong style="display: block; font-size: 0.9rem;">Paso 1: Demo & Desarrollo (${c.progreso}%)</strong>
-            <span style="font-size: 0.8rem; color: #64748b;">${c.progreso >= 100 ? '✓ Desarrollo al 100%' : 'En proceso de desarrollo'}</span>
+    <!-- Control de Pasos del Workflow -->
+    <div class="admin-workflow-card">
+      <div class="admin-workflow-header">
+        <span class="admin-workflow-title">⚡ Flujo del Proyecto</span>
+        <span class="admin-workflow-badge">Etapa ${pasoActual} de 4</span>
+      </div>
+
+      <div class="admin-stepper-grid">
+        <!-- Paso 1 -->
+        <div class="admin-step-item ${pasoActual > 1 ? 'completed' : pasoActual === 1 ? 'active' : ''}">
+          <div class="step-num">${pasoActual > 1 ? '✓' : '1'}</div>
+          <div class="step-info">
+            <div class="step-title">Paso 1: Demo & Desarrollo</div>
+            <div class="step-sub">${c.progreso}% completado · Adelanto 50%</div>
           </div>
-          <button type="button" class="btn btn-sm ${c.status === 'desarrollo_listo' || c.desarrollo_listo ? 'btn-outline' : 'btn-primary'}" data-accion="desarrollo-listo">
-            ${c.status === 'desarrollo_listo' || c.desarrollo_listo ? '✓ Desarrollo Listo' : '✅ Marcar Desarrollo Listo'}
-          </button>
+          <div class="step-action">
+            ${pasoActual > 1
+              ? '<span class="step-done-badge">✓ Listo</span>'
+              : `<button type="button" class="btn btn-sm btn-primary" data-accion="desarrollo-listo">
+                   ✅ Marcar Desarrollo Listo
+                 </button>`
+            }
+          </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 10px 14px; border-radius: 6px; border: 1px solid #e2e8f0;">
-          <div>
-            <strong style="display: block; font-size: 0.9rem;">Paso 2: Elección de Dominio</strong>
-            <span style="font-size: 0.8rem; color: #64748b;">
-              ${c.domain_choice ? (c.domain_choice === 'propio' ? `Propio: ${c.domain_name || 'Sin especificar'}` : 'Gratuito (Demo)') : 'Esperando selección del cliente…'}
-            </span>
+        <!-- Paso 2 -->
+        <div class="admin-step-item ${pasoActual > 2 ? 'completed' : pasoActual === 2 ? 'active' : ''}">
+          <div class="step-num">${pasoActual > 2 ? '✓' : '2'}</div>
+          <div class="step-info">
+            <div class="step-title">Paso 2: Elección de Dominio</div>
+            <div class="step-sub">${c.domain_choice ? (c.domain_choice === 'propio' ? `Propio: ${c.domain_name || 'Sin especificar'}` : 'Gratuito (Demo)') : 'Esperando selección del cliente…'}</div>
           </div>
-          <button type="button" class="btn btn-sm ${c.status === 'dominio_listo' || c.dominio_listo ? 'btn-outline' : 'btn-primary'}" data-accion="dominio-listo">
-            ${c.status === 'dominio_listo' || c.dominio_listo ? '✓ Dominio Listo' : '🌐 Marcar Dominio Listo'}
-          </button>
+          <div class="step-action">
+            ${pasoActual > 2
+              ? '<span class="step-done-badge">✓ Listo</span>'
+              : pasoActual === 2
+                ? `<button type="button" class="btn btn-sm btn-primary" data-accion="dominio-listo">
+                     🌐 Marcar Dominio Listo
+                   </button>`
+                : '<span class="step-lock">Pendiente Paso 1</span>'
+            }
+          </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 10px 14px; border-radius: 6px; border: 1px solid #e2e8f0;">
-          <div>
-            <strong style="display: block; font-size: 0.9rem;">Paso 3 y 4: Pago Final y Publicación</strong>
-            <span style="font-size: 0.8rem; color: #64748b;">${c.status === 'finalizado' ? `✓ Publicado en ${c.production_url}` : 'Abonar 50% restante y publicar'}</span>
+        <!-- Paso 3 y 4 -->
+        <div class="admin-step-item ${pasoActual === 4 ? 'completed' : pasoActual === 3 ? 'active' : ''}">
+          <div class="step-num">${pasoActual === 4 ? '✓' : '3/4'}</div>
+          <div class="step-info">
+            <div class="step-title">Paso 3 y 4: Pago Final y Publicación</div>
+            <div class="step-sub">${c.status === 'finalizado' ? `Publicado en ${c.production_url}` : 'Abonar 50% restante y publicar'}</div>
           </div>
-          <button type="button" class="btn btn-sm ${c.status === 'finalizado' ? 'btn-outline' : 'btn-primary'}" data-accion="publicar-proyecto">
-            ${c.status === 'finalizado' ? '✓ Publicado' : '🚀 Pago Completado y Publicar'}
-          </button>
+          <div class="step-action">
+            ${pasoActual === 4
+              ? '<span class="step-done-badge">✓ Publicado 🚀</span>'
+              : pasoActual >= 3
+                ? `<button type="button" class="btn btn-sm btn-success" data-accion="publicar-proyecto">
+                     🚀 Pago Completado y Publicar
+                   </button>`
+                : '<span class="step-lock">Pendiente Pasos 1 y 2</span>'
+            }
+          </div>
         </div>
       </div>
     </div>
@@ -289,10 +323,24 @@ function conectarFicha(ficha, c, link) {
     });
     if (!ok) return;
 
-    const res = await adminActualizarCliente(c.id, {
+    let notas = c.admin_notes || "";
+    if (!notas.includes("[DESARROLLO_LISTO]")) {
+      notas = (notas + " [DESARROLLO_LISTO]").trim();
+    }
+
+    let res = await adminActualizarCliente(c.id, {
       status: "desarrollo_listo",
       desarrollo_listo: true,
+      admin_notes: notas,
     });
+
+    if (!res.ok) {
+      res = await adminActualizarCliente(c.id, {
+        status: "en_produccion",
+        admin_notes: notas,
+      });
+    }
+
     if (!res.ok) {
       avisar("No se pudo actualizar", res.error, "error");
       return;
@@ -310,10 +358,24 @@ function conectarFicha(ficha, c, link) {
     });
     if (!ok) return;
 
-    const res = await adminActualizarCliente(c.id, {
+    let notas = c.admin_notes || "";
+    if (!notas.includes("[DOMINIO_LISTO]")) {
+      notas = (notas + " [DOMINIO_LISTO]").trim();
+    }
+
+    let res = await adminActualizarCliente(c.id, {
       status: "dominio_listo",
       dominio_listo: true,
+      admin_notes: notas,
     });
+
+    if (!res.ok) {
+      res = await adminActualizarCliente(c.id, {
+        status: "en_produccion",
+        admin_notes: notas,
+      });
+    }
+
     if (!res.ok) {
       avisar("No se pudo actualizar", res.error, "error");
       return;
