@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dejá tu Reseña | Ariel.Dev</title>
+    <meta name="description" content="Contanos tu experiencia trabajando con Ariel.Dev para crear tu sitio web.">
+    <meta name="robots" content="noindex, follow">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="portal-body">
+    <header class="portal-header">
+        <div class="container portal-header-inner">
+            <a href="/" class="portal-logo" title="Ir al sitio público">
+                Ariel<span class="portal-logo-punto">.</span>Dev
+            </a>
+            <span class="portal-tag">Opinión de Cliente</span>
+        </div>
+    </header>
+
+    <main class="container" style="max-width: 600px; padding-top: 40px; padding-bottom: 60px;">
+        <div class="portal-card" id="card-form-resena">
+            <h1 class="portal-h2" style="margin-bottom:8px; font-size:1.5rem; text-align:center;">⭐ Dejanos tu Reseña</h1>
+            <p class="portal-muted text-center mb-4" style="font-size:0.92rem;">
+                ¡Gracias por haber trabajado conmigo! Tu opinión es fundamental para seguir mejorando y se mostrará destacada en mi sitio web.
+            </p>
+
+            <form id="form-publico-resena">
+                <div class="form-group" style="margin-bottom:16px;">
+                    <label for="resena-nombre" style="font-weight:700;">Tu Nombre y Apellido <span style="color:#ef4444;">*</span></label>
+                    <input type="text" id="resena-nombre" class="w-full" required placeholder="Ej: Mariano López" style="padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+                </div>
+
+                <div class="form-group" style="margin-bottom:16px;">
+                    <label for="resena-estrellas" style="font-weight:700;">Calificación <span style="color:#ef4444;">*</span></label>
+                    <select id="resena-estrellas" class="w-full" style="padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:1rem;">
+                        <option value="5">⭐⭐⭐⭐⭐ (Excelente - 5 Estrellas)</option>
+                        <option value="4">⭐⭐⭐⭐ (Muy Bueno - 4 Estrellas)</option>
+                        <option value="3">⭐⭐⭐ (Bueno - 3 Estrellas)</option>
+                        <option value="2">⭐⭐ (Regular - 2 Estrellas)</option>
+                        <option value="1">⭐ (A mejorar - 1 Estrella)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom:16px;">
+                    <label for="resena-empresa" style="font-weight:700;">Tu Proyecto / Empresa (Opcional)</label>
+                    <input type="text" id="resena-empresa" class="w-full" placeholder="Ej: López Odontología" style="padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+                </div>
+
+                <div class="form-group" style="margin-bottom:16px;">
+                    <label for="resena-url" style="font-weight:700;">Link de tu Sitio Web (Opcional)</label>
+                    <input type="url" id="resena-url" class="w-full" placeholder="Ej: https://lopez-odontologia.com" style="padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+                </div>
+
+                <div class="form-group" style="margin-bottom:20px;">
+                    <label for="resena-comentario" style="font-weight:700;">Tu Opinión / Comentario <span style="color:#ef4444;">*</span></label>
+                    <textarea id="resena-comentario" class="w-full" rows="4" required placeholder="Contame cómo fue tu experiencia desarrollando tu sitio web…" style="padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);"></textarea>
+                </div>
+
+                <button type="submit" id="btn-enviar-publico" class="btn btn-primary w-full" style="padding:14px; font-size:1rem; font-weight:700;">
+                    ⭐ Publicar mi Reseña
+                </button>
+            </form>
+        </div>
+
+        <div class="portal-card hidden text-center" id="card-exito-resena">
+            <div style="font-size:3.5rem; margin-bottom:12px;">🎉</div>
+            <h2 class="portal-h2" style="margin-bottom:8px;">¡Muchas Gracias por tu Reseña!</h2>
+            <p class="portal-muted mb-4" style="font-size:0.95rem;">
+                Tu comentario fue recibido correctamente. Aparecerá destacado en mi página web en <strong style="color:var(--primary);">arieldev.com.ar</strong>.
+            </p>
+            <a href="/" class="btn btn-primary" style="display:inline-block;">Volver a la página principal</a>
+        </div>
+    </main>
+
+    <footer class="portal-footer">
+        <p class="portal-muted">Ariel.Dev · Desarrollo Web Profesional</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <script src="/sweetalert2.all.min.js" defer></script>
+    <script type="module" src="/js/resena.js"></script>
+</body>
+</html>

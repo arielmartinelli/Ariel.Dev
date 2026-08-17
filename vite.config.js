@@ -41,6 +41,11 @@ function rutasLimpias() {
       req.url = '/admin.html';
     }
 
+    // /resena
+    if (/^\/resena\/?$/.test(url)) {
+      req.url = '/resena.html';
+    }
+
     next();
   };
 
@@ -77,6 +82,7 @@ export default defineConfig({
         // Panel propietario. Tambien aparte: el sitio publico no debe
         // descargar el ABM de proyectos, clientes ni cobros.
         admin: resolve(__dirname, 'admin.html'),
+        resena: resolve(__dirname, 'resena.html'),
 
         landing: resolve(__dirname, 'ventajas-landing.html'),
         ecommerce: resolve(__dirname, 'ventajas-ecommerce.html'),

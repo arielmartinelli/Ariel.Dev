@@ -236,6 +236,30 @@ export async function refrescarResenas() {
   const cont = $("admin-lista-resenas");
   if (!cont) return;
 
+  const linkResena = `${window.location.origin}/resena`;
+
+  const btnCopiar = $("btn-copiar-link-resena");
+  if (btnCopiar && !btnCopiar.dataset.bound) {
+    btnCopiar.dataset.bound = "true";
+    btnCopiar.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(linkResena);
+        avisar("Link copiado", `Se copió ${linkResena} al portapapeles. Podés enviárselo a tus clientes anteriores.`, "success");
+      } catch {
+        avisar("Link de reseña", `Copiá este enlace para enviar a tus clientes: ${linkResena}`, "info");
+      }
+    });
+  }
+
+  const btnWa = $("btn-wa-link-resena");
+  if (btnWa && !btnWa.dataset.bound) {
+    btnWa.dataset.bound = "true";
+    btnWa.addEventListener("click", () => {
+      const texto = `¡Hola! Te escribo para agradecerte por haber trabajado juntos en tu proyecto web. Me ayudaría muchísimo si me dejás una breve reseña de tu experiencia acá:\n\n${linkResena}\n\n¡Muchas gracias! 🙌`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
+    });
+  }
+
   cont.innerHTML = "<p class='admin-hint'>Cargando reseñas…</p>";
   const lista = await obtenerResenasAdmin();
 
