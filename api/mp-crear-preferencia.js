@@ -153,7 +153,8 @@ export default async function handler(req, res) {
 
     if (!respuesta.ok || !datos.init_point) {
       console.error("Mercado Pago rechazó la preferencia:", respuesta.status, datos);
-      return json(res, 502, { error: "Mercado Pago no pudo generar el pago. Probá de nuevo en un minuto." });
+      const mpMsg = datos.message || (datos.cause && datos.cause[0] && datos.cause[0].description) || `Error HTTP ${respuesta.status}`;
+      return json(res, 502, { error: `Mercado Pago rechazó el pago: ${mpMsg}` });
     }
 
     // 5. Se guarda la preferencia y se pasa a "en_proceso" para que el portal
