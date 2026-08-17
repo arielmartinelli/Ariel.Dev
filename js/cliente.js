@@ -192,8 +192,9 @@ async function render() {
   mostrarBloque("pc-hero-progreso", enProduccion);
   if (enProduccion) pintarProgreso(progreso, tareas, domain_choice);
 
-  // --- Dominio: aparece durante la produccion, antes de cerrar el 100% ---
-  const necesitaDominio = status === "en_produccion" && !domain_choice;
+  // --- Dominio: aparece RECIÉN cuando TODOS los cambios/tareas están listos ---
+  const tareasCompletadas = tareas.length > 0 ? tareas.every((t) => t.done) : (progreso >= 99);
+  const necesitaDominio = status === "en_produccion" && !domain_choice && tareasCompletadas;
   mostrarBloque("pc-bloque-dominio", necesitaDominio);
   if (necesitaDominio) {
     $("pc-dom-precio").textContent = `+${usd(domain_extra_usd)}`;
@@ -885,6 +886,23 @@ async function iniciarPago(kind, boton) {
 /* ==========================================================================
    Arranque
    ========================================================================== */
+let pollingInterval = null;
+function iniciarPollingLive() {
+  if (pollingInterval) clearInterval(pollingInterval);
+  pollingInterval = setInterval(async () => {
+    if (document.hidden || !TOKEN) return;
+    try {
+      const nuevosDatos = await portalObtener(TOKEN);
+      if (nuevosDatos && JSON.stringify(nuevosDatos) !== JSON.stringify(datos)) {
+        datos = nuevosDatos;
+        render();
+      }
+    } catch (err) {
+      // Silencioso
+    }
+  }, 3500); // Actualización en tiempo real cada 3.5s
+}
+
 (async function iniciar() {
   configurarDialogos();
 
@@ -902,14 +920,15 @@ async function iniciarPago(kind, boton) {
       return;
     }
     render();
+    iniciarPollingLive();
 
     // Si el cliente vuelve desde Mercado Pago, el estado del pago lo confirma
     // el webhook y puede tardar unos segundos. Se refresca una vez sin que el
     // cliente tenga que recargar a mano.
     if (VUELVE_DE_PAGO) {
       avisar("Procesando tu pago", "Apenas Mercado Pago lo confirme se actualiza acá solo.", "info");
-      setTimeout(recargar, 4000);
-      setTimeout(recargar, 12000);
+      setTimeout(recargar, 3000);
+      setTimeout(recargar, 8000);
     }
   } catch (err) {
     console.error(err);
