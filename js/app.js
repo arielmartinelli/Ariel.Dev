@@ -1286,8 +1286,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             <span style="font-size: 0.8rem; color: var(--text-muted);">${r.project_name ? escapeHtml(r.project_name) : 'Cliente Satisfecho'}</span>
                         </div>
                         ${r.company_url ? `
-                            <a href="${safeUrl(r.company_url, '#')}" target="_blank" rel="noopener" class="btn btn-xs btn-outline" style="font-size:0.75rem; padding: 4px 8px;">
-                                🔗 ${escapeHtml(r.company_url.replace(/^https?:\/\//, ''))}
+                            <a href="${safeUrl(r.company_url, '#')}" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline" style="font-size:0.78rem; padding: 5px 12px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;">
+                                Ver página ↗
                             </a>
                         ` : ''}
                     </div>
