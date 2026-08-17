@@ -292,8 +292,17 @@ async function render() {
     if (el) el.href = enlaceWhatsApp(asunto);
   });
 
-  // PDF Recibo
-  $("pc-btn-descargar-pdf")?.addEventListener("click", () => generarReciboPDF(pasoActual === 1 ? 'anticipo' : 'total'));
+  // PDF Recibo Superior (Visibilidad: Únicamente cuando TODO el proyecto está finalizado en Paso 4)
+  const btnPdfSuperior = $("pc-btn-descargar-pdf");
+  if (btnPdfSuperior) {
+    const todoPagado = pasoActual === 4 || status === "finalizado";
+    btnPdfSuperior.hidden = !todoPagado;
+    btnPdfSuperior.innerHTML = "📄 Recibo Final Cancelado";
+    if (!btnPdfSuperior.dataset.bound) {
+      btnPdfSuperior.dataset.bound = "true";
+      btnPdfSuperior.addEventListener("click", () => generarReciboPDF("total", btnPdfSuperior));
+    }
+  }
 
   mostrarVista("contenido");
 }
@@ -364,28 +373,39 @@ async function generarReciboPDF(kindFilter = "total", botonTarget = null) {
     return;
   }
 
-  const { client_name, project_name, total_usd, price_usd, pagos = [] } = datos;
+  const { client_name, project_name, total_usd, price_usd, domain_name, pagos = [] } = datos;
   const fechaHoy = new Date().toLocaleDateString("es-AR");
   const refNum = `REC-${Math.floor(1000 + Math.random() * 9000)}`;
 
   const esAnticipo = kindFilter === "anticipo";
+  const esDominio = kindFilter === "dominio";
   const esSaldo = kindFilter === "saldo";
 
   const pagoAnticipo = pagos.find(p => p.kind === "anticipo");
-  const totalUsdNum = Number(total_usd || price_usd || 0);
-  const totalArsNum = Math.round(totalUsdNum * cotizacionDolarOficial);
+  const pagoDominio = pagos.find(p => p.kind === "dominio");
+  const pagoSaldo = pagos.find(p => p.kind === "saldo");
 
-  let tituloDoc = "RESUMEN DE CUENTA Y COMPROBANTE DE PAGO";
-  let notaInformativa = "Documento generado digitalmente por Ariel.Dev · Panel de seguimiento privado.";
+  const totalProyectoUsd = Number(price_usd || total_usd || 0);
+  const anticipoUsd = Number(pagoAnticipo?.amount_usd || totalProyectoUsd * 0.5);
+  const saldoUsd = Number(pagoSaldo?.amount_usd || totalProyectoUsd - anticipoUsd);
+  const dominioUsd = Number(pagoDominio?.amount_usd || 0);
+
+  let tituloDoc = "RECIBO FINAL Y CANCELACIÓN TOTAL DE CUENTA";
+  let notaInformativa = "Este comprobante certifica la cancelación total y definitiva del proyecto web. El sitio se encuentra 100% online y publicado.";
   let pagosAMostrar = pagos;
 
   if (esAnticipo) {
-    tituloDoc = "COMPROBANTE DE PAGO ADELANTADO (50%)";
-    notaInformativa = "Este comprobante certifica el cobro del 50% de anticipo inicial para dar comienzo a la producción. El saldo del 50% restante se abonará al finalizar el desarrollo previo a la publicación del sitio.";
+    tituloDoc = "RECIBO DE PAGO ADELANTADO (50%)";
+    notaInformativa = "Este comprobante certifica el cobro del 50% de anticipo inicial para dar comienzo a la producción del proyecto web. El saldo del 50% restante se abonará al finalizar el desarrollo previo a la publicación del sitio.";
     pagosAMostrar = pagoAnticipo ? [pagoAnticipo] : [];
+  } else if (esDominio) {
+    tituloDoc = "RECIBO DE PAGO DE DOMINIO PROPIO";
+    notaInformativa = `Este comprobante certifica la registración y configuración del dominio propio (${domain_name || 'Personalizado'}). Este concepto es independiente del costo de desarrollo del proyecto web.`;
+    pagosAMostrar = pagoDominio ? [pagoDominio] : [];
   } else if (esSaldo) {
-    tituloDoc = "RECIBO FINAL Y CANCELACIÓN DE CUENTA";
-    notaInformativa = "Este comprobante certifica la cancelación total del proyecto web con la acreditación previa del 50% de anticipo inicial.";
+    tituloDoc = "RECIBO DE SALDO FINAL (50%)";
+    notaInformativa = "Este comprobante certifica el cobro del 50% de saldo final. El proyecto se encuentra 100% abonado y preparado para su publicación.";
+    pagosAMostrar = pagoSaldo ? [pagoSaldo] : [];
   }
 
   const pagosFilasHTML = pagosAMostrar.map(p => {
@@ -398,30 +418,60 @@ async function generarReciboPDF(kindFilter = "total", botonTarget = null) {
       <tr>
         <td><strong>${ETIQUETA_PAGO[p.kind] || p.kind}</strong></td>
         <td><span style="color: ${colorEst}; font-weight: 700;">${est}</span></td>
-        <td class="price-col">$${pUsd.toLocaleString("es-AR")}</td>
-        <td class="price-col">$${pArs.toLocaleString("es-AR")}</td>
+        <td class="price-col">$${pUsd.toLocaleString("es-AR")} USD</td>
+        <td class="price-col">$${pArs.toLocaleString("es-AR")} ARS</td>
       </tr>
     `;
   }).join('');
 
   let resumenAcreditacionesHTML = "";
-  if (!esAnticipo && pagoAnticipo) {
-    const anticipoPagado = pagoAnticipo.status === "pagado";
-    const montoAnticipoUsd = Number(pagoAnticipo.amount_usd || 0);
+  if (esAnticipo) {
+    resumenAcreditacionesHTML = `
+      <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; font-size: 0.9rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span>Precio Total del Proyecto Web:</span>
+          <strong>$${totalProyectoUsd.toLocaleString("es-AR")} USD</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; color: #16a34a; margin-bottom: 6px;">
+          <span>Adelanto 50% Acreditado (Pago Inicial):</span>
+          <strong>- $${anticipoUsd.toLocaleString("es-AR")} USD</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 6px; font-size: 0.95rem; font-weight: 700;">
+          <span>Saldo Restante a Abonar al Finalizar:</span>
+          <span>$${saldoUsd.toLocaleString("es-AR")} USD</span>
+        </div>
+      </div>
+    `;
+  } else if (!esDominio) {
+    const anticipoPagado = pagoAnticipo?.status === "pagado";
+    const saldoPagado = pagoSaldo?.status === "pagado";
+    const dominioPagado = pagoDominio?.status === "pagado";
 
     resumenAcreditacionesHTML = `
       <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; font-size: 0.9rem;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-          <span>Monto Total del Proyecto:</span>
-          <strong>USD $${totalUsdNum.toLocaleString("es-AR")}</strong>
+          <span>Precio Total del Proyecto Web:</span>
+          <strong>$${totalProyectoUsd.toLocaleString("es-AR")} USD</strong>
         </div>
         <div style="display: flex; justify-content: space-between; color: ${anticipoPagado ? '#16a34a' : '#64748b'}; margin-bottom: 6px;">
-          <span>Pago Previo Acreditado (50% Adelanto):</span>
-          <strong>${anticipoPagado ? `- USD $${montoAnticipoUsd.toLocaleString("es-AR")}` : 'Pendiente'}</strong>
+          <span>Adelanto 50% Acreditado:</span>
+          <strong>${anticipoPagado ? `- $${anticipoUsd.toLocaleString("es-AR")} USD` : 'Pendiente'}</strong>
+        </div>
+        ${pagoDominio ? `
+          <div style="display: flex; justify-content: space-between; color: ${dominioPagado ? '#16a34a' : '#64748b'}; margin-bottom: 6px;">
+            <span>Dominio Propio (${escapeHtml(domain_name || 'Personalizado')}):</span>
+            <strong>${dominioPagado ? `+ $${dominioUsd.toLocaleString("es-AR")} USD (Pagado)` : 'Pendiente'}</strong>
+          </div>
+        ` : ''}
+        <div style="display: flex; justify-content: space-between; color: ${saldoPagado ? '#16a34a' : '#64748b'}; margin-bottom: 6px;">
+          <span>Saldo Final 50% (Producción):</span>
+          <strong>${saldoPagado ? `- $${saldoUsd.toLocaleString("es-AR")} USD` : 'Pendiente'}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 6px; font-size: 0.95rem; font-weight: 700;">
-          <span>Saldo Restante a Cancelar:</span>
-          <span>USD $${(totalUsdNum - (anticipoPagado ? montoAnticipoUsd : 0)).toLocaleString("es-AR")}</span>
+          <span>Estado del Balance:</span>
+          <span style="color: ${saldoPagado && anticipoPagado ? '#16a34a' : '#ea580c'};">
+            ${saldoPagado && anticipoPagado ? '✓ CANCELADO 100% ($0 USD Pendiente)' : `Pendiente: $${(totalProyectoUsd - (anticipoPagado ? anticipoUsd : 0) - (saldoPagado ? saldoUsd : 0)).toLocaleString("es-AR")} USD`}
+          </span>
         </div>
       </div>
     `;
@@ -827,17 +877,23 @@ function pintarPagos(pagos, pasoActual = 1) {
       </div>
     `;
 
-    const esAnticipo = p.kind === "anticipo";
-    const btnPdfItem = document.createElement("button");
-    btnPdfItem.type = "button";
-    btnPdfItem.className = "btn btn-outline btn-xs mt-2";
-    btnPdfItem.style.display = "block";
-    btnPdfItem.style.marginLeft = "auto";
-    btnPdfItem.innerHTML = `📄 Recibo ${esAnticipo ? 'Adelanto 50%' : 'Final'}`;
-    btnPdfItem.addEventListener("click", () => generarReciboPDF(p.kind, btnPdfItem));
+    if (pagado) {
+      let labelPdf = "📄 Recibo de Pago";
+      if (p.kind === "anticipo") labelPdf = "📄 Recibo Adelanto 50%";
+      else if (p.kind === "dominio") labelPdf = "📄 Recibo Dominio";
+      else if (p.kind === "saldo") labelPdf = "📄 Recibo Saldo Final (50%)";
 
-    const montoContainer = fila.querySelector(".portal-pago-monto-container");
-    if (montoContainer) montoContainer.appendChild(btnPdfItem);
+      const btnPdfItem = document.createElement("button");
+      btnPdfItem.type = "button";
+      btnPdfItem.className = "btn btn-outline btn-xs mt-2";
+      btnPdfItem.style.display = "block";
+      btnPdfItem.style.marginLeft = "auto";
+      btnPdfItem.innerHTML = labelPdf;
+      btnPdfItem.addEventListener("click", () => generarReciboPDF(p.kind, btnPdfItem));
+
+      const montoContainer = fila.querySelector(".portal-pago-monto-container");
+      if (montoContainer) montoContainer.appendChild(btnPdfItem);
+    }
 
     const btnReintentar = fila.querySelector("[data-reintentar]");
     if (btnReintentar) {
