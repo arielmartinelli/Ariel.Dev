@@ -643,6 +643,31 @@
     font-variant-numeric: tabular-nums;
 }
 
+.portal-pago-monto-container {
+    text-align: right;
+}
+
+.portal-pago-submonto {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    font-weight: 500;
+}
+
+.portal-pago-cotiz {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 1px;
+}
+
+.portal-pago-reintentar {
+    display: inline-block !important;
+    margin-top: 4px !important;
+    font-size: 0.75rem !important;
+    padding: 2px 8px !important;
+}
+
 .portal-pago.pagado .portal-pago-monto {
     color: var(--text-muted);
 }

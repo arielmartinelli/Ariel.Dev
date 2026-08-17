@@ -126,11 +126,33 @@ function enlaceWhatsApp(texto) {
   return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`;
 }
 
+/* Cotización Dólar Oficial y estado de reintentos */
+let cotizacionDolarOficial = 1250;
+let cotizacionCargada = false;
+const pagosPermitidosReintentar = new Set();
+const timersEnProceso = new Map();
+
+async function cargarCotizacionDolar() {
+  if (cotizacionCargada) return;
+  try {
+    const res = await fetch("https://dolarapi.com/v1/dolares/oficial");
+    const data = await res.json();
+    if (data && data.venta > 0) {
+      cotizacionDolarOficial = Math.round(data.venta);
+      cotizacionCargada = true;
+    }
+  } catch (err) {
+    console.error("Error al obtener cotización del dólar:", err);
+  }
+}
+
 /* ==========================================================================
    Render principal
    ========================================================================== */
-function render() {
+async function render() {
   if (!datos) return;
+
+  await cargarCotizacionDolar();
 
   const {
     client_name, project_name, project_brief, status, demo_url,
@@ -184,7 +206,9 @@ function render() {
   // --- Pagos ---
   mostrarBloque("pc-bloque-pagos", pagos.length > 0);
   if (pagos.length > 0) {
-    $("pc-total").textContent = `Total: ${usd(total_usd)}`;
+    const totalUsdNum = Number(total_usd || 0);
+    const totalArsNum = Math.round(totalUsdNum * cotizacionDolarOficial);
+    $("pc-total").innerHTML = `Total: ${usd(total_usd)} <span style="font-size:0.85rem; font-weight:normal; opacity:0.8;">(≈ $${totalArsNum.toLocaleString("es-AR")} ARS)</span>`;
     pintarPagos(pagos);
   }
 
@@ -223,13 +247,10 @@ function pintarProgreso(progreso, tareas, domainChoice) {
   $("pc-progreso-num").textContent = `${pct}%`;
   $("pc-barra").style.width = `${pct}%`;
 
-  // La barra vive en el encabezado, ancho completo: se lee de un vistazo.
-
   const wrap = $("pc-barra-wrap");
   wrap.setAttribute("aria-valuenow", String(pct));
   wrap.setAttribute("aria-valuetext", `${pct} por ciento completado`);
 
-  // Explica por que el numero se queda en 99: sin esto parece que algo falla.
   const nota = $("pc-nota-progreso");
   if (pct === 100) {
     nota.textContent = "¡Listo! Tu página está terminada.";
@@ -260,31 +281,66 @@ function pintarPagos(pagos) {
 
   pagos.forEach((p) => {
     const pagado = p.status === "pagado";
-    const enProceso = p.status === "en_proceso";
     const enRevision = p.status === "en_revision";
+    const esReintentado = pagosPermitidosReintentar.has(p.kind);
+    const enProceso = p.status === "en_proceso" && !esReintentado;
+
+    // Si está en_proceso pero pasaron 60s, se activa timeout automático
+    if (enProceso && !timersEnProceso.has(p.kind)) {
+      const timerId = setTimeout(() => {
+        pagosPermitidosReintentar.add(p.kind);
+        timersEnProceso.delete(p.kind);
+        render();
+      }, 60000); // 60 segundos
+      timersEnProceso.set(p.kind, timerId);
+    }
 
     const fila = document.createElement("div");
     fila.className = `portal-pago ${pagado ? "pagado" : ""} ${enRevision ? "en-revision" : ""}`;
 
-    // Cada estado dice algo distinto y concreto. "Pendiente" a secas, cuando
-    // el cliente ya mandó el comprobante, lo hace pensar que no llegó.
     const estadoTexto = pagado
       ? "Pagado"
       : enRevision
         ? "Comprobante enviado · lo estoy revisando"
         : enProceso
-          ? "Procesando…"
+          ? "Procesando en Mercado Pago…"
           : "Pendiente";
+
+    const amountUsd = Number(p.amount_usd || 0);
+    const amountArs = Math.round(amountUsd * cotizacionDolarOficial);
+    const montoArsStr = amountArs.toLocaleString("es-AR");
+    const cotizStr = cotizacionDolarOficial.toLocaleString("es-AR");
 
     fila.innerHTML = `
       <div class="portal-pago-info">
         <span class="portal-pago-tipo">${escapeHtml(ETIQUETA_PAGO[p.kind] || p.kind)}</span>
-        <span class="portal-pago-estado">${escapeHtml(estadoTexto)}</span>
+        <span class="portal-pago-estado">
+          ${escapeHtml(estadoTexto)}
+          ${enProceso ? `<button type="button" class="btn btn-outline btn-xs portal-pago-reintentar" data-reintentar="${p.kind}">Cambiar medio / Reintentar</button>` : ''}
+        </span>
       </div>
-      <div class="portal-pago-monto">${escapeHtml(usd(p.amount_usd))}</div>
+      <div class="portal-pago-monto-container">
+        <div class="portal-pago-monto">${escapeHtml(usd(p.amount_usd))}</div>
+        <div class="portal-pago-submonto">
+          ≈ $${montoArsStr} ARS
+          <span class="portal-pago-cotiz">(Dólar oficial: $${cotizStr} ARS)</span>
+        </div>
+      </div>
     `;
 
-    if (!pagado && !enProceso && !enRevision) {
+    const btnReintentar = fila.querySelector("[data-reintentar]");
+    if (btnReintentar) {
+      btnReintentar.addEventListener("click", () => {
+        pagosPermitidosReintentar.add(p.kind);
+        if (timersEnProceso.has(p.kind)) {
+          clearTimeout(timersEnProceso.get(p.kind));
+          timersEnProceso.delete(p.kind);
+        }
+        render();
+      });
+    }
+
+    if (!pagado && !enRevision && (!enProceso || esReintentado)) {
       const acciones = document.createElement("div");
       acciones.className = "portal-pago-acciones";
 
@@ -314,8 +370,13 @@ function pintarPagos(pagos) {
 function abrirTransferencia(pago) {
   pagoTransferencia = pago;
 
+  const amountUsd = Number(pago.amount_usd || 0);
+  const amountArs = Math.round(amountUsd * cotizacionDolarOficial);
+  const montoArsStr = amountArs.toLocaleString("es-AR");
+  const cotizStr = cotizacionDolarOficial.toLocaleString("es-AR");
+
   $("pc-transf-concepto").textContent = ETIQUETA_PAGO[pago.kind] || pago.kind;
-  $("pc-transf-monto").textContent = usd(pago.amount_usd);
+  $("pc-transf-monto").innerHTML = `${usd(pago.amount_usd)} <span style="font-size:0.85rem; font-weight:normal; opacity:0.85; display:block; margin-top:2px;">(≈ $${montoArsStr} ARS — Dólar oficial: $${cotizStr} ARS)</span>`;
   $("pc-alias").textContent = DATOS_TRANSFERENCIA.alias;
 
   const bloque = $("pc-bloque-transferencia");
