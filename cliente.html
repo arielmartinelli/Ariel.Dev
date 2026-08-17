@@ -84,11 +84,7 @@
         <!-- Estado 3: portal cargado -->
         <section id="portal-contenido" class="hidden">
 
-            <!--
-              Encabezado. El porcentaje va ACA ARRIBA y grande: es el dato que
-              el cliente viene a buscar. Antes estaba dentro de una tarjeta mas
-              abajo y en el celular quedaba fuera de la primera pantalla.
-            -->
+            <!-- Encabezado -->
             <div class="portal-hero">
                 <div class="portal-hero-texto">
                     <p class="portal-saludo">Hola, <span id="pc-nombre">—</span> 👋</p>
@@ -96,7 +92,29 @@
                     <p class="portal-brief" id="pc-brief"></p>
                     <span class="portal-chip" id="pc-estado">—</span>
                 </div>
+            </div>
 
+            <!-- Timeline de Etapas (Roadmap) -->
+            <div class="portal-roadmap" id="pc-roadmap">
+                <div class="roadmap-step" data-step="1">
+                    <div class="roadmap-icon">📋</div>
+                    <div class="roadmap-label">Brief & Propuesta</div>
+                </div>
+                <div class="roadmap-line"></div>
+                <div class="roadmap-step" data-step="2">
+                    <div class="roadmap-icon">🎨</div>
+                    <div class="roadmap-label">Demo & Interfaz</div>
+                </div>
+                <div class="roadmap-line"></div>
+                <div class="roadmap-step" data-step="3">
+                    <div class="roadmap-icon">⚙️</div>
+                    <div class="roadmap-label">Desarrollo</div>
+                </div>
+                <div class="roadmap-line"></div>
+                <div class="roadmap-step" data-step="4">
+                    <div class="roadmap-icon">🚀</div>
+                    <div class="roadmap-label">Publicación</div>
+                </div>
             </div>
 
             <!--
@@ -166,7 +184,7 @@
 
                     <div class="portal-aviso" id="pc-aviso-anticipo">
                         <strong>Antes de arrancar:</strong> para iniciar la producción se
-                        abona un <strong>adelanto del 50%</strong>
+                        abora un <strong>adelanto del 50%</strong>
                         (<span id="pc-anticipo-monto">—</span>). El 50% restante se abona al
                         finalizar, cuando tu página esté publicada.
                     </div>
@@ -243,11 +261,16 @@
 
             <!-- Pagos -->
             <div class="portal-card" id="pc-bloque-pagos" hidden>
-                <div class="portal-card-head">
-                    <h2 class="portal-h2">Pagos</h2>
-                    <span class="portal-total" id="pc-total">—</span>
+                <div class="portal-card-head" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <h2 class="portal-h2" style="margin:0;">Pagos</h2>
+                        <span class="portal-total" id="pc-total">—</span>
+                    </div>
+                    <button type="button" class="btn btn-outline btn-sm" id="pc-btn-descargar-pdf">
+                        📄 Descargar Recibo PDF
+                    </button>
                 </div>
-                <div id="pc-pagos"></div>
+                <div id="pc-pagos" style="margin-top:16px;"></div>
                 <p class="portal-muted portal-nota">
                     Podés pagar con Mercado Pago (tarjeta, dinero en cuenta o cuotas)
                     o por transferencia.
@@ -268,11 +291,15 @@
                 </p>
 
                 <div class="portal-datos">
-                    <div class="portal-dato">
+                    <div class="portal-dato" data-copiar="pc-alias">
                         <span class="portal-dato-label">Alias</span>
                         <span class="portal-dato-valor" id="pc-alias">Ariel.fit</span>
-                        <button type="button" class="portal-copiar" data-copiar="pc-alias"
-                                aria-label="Copiar el alias">Copiar</button>
+                        <button type="button" class="portal-copiar" aria-label="Copiar el alias">Copiar</button>
+                    </div>
+                    <div class="portal-dato" data-copiar="pc-cbu">
+                        <span class="portal-dato-label">CBU / CVU</span>
+                        <span class="portal-dato-valor" id="pc-cbu">0000003100018151817743</span>
+                        <button type="button" class="portal-copiar" aria-label="Copiar el CBU">Copiar</button>
                     </div>
                     <div class="portal-dato">
                         <span class="portal-dato-label">Titular</span>
@@ -351,7 +378,18 @@
         </section>
     </main>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <script src="/sweetalert2.all.min.js" defer></script>
     <script type="module" src="/js/cliente.js"></script>
+
+    <!-- Botón Flotante de WhatsApp -->
+    <a id="pc-wa-floating" class="portal-wa-floating" href="#" target="_blank" rel="noopener noreferrer" aria-label="Hablá directo con Ariel por WhatsApp">
+        <span class="portal-wa-pulse"></span>
+        <svg class="portal-wa-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.964 9.964 0 001.333 4.993L2 22l5.233-1.337a9.96 9.96 0 004.77 1.22h.005c5.507 0 9.989-4.478 9.99-9.984A9.96 9.96 0 0012.012 2zm.005 16.541h-.004a8.27 8.27 0 01-4.218-1.154l-.303-.18-3.13.799.833-3.048-.198-.315a8.272 8.272 0 01-1.272-4.359c.001-4.567 3.717-8.283 8.288-8.283 4.567 0 8.282 3.716 8.283 8.283 0 4.568-3.716 8.284-8.283 8.284zm4.542-6.204c-.249-.125-1.474-.727-1.703-.81-.229-.083-.395-.125-.561.125-.166.249-.644.81-.789.976-.145.166-.291.187-.54.062-.249-.125-1.053-.388-2.006-1.238-.742-.662-1.243-1.48-1.388-1.729-.145-.249-.015-.384.109-.508.112-.112.249-.291.374-.436.124-.145.166-.249.249-.415.083-.166.042-.312-.021-.436-.062-.125-.561-1.352-.769-1.85-.202-.486-.408-.42-.561-.428l-.478-.009c-.166 0-.436.062-.664.312s-.872.852-.872 2.079.893 2.41 1.018 2.577c.124.166 1.758 2.684 4.258 3.764.595.257 1.06.41 1.423.526.598.19 1.142.163 1.572.099.479-.071 1.474-.602 1.682-1.184.208-.582.208-1.08.145-1.184-.062-.104-.208-.166-.457-.291z"/>
+        </svg>
+        <span class="portal-wa-text">Hablá conmigo</span>
+    </a>
 </body>
 </html>

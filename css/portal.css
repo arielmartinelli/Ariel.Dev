@@ -949,3 +949,174 @@
     .portal-decision .btn,
     .portal-pago-acciones .btn { width: 100%; }
 }
+
+/* ==========================================================================
+   Nuevas Mejoras: Timeline Roadmap & Floating WhatsApp
+   ========================================================================== */
+
+/* 1. Roadmap / Timeline de 4 Etapas */
+.portal-roadmap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.roadmap-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 2;
+    transition: transform 0.3s ease;
+}
+
+.roadmap-step:hover {
+    transform: translateY(-2px);
+}
+
+.roadmap-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.roadmap-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.roadmap-line {
+    flex: 1;
+    height: 3px;
+    background: var(--border);
+    margin: 0 8px;
+    margin-bottom: 24px;
+    transition: background 0.4s ease;
+}
+
+/* Estados del Roadmap */
+.roadmap-step.active .roadmap-icon {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.15);
+    box-shadow: 0 0 16px var(--primary-glow);
+    transform: scale(1.1);
+}
+
+.roadmap-step.active .roadmap-label {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.roadmap-step.completed .roadmap-icon {
+    border-color: #22c55e;
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.roadmap-step.completed .roadmap-label {
+    color: #22c55e;
+}
+
+.roadmap-line.completed {
+    background: #22c55e;
+}
+
+/* 2. Floating WhatsApp Widget */
+.portal-wa-floating {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #25d366;
+    color: #ffffff !important;
+    padding: 12px 18px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    box-shadow: 0 10px 25px rgba(37, 211, 102, 0.35);
+    text-decoration: none !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.portal-wa-floating:hover {
+    transform: translateY(-4px) scale(1.03);
+    box-shadow: 0 14px 30px rgba(37, 211, 102, 0.45);
+    background: #20ba5a;
+}
+
+.portal-wa-icon {
+    width: 22px;
+    height: 22px;
+}
+
+.portal-wa-pulse {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    background: #ffffff;
+    border-radius: 50%;
+    animation: waPulse 2s infinite;
+}
+
+@keyframes waPulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+.portal-dato[data-copiar] {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.portal-dato[data-copiar]:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+@media (max-width: 640px) {
+    .portal-roadmap {
+        padding: 14px 10px;
+        gap: 4px;
+    }
+    .roadmap-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+    .roadmap-label {
+        font-size: 0.7rem;
+    }
+    .roadmap-line {
+        margin-bottom: 20px;
+    }
+    .portal-wa-text {
+        display: none;
+    }
+    .portal-wa-floating {
+        padding: 14px;
+        border-radius: 50%;
+        bottom: 20px;
+        right: 20px;
+    }
+}

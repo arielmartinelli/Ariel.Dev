@@ -220,17 +220,148 @@ async function render() {
   mostrarBloque("pc-bloque-final", Boolean(finalizado));
   if (finalizado) $("pc-final-link").href = safeUrl(production_url, "#");
 
-  // --- Rechazado ---
-  mostrarBloque("pc-bloque-rechazado", status === "rechazado");
+  // --- Roadmap Timeline ---
+  actualizarRoadmap(status, progreso);
+  verificarCelebracion(status, progreso);
 
   // --- Links de WhatsApp contextualizados ---
   const asunto = `Hola Ariel, te escribo por el proyecto "${project_name || ""}".`;
-  ["pc-wa-footer", "pc-wa-rechazo", "portal-wa-ayuda"].forEach((id) => {
+  ["pc-wa-footer", "pc-wa-rechazo", "portal-wa-ayuda", "pc-wa-floating"].forEach((id) => {
     const el = $(id);
     if (el) el.href = enlaceWhatsApp(asunto);
   });
 
+  // PDF Recibo
+  $("pc-btn-descargar-pdf")?.addEventListener("click", generarReciboPDF);
+
   mostrarVista("contenido");
+}
+
+function actualizarRoadmap(status, progreso) {
+  const steps = document.querySelectorAll(".roadmap-step");
+  const lines = document.querySelectorAll(".roadmap-line");
+  if (!steps.length) return;
+
+  let activeStepNum = 1;
+  if (status === "presupuesto_enviado") activeStepNum = 1;
+  else if (status === "demo_lista") activeStepNum = 2;
+  else if (status === "en_produccion") activeStepNum = 3;
+  else if (status === "finalizado" || progreso === 100) activeStepNum = 4;
+
+  steps.forEach((st) => {
+    const sNum = Number(st.dataset.step);
+    st.classList.remove("active", "completed");
+    if (sNum < activeStepNum) {
+      st.classList.add("completed");
+    } else if (sNum === activeStepNum) {
+      st.classList.add(activeStepNum === 4 ? "completed" : "active");
+    }
+  });
+
+  lines.forEach((ln, idx) => {
+    ln.classList.toggle("completed", idx < activeStepNum - 1);
+  });
+}
+
+let confetiLanzado = false;
+function verificarCelebracion(status, progreso) {
+  if ((status === "finalizado" || progreso === 100) && !confetiLanzado) {
+    confetiLanzado = true;
+    if (typeof window.confetti === "function") {
+      window.confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    }
+  }
+}
+
+function generarReciboPDF() {
+  if (!datos) return;
+  const { client_name, project_name, total_usd, pagos = [] } = datos;
+
+  const totalUsdNum = Number(total_usd || 0);
+  const totalArsNum = Math.round(totalUsdNum * cotizacionDolarOficial);
+  const fechaHoy = new Date().toLocaleDateString("es-AR");
+
+  const pagosFilasHTML = pagos.map(p => `
+    <tr style="border-bottom: 1px solid #e2e8f0;">
+      <td style="padding: 12px; font-weight: 500;">${ETIQUETA_PAGO[p.kind] || p.kind}</td>
+      <td style="padding: 12px; font-size: 0.9rem;">
+        <span style="color: ${p.status === 'pagado' ? '#16a34a' : '#ea580c'}; font-weight: 600;">
+          ${p.status === 'pagado' ? 'PAGADO' : p.status === 'en_revision' ? 'EN REVISIÓN' : 'PENDIENTE'}
+        </span>
+      </td>
+      <td style="padding: 12px; text-align: right; font-weight: 600;">USD ${Number(p.amount_usd || 0).toLocaleString("es-AR")}</td>
+      <td style="padding: 12px; text-align: right; color: #64748b;">≈ $${Math.round(Number(p.amount_usd || 0) * cotizacionDolarOficial).toLocaleString("es-AR")} ARS</td>
+    </tr>
+  `).join('');
+
+  const htmlContent = `
+    <div style="font-family: 'Inter', sans-serif; padding: 30px; color: #0f172a; background: #ffffff;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #6366f1; padding-bottom: 16px; margin-bottom: 24px;">
+        <div>
+          <h1 style="font-size: 24px; color: #6366f1; margin: 0; font-weight: 800;">Ariel.Dev</h1>
+          <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Desarrollo Web & Software</p>
+        </div>
+        <div style="text-align: right;">
+          <h2 style="font-size: 18px; margin: 0; color: #0f172a;">RESUMEN DE CUENTA</h2>
+          <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Fecha: ${fechaHoy}</p>
+        </div>
+      </div>
+
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 24px; display: flex; justify-content: space-between;">
+        <div>
+          <p style="margin: 0 0 4px; font-size: 12px; color: #64748b; text-transform: uppercase;">Cliente</p>
+          <strong style="font-size: 16px;">${client_name || 'Cliente'}</strong>
+        </div>
+        <div style="text-align: right;">
+          <p style="margin: 0 0 4px; font-size: 12px; color: #64748b; text-transform: uppercase;">Proyecto</p>
+          <strong style="font-size: 16px;">${project_name || 'Proyecto Web'}</strong>
+        </div>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px;">
+        <thead>
+          <tr style="background: #f1f5f9; text-align: left; color: #475569;">
+            <th style="padding: 10px 12px;">Concepto</th>
+            <th style="padding: 10px 12px;">Estado</th>
+            <th style="padding: 10px 12px; text-align: right;">USD</th>
+            <th style="padding: 10px 12px; text-align: right;">ARS Estimado</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pagosFilasHTML}
+        </tbody>
+      </table>
+
+      <div style="text-align: right; border-top: 2px solid #e2e8f0; padding-top: 16px; margin-bottom: 30px;">
+        <p style="margin: 0; font-size: 14px; color: #64748b;">Cotización USD Dólar Oficial: $${cotizacionDolarOficial.toLocaleString("es-AR")} ARS</p>
+        <p style="margin: 6px 0 0; font-size: 20px; font-weight: 800; color: #0f172a;">
+          Total Proyecto: USD ${totalUsdNum.toLocaleString("es-AR")} (≈ $${totalArsNum.toLocaleString("es-AR")} ARS)
+        </p>
+      </div>
+
+      <div style="text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+        Documento generado digitalmente por Ariel.Dev · Panel de seguimiento privado
+      </div>
+    </div>
+  `;
+
+  const opt = {
+    margin: 10,
+    filename: `Recibo_${(project_name || 'Proyecto').replace(/\s+/g, '_')}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  if (window.html2pdf) {
+    window.html2pdf().set(opt).from(htmlContent).save();
+  } else {
+    avisar("Generando PDF...", "Tu navegador está procesando el recibo.", "info");
+  }
 }
 
 function dominioLegible(url) {
