@@ -45,10 +45,10 @@ export default async function handler(req, res) {
 
   const { cfg, faltantes } = leerConfig();
   if (faltantes.length) {
-    // El detalle va al log del servidor, no al navegador: enumerar que
-    // variables faltan le dice a un atacante como esta armado el sistema.
     console.error("Faltan variables de entorno:", faltantes.join(", "));
-    return json(res, 503, { error: "El sistema de pagos no está disponible en este momento." });
+    return json(res, 503, { 
+      error: `El sistema de pagos no está disponible. Faltan configurar en Vercel: ${faltantes.join(", ")}` 
+    });
   }
 
   let cuerpo;
