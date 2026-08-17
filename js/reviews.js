@@ -2,7 +2,6 @@ import { supabase } from "./supabase.js";
 
 const LOCAL_STORAGE_KEY = "ariel_dev_reviews_v1";
 
-// Reseñas iniciales de demostración para el portfolio
 const INITIAL_REVIEWS = [
   {
     id: "rev-1",
@@ -65,18 +64,19 @@ export async function guardarResena({ client_name, project_name, company_url, ra
     company_url: (company_url || "").trim(),
     rating: Math.max(1, Math.min(5, Number(rating) || 5)),
     comment: (comment || "").trim(),
-    is_published: true, // Por defecto se publica inmediatamente
+    is_published: true,
     created_at: new Date().toISOString(),
   };
 
-  // 1. Guardar en localStorage
+  // 1. Guardar localmente
   const listaLocal = leerLocal();
   listaLocal.unshift(nuevaResena);
   guardarLocal(listaLocal);
 
-  // 2. Intentar guardar en Supabase si está disponible la tabla
+  // 2. Intentar guardar en Supabase tabla `reviews`
+  let guardadoEnTabla = false;
   try {
-    await supabase.from("reviews").insert([
+    const { error } = await supabase.from("reviews").insert([
       {
         client_name: nuevaResena.client_name,
         project_name: nuevaResena.project_name,
@@ -86,22 +86,76 @@ export async function guardarResena({ client_name, project_name, company_url, ra
         is_published: true,
       }
     ]);
-  } catch {
-    // Fallback local activo
+    if (!error) guardadoEnTabla = true;
+  } catch (e) {
+    console.warn("Tabla reviews no disponible en Supabase:", e?.message);
+  }
+
+  // 3. Fallback inteligente: si tabla `reviews` no existe, guardar en admin_notes del cliente en Supabase
+  if (!guardadoEnTabla) {
+    try {
+      const { data: clientes } = await supabase.from("clients").select("id, admin_notes").limit(1);
+      if (clientes && clientes.length > 0) {
+        const target = clientes[0];
+        const resenaTag = `[RESEÑA_JSON:${JSON.stringify(nuevaResena)}]`;
+        const nuevasNotas = ((target.admin_notes || "") + " " + resenaTag).trim();
+        await supabase.from("clients").update({ admin_notes: nuevasNotas }).eq("id", target.id);
+      }
+    } catch (e) {
+      console.warn("Fallback clients en Supabase:", e?.message);
+    }
   }
 
   return { ok: true, resena: nuevaResena };
 }
 
 export async function obtenerResenasAdmin() {
+  // 1. Probar tabla nativa `reviews`
   try {
     const { data, error } = await supabase.from("reviews").select("*").order("created_at", { ascending: false });
     if (!error && data && data.length > 0) {
       return data;
     }
-  } catch {
-    // Fallback local
+  } catch (e) {
+    console.warn("Tabla reviews no accesible:", e?.message);
   }
+
+  // 2. Probar rescate desde `clients.admin_notes` en Supabase
+  try {
+    const { data: clientes, error: errC } = await supabase.from("clients").select("admin_notes");
+    if (!errC && clientes) {
+      const extraidas = [];
+      clientes.forEach((c) => {
+        const matches = (c.admin_notes || "").match(/\[RESEÑA_JSON:(.*?)\]/g);
+        if (matches) {
+          matches.forEach((m) => {
+            try {
+              const jsonStr = m.replace(/^\[RESEÑA_JSON:/, "").replace(/\]$/, "");
+              const rObj = JSON.parse(jsonStr);
+              if (rObj && rObj.id && !extraidas.some(item => item.id === rObj.id)) {
+                extraidas.push(rObj);
+              }
+            } catch {}
+          });
+        }
+      });
+
+      if (extraidas.length > 0) {
+        const combinadas = [...extraidas];
+        const local = leerLocal();
+        local.forEach((l) => {
+          if (!combinadas.some(item => item.id === l.id)) {
+            combinadas.push(l);
+          }
+        });
+        guardarLocal(combinadas);
+        return combinadas;
+      }
+    }
+  } catch (e) {
+    console.warn("Fallback lectura clientes en Supabase:", e?.message);
+  }
+
   return leerLocal();
 }
 
@@ -120,9 +174,7 @@ export async function togglePublicarResena(id, publicar) {
 
   try {
     await supabase.from("reviews").update({ is_published: publicar }).eq("id", id);
-  } catch {
-    // Fallback local
-  }
+  } catch {}
   return { ok: true };
 }
 
@@ -132,8 +184,6 @@ export async function eliminarResena(id) {
 
   try {
     await supabase.from("reviews").delete().eq("id", id);
-  } catch {
-    // Fallback local
-  }
+  } catch {}
   return { ok: true };
 }
