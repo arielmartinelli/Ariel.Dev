@@ -1,0 +1,926 @@
+/* ==========================================================================
+   portal.css — Portal privado del cliente
+   --------------------------------------------------------------------------
+   Hoja aparte, a proposito: el portal lo abre gente que no es desarrollador,
+   muchas veces desde el celular y una sola vez. Todo esta pensado para que se
+   entienda sin explicacion — un estado, una barra, un boton claro por paso —
+   y para no arrastrar los efectos pesados del portfolio (tilt 3D, stacking
+   scroll, glow) que aca no aportan nada y cuestan bateria.
+
+   Reutiliza las variables de css/styles.css (colores, tipografia, sombras)
+   para que se sienta el mismo producto.
+   ========================================================================== */
+
+.portal-body {
+    background:
+        radial-gradient(1200px 600px at 50% -10%, rgba(99, 102, 241, 0.14), transparent 60%),
+        var(--bg-dark);
+    min-height: 100vh;
+    /* Sin scroll horizontal: en pantallas chicas los chips largos lo provocaban. */
+    overflow-x: hidden;
+}
+
+.portal-container {
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* styles.css le da a TODO <section> un padding de 100px, pensado para las
+   secciones largas del sitio público. Acá eso deja un hueco enorme debajo del
+   header y empuja el contenido fuera de la primera pantalla. */
+.portal-body section { padding: 0; }
+
+/* Enlace de salto: primer elemento tabulable, visible solo con teclado.
+   Sin esto, quien navega con teclado tiene que recorrer todo el encabezado
+   en cada carga. */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: var(--primary);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 0 0 10px 0;
+    z-index: var(--z-dialog);
+    font-weight: 600;
+}
+
+.skip-link:focus {
+    left: 0;
+}
+
+/* Texto solo para lectores de pantalla. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Encabezado
+   -------------------------------------------------------------------------- */
+/* Header fijo: el nombre de la marca y el badge "panel privado" acompañan
+   todo el scroll. En una página larga eso da referencia de dónde estás. */
+.portal-header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-header);
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 30px;
+    background: color-mix(in srgb, var(--bg-dark) 88%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.portal-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.portal-brand {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+}
+
+.portal-brand-dot {
+    color: var(--primary);
+}
+
+.portal-badge-privado {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 5px 12px;
+    white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   Estados de carga / error
+   -------------------------------------------------------------------------- */
+.portal-estado {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    min-height: 55vh;
+    text-align: center;
+}
+
+.portal-spinner {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    animation: portal-girar 0.8s linear infinite;
+}
+
+@keyframes portal-girar {
+    to { transform: rotate(360deg); }
+}
+
+/* Quien pidio menos movimiento no necesita un spinner girando: se reemplaza
+   por un pulso suave, que informa lo mismo sin rotacion continua. */
+@media (prefers-reduced-motion: reduce) {
+    .portal-spinner {
+        animation: portal-pulso 1.6s ease-in-out infinite;
+        border-top-color: var(--border);
+        background: var(--primary);
+        opacity: 0.6;
+    }
+    @keyframes portal-pulso {
+        50% { opacity: 0.2; }
+    }
+}
+
+.portal-icono-grande {
+    font-size: 3rem;
+    line-height: 1;
+    margin-bottom: 8px;
+}
+
+/* --------------------------------------------------------------------------
+   Hero del proyecto, con el progreso al lado
+   -------------------------------------------------------------------------- */
+.portal-hero { margin-bottom: 24px; }
+
+.portal-hero-texto { min-width: 0; }
+
+/* --------------------------------------------------------------------------
+   Progreso lineal, ancho completo
+   --------------------------------------------------------------------------
+   Reemplaza al anillo. Una barra horizontal se lee de un vistazo, escala a
+   cualquier ancho y no compite con el titulo por el espacio — que era lo que
+   pasaba en el celular, donde el anillo empujaba todo el contenido hacia
+   abajo y dejaba el porcentaje fuera de la primera pantalla.
+   -------------------------------------------------------------------------- */
+.portal-progreso-hero {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 22px 24px;
+    margin-bottom: 24px;
+}
+
+.portal-progreso-cabecera {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+
+.portal-progreso-titulo {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.portal-progreso-cifra {
+    font-family: var(--font-heading);
+    font-size: clamp(1.9rem, 6vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--primary-light);
+    /* Tabular: el número no se mueve al pasar de 9% a 10%. */
+    font-variant-numeric: tabular-nums;
+}
+
+.portal-barra-grande { height: 14px; }
+
+.portal-progreso-nota {
+    margin-top: 12px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   Grilla de dos columnas en escritorio
+   --------------------------------------------------------------------------
+   En el celular todo va en una columna, que es lo natural para leer con el
+   pulgar. En una pantalla ancha esa misma columna deja dos tercios de espacio
+   vacio y obliga a scrollear de mas para ver el estado de los pagos.
+   -------------------------------------------------------------------------- */
+.portal-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.portal-col { min-width: 0; }
+
+@media (min-width: 900px) {
+    .portal-container { max-width: 1120px; }
+
+    .portal-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+
+    /* Las tarjetas de una columna no deben separarse entre si con el margen
+       de siempre: el gap de la grilla ya se encarga. */
+    .portal-col .portal-card { margin-bottom: 20px; }
+    .portal-col .portal-card:last-child { margin-bottom: 0; }
+}
+
+.portal-saludo {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 6px;
+}
+
+.portal-h1 {
+    font-family: var(--font-heading);
+    font-size: clamp(1.8rem, 6vw, 2.6rem);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    margin-bottom: 10px;
+    /* Nombres de proyecto largos sin espacios no deben desbordar. */
+    overflow-wrap: anywhere;
+}
+
+.portal-h2 {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+}
+
+.portal-h3 {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+/* 65ch es el largo de renglón cómodo de leer: más ancho y el ojo se pierde
+   al saltar de línea. */
+.portal-brief {
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+    max-width: 65ch;
+}
+
+.portal-muted { max-width: 68ch; }
+
+.portal-muted {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.portal-nota {
+    font-size: 0.85rem;
+    margin-top: 8px;
+}
+
+/* Chip de estado. El color viene del JS con --chip-color, pero el texto
+   SIEMPRE acompaña: el color solo nunca puede ser el único portador de
+   información (WCAG 1.4.1). */
+.portal-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 7px 15px;
+    border-radius: 50px;
+    color: var(--chip-color, var(--text-secondary));
+    background: color-mix(in srgb, var(--chip-color, #64748b) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--chip-color, #64748b) 35%, transparent);
+}
+
+.portal-chip::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--chip-color, currentColor);
+    flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Tarjetas
+   -------------------------------------------------------------------------- */
+.portal-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 26px;
+    margin-bottom: 20px;
+    backdrop-filter: var(--glass-blur);
+}
+
+.portal-card-centrada {
+    text-align: center;
+}
+
+.portal-card-destacada {
+    border-color: color-mix(in srgb, var(--secondary) 40%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--secondary) 12%, transparent),
+                0 20px 45px -25px rgba(6, 182, 212, 0.5);
+}
+
+.portal-card-exito {
+    text-align: center;
+    border-color: rgba(34, 197, 94, 0.4);
+}
+
+.portal-card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+/* --------------------------------------------------------------------------
+   Barra de progreso
+   -------------------------------------------------------------------------- */
+.portal-progreso-num {
+    font-family: var(--font-heading);
+    font-size: 1.9rem;
+    font-weight: 800;
+    color: var(--primary-light);
+    /* Tabular: el número no "salta" al pasar de 9% a 10%. */
+    font-variant-numeric: tabular-nums;
+}
+
+.portal-barra {
+    height: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 50px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.portal-barra-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 50px;
+    background: linear-gradient(90deg, var(--secondary), var(--primary));
+    transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .portal-barra-fill { transition: none; }
+}
+
+.portal-nota-progreso {
+    margin-top: 10px;
+}
+
+.portal-tareas {
+    list-style: none;
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.portal-tarea {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 11px 4px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.95rem;
+}
+
+.portal-tarea:last-child {
+    border-bottom: none;
+}
+
+.portal-tarea-check {
+    flex-shrink: 0;
+    width: 21px;
+    height: 21px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border-hover);
+    display: grid;
+    place-items: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-top: 1px;
+}
+
+.portal-tarea.hecha .portal-tarea-check {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: #04210f;
+}
+
+.portal-tarea.hecha .portal-tarea-texto {
+    color: var(--text-muted);
+    text-decoration: line-through;
+}
+
+.portal-tarea-texto {
+    overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------------
+   Demo y decisión
+   -------------------------------------------------------------------------- */
+.portal-btn-demo {
+    display: inline-flex;
+    margin: 18px 0 8px;
+}
+
+.portal-decision {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.portal-decision .btn {
+    flex: 1 1 220px;
+}
+
+/* --------------------------------------------------------------------------
+   Formulario de cambios
+   -------------------------------------------------------------------------- */
+.portal-cambios {
+    margin-top: 24px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+}
+
+.portal-cambio-fila {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.portal-cambio-input {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1.5px solid var(--border);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+    transition: var(--transition);
+    /* 16px en móvil evita que iOS haga zoom automático al enfocar. */
+    min-height: 46px;
+}
+
+.portal-cambio-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-glow);
+}
+
+.portal-cambio-quitar {
+    flex-shrink: 0;
+    width: 46px;
+    border-radius: 10px;
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.portal-cambio-quitar:hover {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.portal-aviso {
+    margin: 20px 0;
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
+/* --------------------------------------------------------------------------
+   Opciones de dominio
+   -------------------------------------------------------------------------- */
+.portal-opciones {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 18px 0;
+}
+
+.portal-opcion {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1.5px solid var(--border);
+    background: rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.portal-opcion:hover {
+    border-color: var(--border-hover);
+}
+
+/* :has() permite marcar la tarjeta entera cuando el radio está elegido, sin
+   JavaScript. Si el navegador no lo soporta, el radio nativo sigue visible y
+   funcionando: es una mejora progresiva, no un requisito. */
+.portal-opcion:has(input:checked) {
+    border-color: var(--primary);
+    background: var(--primary-glow);
+}
+
+.portal-opcion:has(input:focus-visible) {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.portal-opcion input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary);
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.portal-opcion-cuerpo {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+}
+
+.portal-opcion-titulo {
+    font-weight: 600;
+}
+
+.portal-opcion-desc {
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.portal-opcion-precio {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--primary-light);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Pagos
+   -------------------------------------------------------------------------- */
+.portal-total {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.portal-pago {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.portal-pago:last-child {
+    border-bottom: none;
+}
+
+.portal-pago-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1 1 160px;
+}
+
+.portal-pago-tipo {
+    font-weight: 600;
+}
+
+.portal-pago-estado {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.portal-pago.pagado .portal-pago-estado {
+    color: #22c55e;
+    font-weight: 600;
+}
+
+.portal-pago-monto {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.portal-pago.pagado .portal-pago-monto {
+    color: var(--text-muted);
+}
+
+.portal-pago-btn {
+    flex: 0 0 auto;
+}
+
+/* --------------------------------------------------------------------------
+   Pie
+   -------------------------------------------------------------------------- */
+.portal-footer {
+    text-align: center;
+    padding: 34px 0 60px;
+    border-top: 1px solid var(--border);
+    margin-top: 34px;
+}
+
+.portal-footer a {
+    color: var(--primary-light);
+    font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Foco visible en todo el portal
+   Nunca se quita el outline sin reemplazarlo: es la única pista de dónde
+   está parado quien navega con teclado.
+   -------------------------------------------------------------------------- */
+.portal-body :focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* --------------------------------------------------------------------------
+   Móvil
+   -------------------------------------------------------------------------- */
+@media (max-width: 560px) {
+    .portal-card {
+        padding: 20px 18px;
+        border-radius: 15px;
+    }
+
+    .portal-decision {
+        flex-direction: column;
+    }
+
+    .portal-decision .btn {
+        width: 100%;
+    }
+
+    .portal-pago-btn {
+        width: 100%;
+    }
+
+    /* iOS hace zoom al enfocar cualquier campo con fuente < 16px. */
+    .portal-cambio-input,
+    .portal-body input,
+    .portal-body textarea {
+        font-size: 16px;
+    }
+}
+
+
+/* ==========================================================================
+   TRANSFERENCIA Y COMPROBANTE
+   ========================================================================== */
+.portal-datos {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 18px 0 22px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.portal-dato {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.portal-dato-label {
+    font-size: 0.73rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    font-weight: 700;
+    min-width: 62px;
+    flex-shrink: 0;
+}
+
+.portal-dato-valor {
+    flex: 1;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.portal-copiar {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--border-hover);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    /* 44px de alto minimo: por debajo de eso el dedo falla seguido. */
+    min-height: 34px;
+}
+
+.portal-copiar:hover {
+    color: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.portal-file-oculto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.portal-dropzone {
+    width: 100%;
+    padding: 26px 18px;
+    border: 2px dashed var(--border-hover);
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.18);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-bottom: 14px;
+}
+
+.portal-dropzone:hover {
+    border-color: var(--primary);
+    color: var(--text-primary);
+}
+
+.portal-comprobante-preview {
+    display: block;
+    width: 100%;
+    max-height: 260px;
+    object-fit: contain;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.3);
+    margin-bottom: 14px;
+    cursor: pointer;
+}
+
+/* Aviso de comprobante en revisión, dentro de la fila del pago. */
+.portal-pago.en-revision .portal-pago-estado {
+    color: #22d3ee;
+    font-weight: 600;
+}
+
+.portal-pago-acciones {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 0 0 auto;
+}
+
+/* ==========================================================================
+   MÓVIL
+   --------------------------------------------------------------------------
+   El problema no era que los botones fueran grandes: era que ocupaban el
+   ancho completo y se leían como bloques macizos apilados. Las reglas de
+   toque piden 44x44px mínimo y 8px de separación — eso se respeta — pero un
+   botón puede medir 46px de alto y aun así verse liviano si baja el peso
+   visual: menos padding lateral, tipografía un punto menor y, sobre todo,
+   compartir fila en vez de apilarse.
+   ========================================================================== */
+@media (max-width: 640px) {
+    .portal-container { padding: 0 16px; }
+
+    .portal-card {
+        padding: 20px 18px;
+        border-radius: 16px;
+    }
+
+    .portal-progreso-hero { padding: 18px 18px; }
+
+    /* Los pares de botones comparten fila. Con gap de 10px se cumple el
+       mínimo de 8px de separación entre áreas táctiles. */
+    .portal-decision,
+    .portal-pago-acciones {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+    }
+
+    .portal-decision .btn,
+    .portal-pago-acciones .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        /* 46px: por encima del mínimo de 44px, sin llegar al bloque. */
+        min-height: 46px;
+        padding: 0 12px;
+        font-size: 0.88rem;
+        line-height: 1.2;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    /* El botón principal de una acción única sí ocupa el ancho: cuando hay
+       una sola opción, dudar dónde tocar no aporta nada. */
+    .portal-btn-demo,
+    .portal-cambios .w-full,
+    #pc-enviar-comprobante {
+        width: 100%;
+        min-height: 48px;
+    }
+
+    .portal-pago {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .portal-pago-acciones { width: 100%; }
+
+    /* La opción de dominio se lee mejor apilada que en tres columnas
+       apretadas. */
+    .portal-opcion {
+        flex-wrap: wrap;
+        padding: 14px 16px;
+    }
+
+    .portal-opcion-precio {
+        width: 100%;
+        padding-left: 34px;
+    }
+
+    /* 16px evita el zoom automático de iOS al enfocar un campo. */
+    .portal-body input,
+    .portal-body textarea,
+    .portal-body select,
+    .portal-cambio-input { font-size: 16px; }
+
+    .portal-datos { margin: 16px 0 18px; }
+
+    .portal-dato {
+        flex-wrap: wrap;
+        gap: 6px 12px;
+    }
+
+    .portal-dato-valor { flex: 1 1 auto; }
+
+    /* El botón de copiar también respeta el área táctil mínima. */
+    .portal-copiar {
+        min-height: 44px;
+        min-width: 72px;
+    }
+
+    .portal-dropzone { padding: 22px 16px; }
+
+    .portal-h1 { font-size: clamp(1.6rem, 7vw, 2rem); }
+}
+
+/* Pantallas muy angostas: recién acá los pares se apilan, porque dos botones
+   con texto largo no entran legibles en menos de 380px. */
+@media (max-width: 380px) {
+    .portal-decision,
+    .portal-pago-acciones { flex-direction: column; }
+
+    .portal-decision .btn,
+    .portal-pago-acciones .btn { width: 100%; }
+}

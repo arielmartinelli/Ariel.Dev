@@ -1,0 +1,1290 @@
+/* ==========================================================================
+   admin.css — Panel propietario (dashboard de página completa)
+   --------------------------------------------------------------------------
+   Reutiliza las variables de css/styles.css (colores, tipografías, sombras)
+   para que se sienta el mismo producto que el sitio público, pero con una
+   densidad distinta: acá se trabaja, no se navega.
+
+   Regla de layout: la PÁGINA scrollea, no las cajas. El panel anterior era un
+   modal de altura fija y había que scrollear un contenedor dentro de otro —
+   que además quedaba bloqueado por el scroll suave del portfolio. Acá el
+   único scroll vertical es el del documento.
+
+   Los z-index salen de la escala de :root definida en styles.css.
+   ========================================================================== */
+
+.admin-body {
+    background: var(--bg-dark);
+    min-height: 100vh;
+    /* El dashboard NO usa scroll suave: en una herramienta, la rueda tiene
+       que responder al instante y sin inercia. */
+    scroll-behavior: auto;
+}
+
+.hidden { display: none !important; }
+
+/* Enlace de salto, visible solo con teclado. */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: var(--primary);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 0 0 10px 0;
+    z-index: var(--z-dialog);
+    font-weight: 600;
+}
+
+.skip-link:focus { left: 0; }
+
+/* ==========================================================================
+   LOGIN
+   ========================================================================== */
+.admin-login {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background:
+        radial-gradient(900px 500px at 50% 0%, rgba(99, 102, 241, 0.16), transparent 65%),
+        var(--bg-dark);
+}
+
+.admin-login-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 30px;
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-lg);
+}
+
+.admin-login-marca {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+    margin-bottom: 22px;
+}
+
+.admin-login-punto { color: var(--primary); }
+
+.admin-login-titulo {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+}
+
+.admin-login-sub {
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    margin-bottom: 24px;
+}
+
+.admin-login-error {
+    color: #fca5a5;
+    font-size: 0.87rem;
+    min-height: 1.3em;
+    margin-top: 6px;
+}
+
+.admin-login-volver {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.87rem;
+    color: var(--text-secondary);
+}
+
+.admin-login-volver:hover { color: var(--primary-light); }
+
+/* ==========================================================================
+   ESTRUCTURA DEL DASHBOARD
+   ========================================================================== */
+/* Ya no hay barra lateral: la navegación es una barra flotante abajo, así que
+   el contenido usa todo el ancho. Eso era justo lo que le faltaba a la tabla
+   de cobros. */
+.admin-shell {
+    min-height: 100vh;
+}
+
+/* --------------------------------------------------------------------------
+   Contenido
+   -------------------------------------------------------------------------- */
+.admin-contenido {
+    min-width: 0;   /* sin esto, una tabla ancha estira todo el grid */
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-topbar {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 30px;
+    background: color-mix(in srgb, var(--bg-dark) 86%, transparent);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-marca {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 1.12rem;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    flex-shrink: 0;
+}
+
+.admin-marca-punto { color: var(--primary); }
+
+.admin-titulo {
+    font-family: var(--font-heading);
+    font-size: 1.28rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    flex: 1;
+    /* Separador visual entre la marca y el título de la sección. */
+    padding-left: 16px;
+    border-left: 1px solid var(--border);
+}
+
+.admin-topbar-acciones {
+    display: flex;
+    gap: 7px;
+    flex-shrink: 0;
+}
+
+.admin-icono-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-secondary);
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.admin-icono-btn:hover {
+    color: var(--primary-light);
+    border-color: var(--border-hover);
+}
+
+.admin-icono-btn.peligro:hover {
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.admin-icono-btn.girando svg { animation: admin-girar 0.7s linear infinite; }
+
+@keyframes admin-girar { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-icono-btn.girando svg { animation: none; opacity: 0.5; }
+}
+
+.admin-main {
+    padding: 26px 30px 70px;
+    max-width: 1280px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ==========================================================================
+   BARRA DE NAVEGACIÓN FLOTANTE (estilo iOS)
+   --------------------------------------------------------------------------
+   Reemplaza a la barra lateral. Fija abajo, centrada, flotando sobre el
+   contenido.
+
+   Tres detalles que la hacen funcionar de verdad:
+
+   1. `env(safe-area-inset-bottom)` la levanta por encima de la barra de
+      gestos del iPhone. Sin eso, en pantalla completa el último botón queda
+      debajo del indicador de inicio y es imposible tocarlo.
+
+   2. Los botones miden 56px de alto: por debajo de ~44px un dedo falla
+      seguido (es el mínimo que recomienda Apple y también WCAG 2.5.5).
+
+   3. `backdrop-filter` con fondo semitransparente: el contenido se ve pasar
+      por detrás, que es lo que da la sensación de que flota en vez de estar
+      pegada.
+   ========================================================================== */
+/* --------------------------------------------------------------------------
+   ESCRITORIO (por defecto): barra lateral vertical.
+
+   Es el MISMO marcado que en el celular, solo cambia el layout por CSS. Sin
+   eso habria que duplicar los botones en el HTML y enganchar dos veces cada
+   listener — y tarde o temprano uno de los dos se queda sin actualizar.
+   -------------------------------------------------------------------------- */
+.admin-tabbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    z-index: var(--z-sticky);
+
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 76px 14px 20px;   /* 76px deja pasar la barra superior */
+
+    background: var(--bg-surface-opaque);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+}
+
+.admin-tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+
+    width: 100%;
+    height: 46px;
+    padding: 0 14px;
+
+    background: transparent;
+    border: none;
+    border-radius: 11px;
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    text-align: left;
+    cursor: pointer;
+    transition: color 0.18s ease, background-color 0.18s ease;
+}
+
+.admin-tab svg {
+    width: 19px;
+    height: 19px;
+    flex-shrink: 0;
+}
+
+.admin-tab-texto {
+    font-size: 0.93rem;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.admin-tab:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-tab.activo {
+    background: var(--primary-glow);
+    color: var(--primary-light);
+    font-weight: 600;
+}
+
+.admin-tab.activo .admin-tab-texto { font-weight: 600; }
+
+/* Punto de aviso. Es un refuerzo visual: el dato exacto también está escrito
+   adentro de cada sección, porque el color solo nunca puede ser el único
+   portador de información. */
+.admin-tab-punto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--secondary);
+    flex-shrink: 0;
+}
+
+.admin-tab-punto.alerta { background: #f59e0b; }
+
+/* La barra lateral es fija: el contenido se corre para no quedar debajo. */
+.admin-contenido { padding-left: 240px; }
+
+/* La barra superior arranca después de la lateral. */
+.admin-topbar { padding-left: 30px; }
+
+/* Cada vista es un <section>, y styles.css le da a `section` un padding de
+   100px pensado para las secciones largas del sitio público. Acá eso deja un
+   hueco enorme bajo la barra superior: se anula. */
+.admin-vista {
+    padding: 0;
+    animation: admin-entrar 0.22s ease-out;
+}
+
+@keyframes admin-entrar {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-vista { animation: none; }
+}
+
+/* ==========================================================================
+   PIEZAS COMPARTIDAS
+   ========================================================================== */
+.admin-h2 {
+    font-family: var(--font-heading);
+    font-size: 1.08rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.admin-hint {
+    font-size: 0.83rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.admin-error { color: #fca5a5; }
+
+.admin-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+}
+
+.admin-card + .admin-card { margin-top: 18px; }
+
+.admin-seccion-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin: 26px 0 14px;
+}
+
+.admin-seccion-head:first-child { margin-top: 0; }
+
+/* --- Filtros --- */
+.admin-filtros {
+    display: inline-flex;
+    gap: 3px;
+    padding: 3px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.admin-filtros.mb { margin-bottom: 16px; }
+
+.admin-filtro {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 7px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--transition);
+}
+
+.admin-filtro:hover { color: var(--text-primary); }
+
+.admin-filtro.activo {
+    background: var(--primary);
+    color: #fff;
+}
+
+/* --- KPIs --- */
+.admin-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 8px;
+}
+
+.admin-kpis.tres { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+
+.admin-kpi {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.admin-kpi-label {
+    font-size: 0.73rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.admin-kpi-valor {
+    font-family: var(--font-heading);
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-kpi-valor.verde   { color: #22c55e; }
+.admin-kpi-valor.ambar   { color: #f59e0b; }
+.admin-kpi-valor.violeta { color: var(--primary-light); }
+
+.admin-kpi-nota {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+/* --- Formularios --- */
+.admin-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.admin-form-acciones {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.admin-inline-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.admin-inline-form input {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.admin-panel-alta {
+    background: var(--bg-card);
+    border: 1px solid var(--primary);
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 20px;
+}
+
+.admin-dos-columnas {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.admin-columna-lateral { min-width: 0; }
+
+/* ==========================================================================
+   RESUMEN — cola de trabajo
+   ========================================================================== */
+.res-proyecto {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.res-proyecto-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 15px 19px;
+    border-bottom: 1px solid var(--border);
+}
+
+.res-proyecto-nombre {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+}
+
+.res-proyecto-cliente {
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+}
+
+.res-proyecto-info { flex: 1; min-width: 0; }
+
+/* Mini barra de progreso por proyecto: el mismo número que ve el cliente. */
+.res-progreso {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.res-barra {
+    width: 90px;
+    height: 7px;
+    border-radius: 50px;
+    background: rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+}
+
+.res-barra-fill {
+    height: 100%;
+    border-radius: 50px;
+    background: linear-gradient(90deg, var(--secondary), var(--primary));
+    transition: width 0.5s ease;
+}
+
+.res-progreso-num {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 0.87rem;
+    color: var(--primary-light);
+    font-variant-numeric: tabular-nums;
+    min-width: 38px;
+    text-align: right;
+}
+
+.res-tareas { padding: 6px 19px 14px; }
+
+.res-tarea {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.res-tarea:last-child { border-bottom: none; }
+
+.res-tarea input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    accent-color: #22c55e;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.res-tarea-texto {
+    flex: 1;
+    font-size: 0.92rem;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+}
+
+.res-tarea.hecha .res-tarea-texto {
+    color: var(--text-muted);
+    text-decoration: line-through;
+}
+
+.res-tarea-origen {
+    font-size: 0.63rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 800;
+    color: var(--secondary);
+    background: var(--secondary-glow);
+    padding: 3px 8px;
+    border-radius: 50px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.res-vacio {
+    padding: 14px 19px 18px;
+    color: var(--text-muted);
+    font-size: 0.87rem;
+}
+
+/* Estado vacío general */
+.admin-vacio {
+    text-align: center;
+    padding: 50px 22px;
+    background: var(--bg-card);
+    border: 1px dashed var(--border-hover);
+    border-radius: 16px;
+}
+
+.admin-vacio-icono { font-size: 2.4rem; margin-bottom: 10px; }
+
+.admin-vacio-titulo {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin-bottom: 6px;
+}
+
+/* ==========================================================================
+   COBROS — tabla
+   ========================================================================== */
+.admin-tabla-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    overflow-x: auto;
+}
+
+.admin-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.89rem;
+    min-width: 640px;
+}
+
+.admin-tabla th {
+    text-align: left;
+    font-size: 0.71rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    font-weight: 700;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.admin-tabla td {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.admin-tabla tr:last-child td { border-bottom: none; }
+
+.admin-tabla tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+.admin-tabla .num {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.admin-td-proyecto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.admin-td-proyecto strong { font-weight: 600; }
+
+.admin-td-proyecto span {
+    font-size: 0.79rem;
+    color: var(--text-secondary);
+}
+
+.admin-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 50px;
+    white-space: nowrap;
+}
+
+.admin-badge.pendiente  { background: rgba(245, 158, 11, .16); color: #fbbf24; }
+.admin-badge.en_proceso { background: rgba(6, 182, 212, .16);  color: #22d3ee; }
+.admin-badge.pagado     { background: rgba(34, 197, 94, .16);  color: #4ade80; }
+.admin-badge.rechazado  { background: rgba(239, 68, 68, .16);  color: #f87171; }
+
+/* ==========================================================================
+   CLIENTES
+   ========================================================================== */
+.admin-cliente {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    margin-bottom: 11px;
+    overflow: hidden;
+    transition: border-color 0.2s ease;
+}
+
+.admin-cliente:hover { border-color: var(--border-hover); }
+.admin-cliente.abierto { border-color: var(--primary); }
+.admin-cliente.revocado { opacity: 0.58; }
+
+.admin-cliente-head {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 19px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.admin-cliente-titulo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.admin-cliente-titulo strong {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+}
+
+.admin-cliente-sub {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.admin-cliente-meta {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    flex-shrink: 0;
+}
+
+.admin-estado {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 11px;
+    border-radius: 50px;
+    color: var(--chip-color, var(--text-secondary));
+    background: color-mix(in srgb, var(--chip-color, #64748b) 15%, transparent);
+    white-space: nowrap;
+}
+
+.admin-cliente-prog {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 0.92rem;
+    color: var(--primary-light);
+    font-variant-numeric: tabular-nums;
+    min-width: 42px;
+    text-align: right;
+}
+
+.admin-cliente-ficha {
+    padding: 2px 19px 18px;
+    border-top: 1px solid var(--border);
+}
+
+.admin-bloque {
+    padding: 17px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-bloque:last-child { border-bottom: none; }
+
+.admin-bloque-label {
+    display: block;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 11px;
+}
+
+.admin-link-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.admin-link-input {
+    flex: 1 1 220px;
+    min-width: 0;
+    padding: 9px 12px;
+    border-radius: 9px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.77rem;
+    outline: none;
+}
+
+.admin-link-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+/* Tareas dentro de la ficha del cliente */
+.admin-tareas { display: flex; flex-direction: column; }
+
+.admin-tarea {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 8px 0;
+    font-size: 0.89rem;
+}
+
+.admin-tarea input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    accent-color: #22c55e;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.admin-tarea-texto { flex: 1; cursor: pointer; overflow-wrap: anywhere; }
+
+.admin-tarea.hecha .admin-tarea-texto {
+    color: var(--text-muted);
+    text-decoration: line-through;
+}
+
+.admin-tarea-origen {
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--secondary);
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.admin-tarea-borrar {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 5px;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+}
+
+.admin-tarea-borrar:hover { color: #ef4444; }
+
+/* Pagos dentro de la ficha */
+.admin-pagos { display: flex; flex-direction: column; gap: 7px; }
+
+.admin-pago {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    flex-wrap: wrap;
+    padding: 10px 13px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.22);
+    font-size: 0.87rem;
+}
+
+.admin-pago-tipo { flex: 1 1 130px; font-weight: 600; }
+
+.admin-pago-monto {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-bloque-peligro {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-top: 17px;
+}
+
+.admin-btn-peligro {
+    background: transparent;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #f87171;
+}
+
+.admin-btn-peligro:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: #ef4444;
+}
+
+/* ==========================================================================
+   PORTFOLIO
+   ========================================================================== */
+.admin-proyecto-item,
+.admin-categoria-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-proyecto-item:last-child,
+.admin-categoria-item:last-child { border-bottom: none; }
+
+.admin-proyecto-meta { flex: 1; min-width: 0; }
+
+.admin-proyecto-nombre {
+    font-weight: 600;
+    font-size: 0.92rem;
+    overflow-wrap: anywhere;
+}
+
+.admin-proyecto-cat {
+    font-size: 0.77rem;
+    color: var(--text-secondary);
+}
+
+.admin-categoria-nombre { flex: 1; font-size: 0.9rem; }
+
+.admin-icon-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 7px;
+    display: inline-flex;
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+
+.admin-icon-btn:hover { background: rgba(255, 255, 255, 0.06); }
+.admin-icon-btn.editar:hover { color: var(--secondary); }
+.admin-icon-btn.borrar:hover { color: #ef4444; }
+
+.admin-icon-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* ==========================================================================
+   FOCO VISIBLE
+   ========================================================================== */
+.admin-body :focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+@media (max-width: 1100px) {
+    .admin-dos-columnas { grid-template-columns: 1fr; }
+}
+
+/* ==========================================================================
+   MÓVIL Y TABLET: la barra lateral se convierte en una tab bar flotante
+   estilo iOS, abajo.
+   --------------------------------------------------------------------------
+   Por qué abajo y no arriba: en el celular el pulgar llega cómodo a la zona
+   inferior y no al borde superior. En escritorio pasa lo contrario — el mouse
+   llega a todos lados y el lateral aprovecha el ancho sobrante — por eso allá
+   se queda como barra lateral.
+
+   Tres detalles que la hacen funcionar de verdad:
+
+   1. `env(safe-area-inset-bottom)` la levanta por encima de la barra de
+      gestos del iPhone. Sin eso, el último botón queda debajo del indicador
+      de inicio y es imposible tocarlo.
+
+   2. Los botones miden 56px de alto: por debajo de ~44px el dedo falla
+      seguido (es el mínimo que recomiendan Apple y WCAG 2.5.5).
+
+   3. `backdrop-filter` con fondo semitransparente: el contenido se ve pasar
+      por detrás, y eso es lo que da la sensación de que flota.
+   ========================================================================== */
+@media (max-width: 900px) {
+    .admin-tabbar {
+        top: auto;
+        left: 12px;
+        right: 12px;
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        width: auto;
+
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 4px;
+        padding: 6px;
+        overflow: visible;
+
+        background: color-mix(in srgb, var(--bg-surface-opaque) 82%, transparent);
+        backdrop-filter: blur(20px) saturate(160%);
+        -webkit-backdrop-filter: blur(20px) saturate(160%);
+        border: 1px solid var(--border-hover);
+        border-right: 1px solid var(--border-hover);
+        border-radius: 22px;
+        box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.65),
+                    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+
+        z-index: var(--z-drawer);
+    }
+
+    .admin-tab {
+        flex: 1;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+        min-width: 0;
+        height: 56px;
+        padding: 0 4px;
+        border-radius: 17px;
+        text-align: center;
+        color: var(--text-muted);
+    }
+
+    .admin-tab svg { width: 21px; height: 21px; }
+
+    /* El texto se achica antes que desaparecer: un ícono solo, sin etiqueta,
+       obliga a adivinar qué hace cada botón. */
+    .admin-tab-texto {
+        font-size: 0.66rem;
+        font-weight: 600;
+        flex: none;
+    }
+
+    .admin-tab:hover { background: transparent; }
+
+    .admin-tab.activo {
+        background: var(--primary);
+        color: #fff;
+    }
+
+    /* Acá el punto vuelve a ser un badge flotante, como en iOS. */
+    .admin-tab-punto {
+        position: absolute;
+        top: 7px;
+        right: calc(50% - 22px);
+        box-shadow: 0 0 0 2px var(--bg-surface-opaque);
+    }
+
+    .admin-tab.activo .admin-tab-punto {
+        background: #fff;
+        box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    /* Sin barra lateral, el contenido usa todo el ancho; abajo se deja lugar
+       para que la última fila de una tabla no quede tapada por la barra. */
+    .admin-contenido { padding-left: 0; }
+    .admin-topbar { padding: 12px 16px; gap: 12px; }
+    .admin-main { padding: 20px 16px calc(120px + env(safe-area-inset-bottom, 0px)); }
+
+    /* En pantallas angostas la marca sobra: el título dice dónde estás y el
+       espacio hace falta para los botones. */
+    .admin-marca { display: none; }
+
+    .admin-titulo {
+        padding-left: 0;
+        border-left: none;
+        font-size: 1.15rem;
+    }
+
+    .hide-mobile { display: none; }
+}
+
+@media (max-width: 640px) {
+    .admin-form-grid { grid-template-columns: 1fr; }
+
+    .admin-cliente-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .admin-cliente-meta { width: 100%; justify-content: space-between; }
+
+    .admin-seccion-head { align-items: flex-start; }
+
+    .admin-filtros { width: 100%; overflow-x: auto; }
+
+    .admin-bloque-peligro { flex-direction: column; }
+    .admin-bloque-peligro .btn { width: 100%; }
+
+    .res-proyecto-head { flex-direction: column; align-items: flex-start; }
+    .res-progreso { width: 100%; }
+    .res-barra { flex: 1; width: auto; }
+
+    /* 16px evita el zoom automático de iOS al enfocar un campo. */
+    .admin-body input,
+    .admin-body select,
+    .admin-body textarea { font-size: 16px; }
+}
+
+
+/* ==========================================================================
+   AVISO DE INSTALACIÓN PENDIENTE
+   --------------------------------------------------------------------------
+   Aparece cuando las tablas del portal todavía no existen. Es deliberadamente
+   grande y con pasos numerados: el error anterior ("no se pudo completar la
+   operación") mandaba a buscar el problema al código, cuando lo que faltaba
+   era ejecutar un script. Un error tiene que apuntar al arreglo.
+   ========================================================================== */
+.admin-aviso-setup {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 20px 22px;
+    margin-bottom: 22px;
+    border-radius: 16px;
+    background: rgba(245, 158, 11, 0.09);
+    border: 1px solid rgba(245, 158, 11, 0.32);
+}
+
+.admin-aviso-icono {
+    font-size: 1.6rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.admin-aviso-titulo {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fbbf24;
+    margin-bottom: 6px;
+}
+
+.admin-aviso-texto {
+    font-size: 0.89rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.admin-aviso-pasos {
+    margin: 12px 0 12px 18px;
+    padding: 0;
+    font-size: 0.89rem;
+    color: var(--text-secondary);
+    line-height: 1.9;
+}
+
+.admin-aviso-setup code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 0.85em;
+    background: rgba(0, 0, 0, 0.32);
+    padding: 2px 6px;
+    border-radius: 5px;
+    color: var(--text-primary);
+}
+
+/* Un botón que no puede funcionar no debe verse disponible. */
+.admin-body button[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+@media (max-width: 560px) {
+    .admin-aviso-setup {
+        flex-direction: column;
+        gap: 10px;
+        padding: 18px;
+    }
+}
+
+
+/* ==========================================================================
+   RESUMEN — tarjetas de proyecto plegables
+   ========================================================================== */
+.res-proyecto-head {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.res-flecha {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    transition: transform 0.22s ease;
+}
+
+.res-proyecto.abierto .res-flecha {
+    transform: rotate(90deg);
+    color: var(--primary-light);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .res-flecha { transition: none; }
+}
+
+.res-proyecto-derecha {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+}
+
+/* El contador dice cuántas tareas hay sin abrir la tarjeta: es el dato que
+   decide si vale la pena desplegarla. */
+.res-contador {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 4px 11px;
+    border-radius: 50px;
+    background: rgba(99, 102, 241, 0.16);
+    color: var(--primary-light);
+    white-space: nowrap;
+}
+
+.res-contador.listo {
+    background: rgba(34, 197, 94, 0.14);
+    color: #4ade80;
+}
+
+.res-proyecto.abierto { border-color: var(--primary); }
+
+/* ==========================================================================
+   AVISO DE COMPROBANTES A REVISAR
+   ========================================================================== */
+.admin-aviso-revisar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 15px 20px;
+    margin-bottom: 18px;
+    border-radius: 14px;
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.93rem;
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.admin-aviso-revisar:hover {
+    background: rgba(6, 182, 212, 0.16);
+    border-color: var(--secondary);
+}
+
+.admin-aviso-revisar-icono { font-size: 1.3rem; flex-shrink: 0; }
+
+.admin-aviso-revisar span:nth-child(2) { flex: 1; }
+
+.admin-aviso-revisar-ir {
+    font-weight: 700;
+    color: var(--secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.admin-badge.en_revision { background: rgba(6, 182, 212, .16); color: #22d3ee; }
+
+.admin-td-acciones { white-space: nowrap; }
+
+@media (max-width: 560px) {
+    .admin-aviso-revisar { flex-wrap: wrap; }
+    .admin-aviso-revisar-ir { width: 100%; }
+
+    .res-proyecto-derecha { width: 100%; justify-content: space-between; }
+}

@@ -3,4 +3,22 @@
 User-agent: *
 Allow: /
 
+# ---------------------------------------------------------------------------
+# Portal privado de clientes.
+#
+# Cada cliente entra con un link secreto tipo /cliente/<token>. Estas URLs no
+# deben aparecer nunca en un buscador.
+#
+# ATENCION — esto NO es un control de seguridad: robots.txt es una peticion,
+# no una barrera, y ademas es publico (cualquiera lo lee y ve que existe un
+# /cliente). La proteccion real es que sin un token valido la pagina no
+# devuelve absolutamente ningun dato, porque los datos viven detras de
+# funciones del servidor que exigen ese token. Esta linea solo evita que una
+# URL con token se filtre a un indice si alguien la comparte por error.
+# ---------------------------------------------------------------------------
+Disallow: /cliente
+Disallow: /cliente/
+Disallow: /admin
+Disallow: /api/
+
 Sitemap: https://arieldev.com/sitemap.xml

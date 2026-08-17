@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!--
+      PAGINA PRIVADA — NO INDEXABLE
+
+      Se llega solo con el link secreto que le paso a cada cliente. Hay tres
+      capas para que no aparezca en Google:
+        1. Este meta robots noindex.
+        2. Disallow: /cliente en robots.txt.
+        3. Cabecera X-Robots-Tag: noindex en vercel.json.
+      Ninguna sola alcanza: robots.txt no impide indexar una URL que Google
+      descubre por otro lado, y el meta no sirve si el crawler no la lee.
+
+      Y el punto clave: aunque alguien llegue a esta URL, sin token valido no
+      ve NADA. Los datos no estan en el HTML; se piden al servidor pasando el
+      token, y el servidor solo devuelve la fila de ese token.
+    -->
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+    <meta name="referrer" content="no-referrer">
+
+    <title>Seguimiento de tu proyecto | Ariel.Dev</title>
+    <meta name="description" content="Panel privado de seguimiento de proyecto.">
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!--
+      RUTAS ABSOLUTAS (con / adelante), no relativas.
+
+      Esta pagina se sirve en /cliente/<token>. Con href="css/portal.css" el
+      navegador lo resuelve contra la carpeta actual y pide
+      /cliente/css/portal.css, que no existe: la pagina se veia sin ningun
+      estilo y con las tres vistas (cargando, invalido y contenido) apiladas,
+      porque la clase .hidden tampoco existia.
+
+      En produccion no se notaba, porque Vite reescribe estas etiquetas a
+      /assets/... absoluto. El bug vivia solo en desarrollo, que es justo
+      donde se prueba el link antes de mandarselo al cliente.
+    -->
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/portal.css">
+</head>
+<body class="dark-theme portal-body">
+
+    <a href="#portal-main" class="skip-link">Saltar al contenido</a>
+
+    <header class="portal-header" id="portal-header">
+        <div class="portal-container portal-header-inner">
+            <span class="portal-brand">Ariel<span class="portal-brand-dot">.</span>Dev</span>
+            <span class="portal-badge-privado" title="Solo vos tenés este link">Panel privado</span>
+        </div>
+    </header>
+
+    <main id="portal-main" class="portal-container">
+
+        <!-- Estado 1: cargando -->
+        <section id="portal-cargando" class="portal-estado">
+            <div class="portal-spinner" role="status" aria-label="Cargando tu proyecto"></div>
+            <p class="portal-muted">Cargando tu proyecto…</p>
+        </section>
+
+        <!-- Estado 2: token inválido -->
+        <section id="portal-invalido" class="portal-estado hidden">
+            <div class="portal-card portal-card-centrada">
+                <div class="portal-icono-grande" aria-hidden="true">🔒</div>
+                <h1 class="portal-h1">Este link no es válido</h1>
+                <p class="portal-muted">
+                    El enlace puede haber vencido o estar mal copiado. Fijate de abrirlo
+                    completo, tal como te lo pasé.
+                </p>
+                <a id="portal-wa-ayuda" class="btn btn-primary mt-4" href="#" target="_blank" rel="noopener noreferrer">
+                    Escribime por WhatsApp
+                </a>
+            </div>
+        </section>
+
+        <!-- Estado 3: portal cargado -->
+        <section id="portal-contenido" class="hidden">
+
+            <!--
+              Encabezado. El porcentaje va ACA ARRIBA y grande: es el dato que
+              el cliente viene a buscar. Antes estaba dentro de una tarjeta mas
+              abajo y en el celular quedaba fuera de la primera pantalla.
+            -->
+            <div class="portal-hero">
+                <div class="portal-hero-texto">
+                    <p class="portal-saludo">Hola, <span id="pc-nombre">—</span> 👋</p>
+                    <h1 class="portal-h1" id="pc-proyecto">—</h1>
+                    <p class="portal-brief" id="pc-brief"></p>
+                    <span class="portal-chip" id="pc-estado">—</span>
+                </div>
+
+            </div>
+
+            <!--
+              Progreso lineal, ancho completo.
+              Una barra horizontal se lee de un vistazo y escala mejor que un
+              anillo: en un celular angosto el anillo competía con el título
+              por el mismo espacio y empujaba todo hacia abajo.
+            -->
+            <div class="portal-progreso-hero" id="pc-hero-progreso" hidden>
+                <div class="portal-progreso-cabecera">
+                    <span class="portal-progreso-titulo">Avance de tu página</span>
+                    <span class="portal-progreso-cifra" id="pc-progreso-num">0%</span>
+                </div>
+
+                <div class="portal-barra portal-barra-grande" role="progressbar"
+                     aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+                     aria-label="Progreso del proyecto" id="pc-barra-wrap">
+                    <div class="portal-barra-fill" id="pc-barra"></div>
+                </div>
+
+                <p class="portal-progreso-nota" id="pc-nota-progreso"></p>
+            </div>
+
+            <!-- Grilla: en escritorio dos columnas, en celular una sola -->
+            <div class="portal-grid">
+            <div class="portal-col">
+
+            <!-- Lista de cambios (el porcentaje ya está arriba, en el hero) -->
+            <div class="portal-card" id="pc-bloque-progreso" hidden>
+                <h2 class="portal-h2">Tus cambios</h2>
+                <ul class="portal-tareas" id="pc-tareas"></ul>
+            </div>
+
+            <!-- Demo lista: ver y decidir -->
+            <div class="portal-card portal-card-destacada" id="pc-bloque-demo" hidden>
+                <h2 class="portal-h2">Tu demo está lista 🎉</h2>
+                <p class="portal-muted">
+                    Mirala con tranquilidad, en la compu y en el celular. Después decidime
+                    si querés que la llevemos a producción.
+                </p>
+
+                <a id="pc-demo-link" class="btn btn-primary portal-btn-demo" href="#"
+                   target="_blank" rel="noopener noreferrer">Ver mi demo</a>
+
+                <div class="portal-decision" id="pc-decision">
+                    <button class="btn btn-primary" id="pc-btn-continuar" type="button">
+                        Quiero continuar con la producción
+                    </button>
+                    <button class="btn btn-outline" id="pc-btn-no-continuar" type="button">
+                        Por ahora no
+                    </button>
+                </div>
+
+                <!-- Formulario de cambios (aparece al elegir continuar) -->
+                <form class="portal-cambios hidden" id="pc-form-cambios">
+                    <h3 class="portal-h3">¿Qué te gustaría cambiar?</h3>
+                    <p class="portal-muted">
+                        Anotá cada modificación en una línea. Cuanto más concreto, mejor
+                        (por ejemplo: «cambiar el color del botón de contacto a verde»).
+                    </p>
+
+                    <div id="pc-lista-cambios"></div>
+
+                    <button type="button" class="btn btn-outline btn-sm" id="pc-add-cambio">
+                        + Agregar otro cambio
+                    </button>
+
+                    <div class="portal-aviso" id="pc-aviso-anticipo">
+                        <strong>Antes de arrancar:</strong> para iniciar la producción se
+                        abona un <strong>adelanto del 50%</strong>
+                        (<span id="pc-anticipo-monto">—</span>). El 50% restante se abona al
+                        finalizar, cuando tu página esté publicada.
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-full" id="pc-enviar-cambios">
+                        Confirmar y arrancar
+                    </button>
+                </form>
+            </div>
+
+            <!-- Pedir un cambio durante la producción -->
+            <div class="portal-card" id="pc-bloque-pedido" hidden>
+                <h2 class="portal-h2">¿Se te ocurrió algo más?</h2>
+                <p class="portal-muted">Contame el cambio y lo sumo a la lista.</p>
+                <form id="pc-form-pedido">
+                    <div class="form-group">
+                        <label for="pc-pedido-texto" class="sr-only">Describí el cambio</label>
+                        <textarea id="pc-pedido-texto" class="w-full" rows="3" maxlength="400"
+                                  placeholder="Por ejemplo: agregar una sección de preguntas frecuentes"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-outline">Enviar pedido</button>
+                </form>
+            </div>
+
+            </div><!-- /col izquierda -->
+            <div class="portal-col">
+
+            <!-- Elección de dominio -->
+            <div class="portal-card" id="pc-bloque-dominio" hidden>
+                <h2 class="portal-h2">Último paso: el dominio</h2>
+                <p class="portal-muted">
+                    Es la dirección con la que la gente va a entrar a tu página.
+                    Elegí una opción para poder publicar.
+                </p>
+
+                <div class="portal-opciones" role="radiogroup" aria-label="Elegí el dominio">
+                    <label class="portal-opcion">
+                        <input type="radio" name="dominio" value="vercel" id="pc-dom-vercel">
+                        <span class="portal-opcion-cuerpo">
+                            <span class="portal-opcion-titulo">Dominio incluido</span>
+                            <span class="portal-opcion-desc" id="pc-dom-vercel-desc">
+                                El mismo de tu demo. Sin costo adicional.
+                            </span>
+                        </span>
+                        <span class="portal-opcion-precio">Incluido</span>
+                    </label>
+
+                    <label class="portal-opcion">
+                        <input type="radio" name="dominio" value="propio" id="pc-dom-propio">
+                        <span class="portal-opcion-cuerpo">
+                            <span class="portal-opcion-titulo">Dominio propio (.com)</span>
+                            <span class="portal-opcion-desc">
+                                Tu marca sola, tipo <em>tunegocio.com</em>. Lo compro y lo
+                                configuro yo.
+                            </span>
+                        </span>
+                        <span class="portal-opcion-precio" id="pc-dom-precio">+USD 10</span>
+                    </label>
+                </div>
+
+                <div class="form-group hidden" id="pc-dominio-nombre-wrap">
+                    <label for="pc-dominio-nombre">¿Qué dominio te gustaría?</label>
+                    <input type="text" id="pc-dominio-nombre" class="w-full"
+                           placeholder="tunegocio.com" autocomplete="off" maxlength="253">
+                    <p class="portal-muted portal-nota">
+                        Si no está disponible te aviso por WhatsApp y buscamos otro.
+                    </p>
+                </div>
+
+                <button class="btn btn-primary w-full mt-2" id="pc-guardar-dominio" type="button">
+                    Confirmar dominio
+                </button>
+            </div>
+
+            <!-- Pagos -->
+            <div class="portal-card" id="pc-bloque-pagos" hidden>
+                <div class="portal-card-head">
+                    <h2 class="portal-h2">Pagos</h2>
+                    <span class="portal-total" id="pc-total">—</span>
+                </div>
+                <div id="pc-pagos"></div>
+                <p class="portal-muted portal-nota">
+                    Podés pagar con Mercado Pago (tarjeta, dinero en cuenta o cuotas)
+                    o por transferencia.
+                </p>
+            </div>
+
+            <!--
+              TRANSFERENCIA
+              Se abre desde el botón «Transferencia» de cada pago. Los datos
+              están a la vista y el alias se copia de un toque: si hay que
+              tipear un alias a mano desde el celular, se tipea mal.
+            -->
+            <div class="portal-card portal-card-destacada hidden" id="pc-bloque-transferencia">
+                <h2 class="portal-h2">Pagar por transferencia</h2>
+                <p class="portal-muted">
+                    Concepto: <strong id="pc-transf-concepto">—</strong> ·
+                    <strong id="pc-transf-monto">—</strong>
+                </p>
+
+                <div class="portal-datos">
+                    <div class="portal-dato">
+                        <span class="portal-dato-label">Alias</span>
+                        <span class="portal-dato-valor" id="pc-alias">Ariel.fit</span>
+                        <button type="button" class="portal-copiar" data-copiar="pc-alias"
+                                aria-label="Copiar el alias">Copiar</button>
+                    </div>
+                    <div class="portal-dato">
+                        <span class="portal-dato-label">Titular</span>
+                        <span class="portal-dato-valor">Ariel Omar Martinelli</span>
+                    </div>
+                    <div class="portal-dato">
+                        <span class="portal-dato-label">Banco</span>
+                        <span class="portal-dato-valor">Mercado Pago</span>
+                    </div>
+                </div>
+
+                <form id="pc-form-comprobante">
+                    <h3 class="portal-h3">Subí el comprobante</h3>
+                    <p class="portal-muted">
+                        Sacale una foto o adjuntá la captura. Lo reviso y te lo confirmo.
+                    </p>
+
+                    <input type="file" id="pc-comprobante-file" accept="image/png,image/jpeg,image/webp"
+                           class="portal-file-oculto">
+                    <button type="button" class="portal-dropzone" id="pc-comprobante-zona">
+                        <span id="pc-comprobante-texto">Tocá para elegir la imagen</span>
+                    </button>
+                    <img id="pc-comprobante-preview" class="portal-comprobante-preview hidden"
+                         src="" alt="Vista previa del comprobante">
+
+                    <div class="form-group">
+                        <label for="pc-comprobante-nota">Nota (opcional)</label>
+                        <input type="text" id="pc-comprobante-nota" class="w-full" maxlength="500"
+                               placeholder="Ej: transferí desde otra cuenta">
+                    </div>
+
+                    <div class="portal-decision">
+                        <button type="submit" class="btn btn-primary" id="pc-enviar-comprobante">
+                            Enviar comprobante
+                        </button>
+                        <button type="button" class="btn btn-outline" id="pc-cancelar-transferencia">
+                            Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Proyecto finalizado -->
+            <div class="portal-card portal-card-exito" id="pc-bloque-final" hidden>
+                <div class="portal-icono-grande" aria-hidden="true">🚀</div>
+                <h2 class="portal-h2">¡Tu página está publicada!</h2>
+                <p class="portal-muted">Ya podés compartirla con quien quieras.</p>
+                <a id="pc-final-link" class="btn btn-primary portal-btn-demo" href="#"
+                   target="_blank" rel="noopener noreferrer">Abrir mi página</a>
+            </div>
+
+            <!-- Proyecto rechazado -->
+            <div class="portal-card" id="pc-bloque-rechazado" hidden>
+                <h2 class="portal-h2">Quedamos así por ahora</h2>
+                <p class="portal-muted">
+                    Registré que por el momento no seguimos. Si cambiás de idea,
+                    escribime cuando quieras y retomamos desde la demo.
+                </p>
+                <a id="pc-wa-rechazo" class="btn btn-outline mt-2" href="#" target="_blank" rel="noopener noreferrer">
+                    Escribirme por WhatsApp
+                </a>
+            </div>
+
+            </div><!-- /col derecha -->
+            </div><!-- /portal-grid -->
+
+            <footer class="portal-footer">
+                <p class="portal-muted">
+                    ¿Dudas? <a id="pc-wa-footer" href="#" target="_blank" rel="noopener noreferrer">Escribime por WhatsApp</a>
+                </p>
+                <p class="portal-muted portal-nota">
+                    Este link es personal. No lo compartas: quien lo tenga puede ver el
+                    estado de tu proyecto.
+                </p>
+            </footer>
+        </section>
+    </main>
+
+    <script src="/sweetalert2.all.min.js" defer></script>
+    <script type="module" src="/js/cliente.js"></script>
+</body>
+</html>

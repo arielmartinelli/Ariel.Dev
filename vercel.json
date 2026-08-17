@@ -2,6 +2,22 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+
+  "rewrites": [
+    {
+      "source": "/cliente/:token",
+      "destination": "/cliente.html"
+    },
+    {
+      "source": "/cliente",
+      "destination": "/cliente.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    }
+  ],
+
   "headers": [
     {
       "source": "/(.*)",
@@ -10,15 +26,49 @@
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=(), payment=(), usb=()" },
+        { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=(), usb=(), interest-cohort=()" },
         { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
         { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://dolarapi.com https://formspree.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me; object-src 'none'; upgrade-insecure-requests" }
+        {
+          "comment": "CSP. Cambios respecto a la version anterior: se agrega mercadopago a connect-src y form-action (el checkout redirige a su dominio, sin esto el pago no arranca), y se quita 'payment=()' de Permissions-Policy por el mismo motivo. script-src sigue en 'self': no se habilita ningun CDN externo.",
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://dolarapi.com https://formspree.io https://api.mercadopago.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me https://www.mercadopago.com.ar https://www.mercadopago.com; object-src 'none'; upgrade-insecure-requests"
+        }
+      ]
+    },
+    {
+      "comment": "El portal del cliente NUNCA debe indexarse ni cachearse en un proxy compartido. El meta robots del HTML no alcanza si el crawler no llega a leerlo; esta cabecera se aplica siempre.",
+      "source": "/cliente(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+        { "key": "Cache-Control", "value": "private, no-store, max-age=0" },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
+      ]
+    },
+    {
+      "comment": "El panel propietario no se indexa ni se cachea.",
+      "source": "/admin(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+        { "key": "Cache-Control", "value": "private, no-store, max-age=0" }
+      ]
+    },
+    {
+      "comment": "Las respuestas de la API de pagos no se cachean en ningun lado.",
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, max-age=0" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "comment": "Los .map se generan como 'hidden' y no deberian pedirse nunca. Si alguien los pide a mano, no se cachean.",
+      "source": "/(.*).map",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
     }
   ]
 }

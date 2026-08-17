@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!--
+      PANEL PROPIETARIO — pagina privada, no indexable.
+
+      Antes esto era un modal flotante dentro de index.html. Se separo por tres
+      razones concretas:
+
+        1. SCROLL. Un modal con altura fija obliga a scrollear una caja dentro
+           de otra caja. Con Lenis (scroll suave) activo en el portfolio, ese
+           scroll interno quedaba bloqueado. Aca scrollea la pagina, como debe.
+
+        2. PESO. El codigo del panel (clientes, cobros, tareas) lo descargaba
+           TODO visitante que entrara al portfolio, aunque nunca fuera a verlo.
+           Ahora vive en su propio bundle, separado del sitio publico.
+
+        3. ESPACIO. Un panel con cuatro secciones y tablas no entra comodo en
+           una tarjeta de 900px de ancho. Un dashboard necesita la pantalla.
+    -->
+    <meta name="robots" content="noindex, nofollow, noarchive">
+
+    <title>Panel · Ariel.Dev</title>
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Rutas absolutas: /admin no debe depender de la carpeta actual. -->
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="dark-theme admin-body">
+
+    <a href="#admin-main" class="skip-link">Saltar al contenido</a>
+
+    <!-- ====================================================================
+         PANTALLA DE LOGIN
+         ==================================================================== -->
+    <div class="admin-login" id="admin-login">
+        <form class="admin-login-card" id="form-login">
+            <div class="admin-login-marca">
+                Ariel<span class="admin-login-punto">.</span>Dev
+            </div>
+            <h1 class="admin-login-titulo">Panel de gestión</h1>
+            <p class="admin-login-sub">Ingresá con tu cuenta de administrador.</p>
+
+            <div class="form-group">
+                <label for="login-email">Correo electrónico</label>
+                <input type="email" id="login-email" class="w-full" autocomplete="username"
+                       placeholder="correo@ejemplo.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="login-password">Contraseña</label>
+                <input type="password" id="login-password" class="w-full"
+                       autocomplete="current-password" placeholder="Tu contraseña" required>
+            </div>
+
+            <p class="admin-login-error" id="login-error" role="alert"></p>
+
+            <button type="submit" class="btn btn-primary w-full mt-2" id="btn-login">Acceder</button>
+
+            <a href="/" class="admin-login-volver">← Volver al sitio</a>
+        </form>
+    </div>
+
+    <!-- ====================================================================
+         DASHBOARD
+         ==================================================================== -->
+    <div class="admin-shell hidden" id="admin-shell">
+
+        <!-- Contenido -->
+        <div class="admin-contenido">
+            <header class="admin-topbar">
+                <a href="/" class="admin-marca" title="Ir al sitio público">
+                    Ariel<span class="admin-marca-punto">.</span>Dev
+                </a>
+                <h1 class="admin-titulo" id="admin-titulo">Resumen</h1>
+
+                <div class="admin-topbar-acciones">
+                    <button class="admin-icono-btn" id="btn-refrescar" title="Actualizar datos" aria-label="Actualizar datos">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                    </button>
+                    <a href="/" class="admin-icono-btn hide-mobile" title="Ver el sitio" aria-label="Ver el sitio">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </a>
+                    <button class="admin-icono-btn peligro" id="btn-logout" title="Cerrar sesión" aria-label="Cerrar sesión">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    </button>
+                </div>
+            </header>
+
+            <main class="admin-main" id="admin-main">
+
+                <!-- ======================= RESUMEN ======================= -->
+                <section class="admin-vista" id="vista-resumen">
+
+                    <!--
+                      Comprobantes esperando revisión. Va arriba de todo porque
+                      es plata que ya entró y todavía no está registrada.
+                    -->
+                    <button class="admin-aviso-revisar" id="aviso-revisar" type="button" hidden>
+                        <span class="admin-aviso-revisar-icono" aria-hidden="true">🧾</span>
+                        <span id="aviso-revisar-texto">—</span>
+                        <span class="admin-aviso-revisar-ir">Ver cobros →</span>
+                    </button>
+
+                    <div class="admin-kpis">
+                        <div class="admin-kpi">
+                            <span class="admin-kpi-label">Cobrado</span>
+                            <span class="admin-kpi-valor verde" id="kpi-cobrado">—</span>
+                            <span class="admin-kpi-nota" id="kpi-cobrado-nota"></span>
+                        </div>
+                        <div class="admin-kpi">
+                            <span class="admin-kpi-label">Por cobrar</span>
+                            <span class="admin-kpi-valor ambar" id="kpi-pendiente">—</span>
+                            <span class="admin-kpi-nota" id="kpi-pendiente-nota"></span>
+                        </div>
+                        <div class="admin-kpi">
+                            <span class="admin-kpi-label">Proyectos activos</span>
+                            <span class="admin-kpi-valor" id="kpi-activos">—</span>
+                            <span class="admin-kpi-nota" id="kpi-activos-nota"></span>
+                        </div>
+                        <div class="admin-kpi">
+                            <span class="admin-kpi-label">Tareas pendientes</span>
+                            <span class="admin-kpi-valor violeta" id="kpi-tareas">—</span>
+                            <span class="admin-kpi-nota" id="kpi-tareas-nota"></span>
+                        </div>
+                    </div>
+
+                    <!--
+                      Cola de trabajo. Cada proyecto con sus tareas: primero lo
+                      que falta, después lo hecho (plegado, para que no estorbe
+                      pero se pueda revisar). Marcar acá mueve la barra de
+                      progreso que ve el cliente en su portal.
+                    -->
+                    <div class="admin-seccion-head">
+                        <h2 class="admin-h2">Qué falta hacer</h2>
+                        <div class="admin-filtros" role="group" aria-label="Filtrar tareas">
+                            <button class="admin-filtro activo" data-filtro-tareas="pendientes" type="button">Pendientes</button>
+                            <button class="admin-filtro" data-filtro-tareas="hechas" type="button">Hechas</button>
+                            <button class="admin-filtro" data-filtro-tareas="todas" type="button">Todas</button>
+                        </div>
+                    </div>
+
+                    <div id="resumen-proyectos">
+                        <p class="admin-hint">Cargando…</p>
+                    </div>
+                </section>
+
+                <!-- ======================= CLIENTES ======================= -->
+                <section class="admin-vista hidden" id="vista-clientes">
+                    <div class="admin-seccion-head">
+                        <h2 class="admin-h2">Clientes</h2>
+                        <button class="btn btn-primary btn-sm" id="btn-abrir-alta" type="button">+ Nuevo cliente</button>
+                    </div>
+
+                    <!-- Alta de cliente -->
+                    <div class="admin-panel-alta hidden" id="panel-alta">
+                        <form id="form-nuevo-cliente">
+                            <div class="admin-form-grid">
+                                <div class="form-group">
+                                    <label for="cli-nombre">Nombre de la persona *</label>
+                                    <input type="text" id="cli-nombre" required maxlength="120"
+                                           placeholder="Marina López" autocomplete="off">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cli-proyecto">Nombre de la página *</label>
+                                    <input type="text" id="cli-proyecto" required maxlength="120"
+                                           placeholder="Estudio Jurídico López" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="cli-brief">¿Qué se va a hacer?</label>
+                                <textarea id="cli-brief" rows="3" maxlength="2000"
+                                          placeholder="Landing de una página con formulario de contacto, galería y turnos por WhatsApp."></textarea>
+                            </div>
+
+                            <div class="admin-form-grid">
+                                <div class="form-group">
+                                    <label for="cli-demo">Link de la demo (Vercel)</label>
+                                    <input type="url" id="cli-demo" placeholder="https://cliente-demo.vercel.app">
+                                    <p class="admin-hint">Si lo cargás, el cliente ya ve «demo lista».</p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cli-precio">Precio de producción (USD)</label>
+                                    <input type="number" id="cli-precio" min="0" step="1" value="0" inputmode="decimal">
+                                    <p class="admin-hint">El 50% de esto es el adelanto.</p>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="cli-whatsapp">WhatsApp (opcional)</label>
+                                <input type="tel" id="cli-whatsapp" maxlength="30" placeholder="5493511234567">
+                            </div>
+
+                            <div class="admin-form-acciones">
+                                <button type="submit" class="btn btn-primary" id="btn-crear-cliente">
+                                    Crear cliente y generar link
+                                </button>
+                                <button type="button" class="btn btn-outline" id="btn-cancelar-alta">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="admin-filtros mb" role="group" aria-label="Filtrar clientes">
+                        <button class="admin-filtro activo" data-filtro-clientes="activos" type="button">Activos</button>
+                        <button class="admin-filtro" data-filtro-clientes="finalizados" type="button">Finalizados</button>
+                        <button class="admin-filtro" data-filtro-clientes="todos" type="button">Todos</button>
+                    </div>
+
+                    <div id="lista-clientes">
+                        <p class="admin-hint">Cargando…</p>
+                    </div>
+                </section>
+
+                <!-- ======================= COBROS ======================= -->
+                <section class="admin-vista hidden" id="vista-cobros">
+                    <div class="admin-kpis tres">
+                        <div class="admin-kpi">
+                            <span class="admin-kpi-label">Cobrado</span>
+                            <span class="admin-kpi-valor verde" id="cob-cobrado">—</span>
+                        </div>
+                        <div class="admin-kpi">
+                            <span class="admin-kpi-label">Pendiente</span>
+                            <span class="admin-kpi-valor ambar" id="cob-pendiente">—</span>
+                        </div>
+                        <div class="admin-kpi">
+                            <span class="admin-kpi-label">En proceso</span>
+                            <span class="admin-kpi-valor" id="cob-proceso">—</span>
+                        </div>
+                    </div>
+
+                    <div class="admin-seccion-head">
+                        <h2 class="admin-h2">Todos los cobros</h2>
+                        <div class="admin-filtros" role="group" aria-label="Filtrar cobros">
+                            <button class="admin-filtro activo" data-filtro-cobros="todos" type="button">Todos</button>
+                            <button class="admin-filtro" data-filtro-cobros="pendiente" type="button">Pendientes</button>
+                            <button class="admin-filtro" data-filtro-cobros="pagado" type="button">Pagados</button>
+                        </div>
+                    </div>
+
+                    <div id="tabla-cobros">
+                        <p class="admin-hint">Cargando…</p>
+                    </div>
+                </section>
+
+                <!-- ======================= PORTFOLIO ======================= -->
+                <section class="admin-vista hidden" id="vista-portfolio">
+                    <div class="admin-dos-columnas">
+
+                        <!-- Formulario de proyecto -->
+                        <div class="admin-card">
+                            <h2 class="admin-h2" id="proj-form-titulo">Cargar nuevo proyecto</h2>
+                            <form id="form-proyecto">
+                                <div class="form-group">
+                                    <label for="proj-title">Título *</label>
+                                    <input type="text" id="proj-title" required maxlength="120"
+                                           placeholder="Tienda de Calzados">
+                                </div>
+
+                                <div class="admin-form-grid">
+                                    <div class="form-group">
+                                        <label for="proj-category">Categoría</label>
+                                        <select id="proj-category" required></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="proj-demo">URL de la demo</label>
+                                        <input type="url" id="proj-demo" placeholder="https://ejemplo.com">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="proj-tags">Tecnologías (separadas por coma)</label>
+                                    <input type="text" id="proj-tags" placeholder="React, Node, CSS">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="proj-desc">Descripción *</label>
+                                    <textarea id="proj-desc" rows="3" required maxlength="600"
+                                              placeholder="Breve descripción del proyecto…"></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="proj-image">Foto de portada</label>
+                                    <div class="image-upload-wrapper">
+                                        <input type="file" id="proj-image" accept="image/*" class="file-input-hidden">
+                                        <div class="upload-dropzone" id="upload-dropzone">
+                                            <span>Arrastrá la imagen o hacé clic para subirla</span>
+                                        </div>
+                                        <img id="image-preview" class="image-preview hidden" src="" alt="Vista previa">
+                                    </div>
+                                </div>
+
+                                <div class="admin-form-acciones">
+                                    <button type="submit" class="btn btn-primary" id="proj-submit">Agregar proyecto</button>
+                                    <button type="button" class="btn btn-outline hidden" id="proj-cancelar">Cancelar edición</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="admin-columna-lateral">
+                            <!-- Proyectos -->
+                            <div class="admin-card">
+                                <h2 class="admin-h2">Proyectos publicados</h2>
+                                <div id="lista-proyectos"><p class="admin-hint">Cargando…</p></div>
+                            </div>
+
+                            <!-- Categorías -->
+                            <div class="admin-card">
+                                <h2 class="admin-h2">Categorías</h2>
+                                <div class="admin-inline-form">
+                                    <input type="text" id="nueva-categoria" placeholder="Ej: Blogs" maxlength="40"
+                                           aria-label="Nombre de la nueva categoría">
+                                    <button type="button" class="btn btn-primary btn-sm" id="btn-agregar-categoria">Agregar</button>
+                                </div>
+                                <div id="lista-categorias"><p class="admin-hint">Cargando…</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+
+            <!--
+              NAVEGACION FLOTANTE (estilo iOS)
+              --------------------------------
+              Reemplaza a la barra lateral. Va fija abajo, centrada y flotando
+              sobre el contenido, con el mismo patron de las tab bars de iPhone.
+
+              Por que abajo y no arriba: en el celular el pulgar llega comodo a
+              la zona inferior y no al borde superior. Y en escritorio libera
+              todo el ancho para las tablas de cobros, que era justo lo que
+              apretaba la barra lateral.
+
+              `env(safe-area-inset-bottom)` la levanta por encima de la barra
+              de gestos del iPhone; sin eso, el ultimo boton queda debajo del
+              indicador de inicio y no se puede tocar.
+            -->
+            <nav class="admin-tabbar" aria-label="Secciones del panel">
+                <button class="admin-tab activo" data-vista="resumen" type="button" aria-current="page">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                    <span class="admin-tab-texto">Resumen</span>
+                    <span class="admin-tab-punto" id="badge-pendientes" hidden></span>
+                </button>
+
+                <button class="admin-tab" data-vista="clientes" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span class="admin-tab-texto">Clientes</span>
+                    <span class="admin-tab-punto" id="badge-clientes" hidden></span>
+                </button>
+
+                <button class="admin-tab" data-vista="cobros" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    <span class="admin-tab-texto">Cobros</span>
+                    <span class="admin-tab-punto alerta" id="badge-cobros" hidden></span>
+                </button>
+
+                <button class="admin-tab" data-vista="portfolio" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                    <span class="admin-tab-texto">Portfolio</span>
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <script src="/sweetalert2.all.min.js" defer></script>
+    <script type="module" src="/js/admin.js"></script>
+</body>
+</html>

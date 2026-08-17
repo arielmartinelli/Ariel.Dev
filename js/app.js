@@ -1,5 +1,7 @@
-import { getProjects, addProject, deleteProject, updateProject, getCategories, addCategory, deleteCategory } from "./projects.js";
+import Lenis from "lenis";
+import { getProjects, getCategories } from "./projects.js";
 import { supabase, isSupabaseConfigured } from "./supabase.js";
+import { configurarDialogos, confirmar, avisar } from "./ui-dialogs.js";
 import {
     escapeHtml,
     safeUrl,
@@ -7,7 +9,6 @@ import {
     sanitizeText,
     isValidEmail,
     LIMITS,
-    ALLOWED_IMAGE_TYPES,
 } from "./security.js";
 
 /**
@@ -16,6 +17,21 @@ import {
  * Se sirve desde el propio dominio, no desde un CDN externo: así la CSP puede
  * mantener script-src acotado y no dependemos de la disponibilidad de terceros.
  */
+/** Detecta pantalla táctil chica: cambia cómo se abren enlaces y se descarga. */
+function esMovil() {
+    return window.matchMedia("(max-width: 900px)").matches
+        || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
+/**
+ * iOS ignora el atributo `download` de los enlaces: no descarga el archivo,
+ * lo abre. Necesita un flujo distinto (ver descargarPdf).
+ */
+function esIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
 let html2pdfPromise = null;
 function loadHtml2Pdf() {
     if (window.html2pdf) return Promise.resolve(window.html2pdf);
@@ -46,42 +62,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const drawerOverlay = document.getElementById("drawer-overlay");
     const header = document.querySelector(".header");
 
-    // Modal Admin
-    const adminPanelBtn = document.getElementById("admin-panel-btn");
-    const adminPanelBtnMobile = document.getElementById("admin-panel-btn-mobile");
-    const adminModal = document.getElementById("admin-modal");
-    const closeAdminModalBtn = document.getElementById("close-admin-modal");
-    const adminModalOverlay = document.getElementById("admin-modal-overlay");
-    
-    // Login Admin
-    const adminPasswordScreen = document.getElementById("admin-password-screen");
-    const adminDashboardContent = document.getElementById("admin-dashboard-content");
-    const adminEmailInput = document.getElementById("admin-email-input");
-    const adminPasswordInput = document.getElementById("admin-password-input");
-    const btnSubmitPassword = document.getElementById("btn-submit-password");
-    const passwordError = document.getElementById("password-error");
-
-    // Formulario de agregar proyecto
-    const adminAddProjectForm = document.getElementById("admin-add-project-form");
-    const projTitleInput = document.getElementById("proj-title");
-    const projCategorySelect = document.getElementById("proj-category");
-    const projDemoInput = document.getElementById("proj-demo");
-    const projTagsInput = document.getElementById("proj-tags");
-    const projDescInput = document.getElementById("proj-desc");
-    const projImageInput = document.getElementById("proj-image");
-    const uploadDropzone = document.getElementById("upload-dropzone");
-    const imagePreview = document.getElementById("image-preview");
-    const adminProjectsList = document.getElementById("admin-projects-list");
-    
-    // Controles de Edición en Formulario
-    const adminFormTitle = document.getElementById("admin-form-title");
-    const adminSubmitBtn = document.getElementById("admin-submit-btn");
-    const adminCancelEditBtn = document.getElementById("admin-cancel-edit-btn");
-
-    // Gestión de Categorías
-    const newCategoryInput = document.getElementById("new-category-input");
-    const btnAddCategory = document.getElementById("btn-add-category");
-    const adminCategoriesList = document.getElementById("admin-categories-list");
+    // El panel de administración se mudó a /admin: acá ya no hay ningún
+    // elemento suyo que referenciar.
     const filterWrapper = document.getElementById("filter-wrapper");
 
     // Grilla de Portfolio
@@ -113,9 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let bindCardGlowTracker;
 
     // Variables de Estado
-    let uploadedImageBase64 = "";
-    let isEditMode = false;
-    let editingProjectId = null;
     let cachedCategories = [];
     let dollarRate = 1250; // Fallback
 
@@ -215,8 +194,40 @@ document.addEventListener("DOMContentLoaded", () => {
         setTimeout(async () => {
             container.innerHTML = "";
             container.className = `w-full relative mb-20`;
-            
-            const projects = await getProjects();
+
+            // BUG CORREGIDO: la opacidad se ponía en 0 y solo volvía a 1 al
+            // terminar de pintar. Si Supabase tardaba o no respondía, el bloque
+            // quedaba INVISIBLE y en blanco, sin ninguna señal de que algo
+            // estaba pasando: parecía que el portfolio no existía.
+            //
+            // El aviso se pone AHORA, de forma síncrona, y no con un
+            // setTimeout: si el visitante toca dos filtros seguidos, la
+            // segunda pasada limpia el contenedor y un aviso diferido de la
+            // primera nunca llegaría a mostrarse, dejando el hueco vacío.
+            container.innerHTML = `
+                <div class="glass text-center w-full" style="padding: 40px; border-radius: 28px;">
+                    <p style="color: var(--text-secondary);">Cargando proyectos…</p>
+                </div>`;
+            container.style.opacity = "1";
+
+            let projects;
+            try {
+                projects = await getProjects();
+            } catch (err) {
+                console.error("No se pudieron cargar los proyectos:", err?.message || err);
+                projects = [];
+            }
+
+            container.innerHTML = "";
+
+            if (!Array.isArray(projects) || projects.length === 0) {
+                container.innerHTML = `
+                    <div class="glass text-center w-full" style="padding: 40px; border-radius: 28px;">
+                        <p style="color: var(--text-secondary);">No se pudieron cargar los proyectos en este momento.</p>
+                    </div>`;
+                container.style.opacity = "1";
+                return;
+            }
 
             const filteredProjects = filter === "all" 
                 ? projects 
@@ -380,387 +391,19 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Renderizar las Opciones del Selector de Categorías en el Formulario
-    async function renderCategoryDropdown() {
-        const currentSelected = projCategorySelect.value;
-        projCategorySelect.innerHTML = "";
-        const categories = await getCategories();
-        cachedCategories = categories; // Actualizar caché
-        categories.forEach(cat => {
-            const opt = document.createElement("option");
-            opt.value = cat.id;
-            opt.textContent = cat.label;
-            projCategorySelect.appendChild(opt);
-        });
-        if (currentSelected) {
-            projCategorySelect.value = currentSelected;
-        }
-    }
-
     // ==========================================================================
-    // 5. Panel de Administración (Supabase Auth / LocalStorage Fallback)
+    // 5. Panel de Administración — MUDADO A /admin
+    //
+    //    Todo el ABM de proyectos, categorías y clientes vive ahora en
+    //    admin.html + js/admin*.js. Este archivo solo maneja el sitio público.
+    //
+    //    Por qué se movió:
+    //      - El modal obligaba a scrollear una caja dentro de otra caja, y ese
+    //        scroll interno quedaba bloqueado por Lenis (el scroll suave).
+    //      - Cuatro secciones con tablas no entran en una tarjeta de 900px.
+    //      - Este bundle lo baja CUALQUIER visitante: cargar acá el panel era
+    //        hacerle pagar a todo el mundo un código que casi nadie usa.
     // ==========================================================================
-    const openAdminModal = async () => {
-        adminModal.classList.add("open");
-        adminModalOverlay.classList.add("open");
-        mobileDrawer.classList.remove("open");
-        drawerOverlay.classList.remove("open");
-
-        // La única fuente de verdad es la sesión firmada por Supabase.
-        // Ningún flag de sessionStorage/localStorage concede acceso: el usuario
-        // controla ese almacenamiento y podría escribirlo desde la consola.
-        try {
-            const { data } = await supabase.auth.getSession();
-            if (data?.session?.access_token) {
-                showAdminDashboard();
-            } else {
-                showPasswordScreen();
-            }
-        } catch (e) {
-            console.error("No se pudo verificar la sesión:", e);
-            showPasswordScreen();
-        }
-    };
-
-    const closeAdminModal = () => {
-        adminModal.classList.remove("open");
-        adminModalOverlay.classList.remove("open");
-        exitEditMode();
-    };
-
-    adminPanelBtn.addEventListener("click", openAdminModal);
-    adminPanelBtnMobile.addEventListener("click", openAdminModal);
-    closeAdminModalBtn.addEventListener("click", closeAdminModal);
-    adminModalOverlay.addEventListener("click", closeAdminModal);
-
-    function showPasswordScreen() {
-        adminPasswordScreen.classList.remove("hidden");
-        adminDashboardContent.classList.add("hidden");
-        adminEmailInput.value = "";
-        adminPasswordInput.value = "";
-        passwordError.textContent = "";
-    }
-
-    async function showAdminDashboard() {
-        adminPasswordScreen.classList.add("hidden");
-        adminDashboardContent.classList.remove("hidden");
-        await renderAdminProjectsList();
-        await renderAdminCategoriesList();
-    }
-
-    // Enviar credenciales a Supabase Auth o Fallback local
-    btnSubmitPassword.addEventListener("click", async () => {
-        const email = adminEmailInput.value.trim();
-        const password = adminPasswordInput.value;
-
-        if (!email || !password) {
-            passwordError.textContent = "Por favor completa todos los campos.";
-            return;
-        }
-
-        // Sin credenciales no hay login posible. Se avisa explícitamente en vez
-        // de mostrar "credenciales incorrectas", que haría perder tiempo
-        // probando contraseñas correctas contra un cliente simulado.
-        if (!isSupabaseConfigured) {
-            passwordError.textContent = "Supabase no está configurado en este entorno (falta el .env). El panel no puede validar credenciales.";
-            console.warn("Login imposible: no hay credenciales de Supabase. Copiá las variables VITE_ desde Vercel a tu archivo .env local.");
-            return;
-        }
-
-        btnSubmitPassword.disabled = true;
-        passwordError.textContent = "";
-
-        try {
-            // Única vía de acceso: Supabase Auth. No existe contraseña de
-            // respaldo embebida en el bundle (ver SECURITY.md, hallazgo CRIT-02).
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password
-            });
-
-            if (error) throw error;
-            if (!data?.session?.access_token) throw new Error("Sesión inválida.");
-
-            await showAdminDashboard();
-        } catch (err) {
-            // En consola sí va el error real: es tu propio navegador y sin esto
-            // no hay forma de diagnosticar. Lo que no se revela es el motivo
-            // EN PANTALLA, que es donde lo vería un atacante enumerando usuarios.
-            console.error("Error de Login:", err?.message || err);
-            passwordError.textContent = "Credenciales incorrectas.";
-        } finally {
-            btnSubmitPassword.disabled = false;
-            adminPasswordInput.value = "";
-        }
-    });
-
-    // Cierre de sesión real: invalida el token en el servidor.
-    const btnAdminLogout = document.getElementById("admin-logout-btn");
-    if (btnAdminLogout) {
-        btnAdminLogout.addEventListener("click", async () => {
-            try {
-                await supabase.auth.signOut();
-            } finally {
-                showPasswordScreen();
-                closeAdminModal();
-            }
-        });
-    }
-
-    adminPasswordInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-            btnSubmitPassword.click();
-        }
-    });
-
-    // Control de Imagen en Admin (Base64)
-    uploadDropzone.addEventListener("click", () => projImageInput.click());
-
-    projImageInput.addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            processFile(file);
-        }
-    });
-
-    // Drag & Drop
-    uploadDropzone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        uploadDropzone.style.borderColor = "var(--primary)";
-    });
-
-    uploadDropzone.addEventListener("dragleave", () => {
-        uploadDropzone.style.borderColor = "var(--border)";
-    });
-
-    uploadDropzone.addEventListener("drop", (e) => {
-        e.preventDefault();
-        uploadDropzone.style.borderColor = "var(--border)";
-        const file = e.dataTransfer.files[0];
-        if (file && file.type.startsWith("image/")) {
-            processFile(file);
-        }
-    });
-
-    function processFile(file) {
-        // Validación de tipo: se rechaza SVG explícitamente (puede contener
-        // <script> y ejecutarse en el contexto de la página al renderizarse).
-        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-            Swal.fire("Formato no permitido", "Usá PNG, JPG, WEBP, GIF o AVIF. Los SVG están bloqueados por seguridad.", "error");
-            return;
-        }
-
-        // Validación de tamaño: la imagen se guarda como Base64 en la base de
-        // datos y crece ~33%. Sin límite, un archivo grande rompe la fila/cuota.
-        if (file.size > LIMITS.IMAGE_BYTES) {
-            const mb = (LIMITS.IMAGE_BYTES / (1024 * 1024)).toFixed(0);
-            Swal.fire("Imagen demasiado pesada", `El máximo es ${mb} MB. Comprimila antes de subirla.`, "error");
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onerror = () => {
-            Swal.fire("Error", "No se pudo leer el archivo seleccionado.", "error");
-        };
-        reader.onload = (e) => {
-            const result = String(e.target.result || "");
-            // Confirmación final sobre el contenido real, no sobre la extensión.
-            if (!/^data:image\/(png|jpe?g|gif|webp|avif);base64,/i.test(result)) {
-                Swal.fire("Archivo inválido", "El contenido no corresponde a una imagen soportada.", "error");
-                return;
-            }
-            uploadedImageBase64 = result;
-            imagePreview.src = uploadedImageBase64;
-            imagePreview.classList.remove("hidden");
-            uploadDropzone.classList.add("hidden");
-        };
-        reader.readAsDataURL(file);
-    }
-
-    // Enviar Formulario de Carga / Edición
-    adminAddProjectForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        // Validaciones: se normaliza y se acota TODO antes de persistir.
-        const title = sanitizeText(projTitleInput.value, LIMITS.TITLE);
-        const category = sanitizeText(projCategorySelect.value, LIMITS.CATEGORY);
-        const rawDemoUrl = projDemoInput.value.trim();
-        const description = sanitizeText(projDescInput.value, LIMITS.DESCRIPTION);
-        const tags = projTagsInput.value
-            .split(",")
-            .map(t => sanitizeText(t, LIMITS.TAG))
-            .filter(t => t !== "")
-            .slice(0, LIMITS.TAGS_COUNT);
-
-        if (!title || !description) {
-            Swal.fire("Atención", "Por favor completa los campos requeridos.", "warning");
-            return;
-        }
-
-        // Solo se aceptan http/https en el enlace de demo: bloquea javascript:.
-        const demoUrl = rawDemoUrl ? safeUrl(rawDemoUrl, "") : "#";
-        if (rawDemoUrl && !demoUrl) {
-            Swal.fire("Enlace inválido", "El enlace de demo debe empezar con http:// o https://", "error");
-            return;
-        }
-
-        let projectImage = uploadedImageBase64;
-        if (!projectImage) {
-            // Si estamos editando y no se subió una nueva imagen, conservamos la actual
-            if (isEditMode) {
-                const projects = await getProjects();
-                const existingProj = projects.find(p => p.id === editingProjectId);
-                projectImage = existingProj ? existingProj.image : "";
-            }
-            // Si no hay imagen, generamos un SVG de gradiente dinámico
-            if (!projectImage) {
-                // Placeholder generado localmente. El título se escapa y el SVG
-                // completo se codifica: sin escapar, un título con "</text><..."
-                // rompe el marcado y queda persistido en la base de datos.
-                const hue = Math.floor(Math.random() * 360);
-                const label = escapeHtml(title.toUpperCase().slice(0, 40));
-                const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500"><defs><linearGradient id="rand" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="hsl(${hue}, 80%, 45%)"/><stop offset="100%" stop-color="hsl(${(hue + 60) % 360}, 85%, 25%)"/></linearGradient></defs><rect width="800" height="500" fill="url(%23rand)"/><text x="400" y="260" fill="white" font-family="sans-serif" font-size="36" font-weight="bold" text-anchor="middle">${label}</text></svg>`;
-                projectImage = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-            }
-        }
-
-        const projectData = {
-            title,
-            description,
-            category,
-            image: projectImage,
-            tags,
-            demoUrl
-        };
-
-        if (isEditMode) {
-            projectData.id = editingProjectId;
-            await updateProject(projectData);
-            exitEditMode();
-            Swal.fire("¡Actualizado!", "¡Proyecto actualizado con éxito!", "success");
-        } else {
-            await addProject(projectData);
-            resetAdminForm();
-            Swal.fire("¡Creado!", "¡Proyecto agregado con éxito!", "success");
-        }
-
-        await renderAdminProjectsList();
-        
-        // Obtener filtro activo en portfolio y refrescar
-        const activeFilterBtn = document.querySelector(".filter-btn.active");
-        await renderPortfolio(activeFilterBtn ? activeFilterBtn.dataset.filter : "all");
-    });
-
-    function resetAdminForm() {
-        adminAddProjectForm.reset();
-        uploadedImageBase64 = "";
-        imagePreview.src = "";
-        imagePreview.classList.add("hidden");
-        uploadDropzone.classList.remove("hidden");
-    }
-
-    function exitEditMode() {
-        isEditMode = false;
-        editingProjectId = null;
-        resetAdminForm();
-        adminFormTitle.textContent = "Cargar Nuevo Proyecto";
-        adminSubmitBtn.textContent = "Agregar Proyecto";
-        adminCancelEditBtn.classList.add("hidden");
-    }
-
-    adminCancelEditBtn.addEventListener("click", exitEditMode);
-
-    // Renderizar la lista de edición/borrado en Admin (Asíncrono)
-    async function renderAdminProjectsList() {
-        adminProjectsList.innerHTML = "";
-        const projects = await getProjects();
-
-        projects.forEach(proj => {
-            const item = document.createElement("div");
-            item.className = "admin-project-item";
-            item.innerHTML = `
-                <div class="admin-project-meta">
-                    <div class="admin-project-name">${escapeHtml(proj.title)}</div>
-                    <div class="admin-project-cat">${escapeHtml(getCategoryLabel(proj.category))}</div>
-                </div>
-                <div class="admin-project-actions">
-                    <button class="btn-edit-proj" data-id="${escapeHtml(proj.id)}" title="Editar proyecto">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                    </button>
-                    <button class="btn-delete-proj" data-id="${escapeHtml(proj.id)}" title="Eliminar proyecto">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                    </button>
-                </div>
-            `;
-            adminProjectsList.appendChild(item);
-        });
-
-        // Event Listeners para botones de editar
-        document.querySelectorAll(".btn-edit-proj").forEach(btn => {
-            btn.addEventListener("click", async () => {
-                const id = btn.dataset.id;
-                const projectsList = await getProjects();
-                const proj = projectsList.find(p => p.id === id);
-                if (proj) {
-                    isEditMode = true;
-                    editingProjectId = id;
-
-                    // Llenar formulario
-                    projTitleInput.value = proj.title;
-                    projCategorySelect.value = proj.category;
-                    projDemoInput.value = proj.demoUrl === "#" ? "" : proj.demoUrl;
-                    projTagsInput.value = proj.tags.join(", ");
-                    projDescInput.value = proj.description;
-
-                    // Vista previa de imagen
-                    uploadedImageBase64 = proj.image;
-                    imagePreview.src = proj.image;
-                    imagePreview.classList.remove("hidden");
-                    uploadDropzone.classList.add("hidden");
-
-                    // Cambiar UI del formulario
-                    adminFormTitle.textContent = "Editar Proyecto";
-                    adminSubmitBtn.textContent = "Guardar Cambios";
-                    adminCancelEditBtn.classList.remove("hidden");
-
-                    // Scroll hacia arriba del formulario
-                    document.querySelector(".admin-form-container").scrollIntoView({ behavior: "smooth" });
-                }
-            });
-        });
-
-        // Event Listeners para botones de eliminar
-        document.querySelectorAll(".btn-delete-proj").forEach(btn => {
-            btn.addEventListener("click", async (e) => {
-                const id = btn.dataset.id;
-                const projName = btn.parentElement.parentElement.querySelector(".admin-project-name").textContent;
-                
-                Swal.fire({
-                    title: '¿Estás seguro?',
-                    text: `¿Estás seguro de eliminar el proyecto "${projName}"?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#6366f1',
-                    cancelButtonColor: '#ef4444',
-                    confirmButtonText: 'Sí, eliminar',
-                    cancelButtonText: 'Cancelar'
-                }).then(async (result) => {
-                    if (result.isConfirmed) {
-                        await deleteProject(id);
-                        if (isEditMode && editingProjectId === id) {
-                            exitEditMode();
-                        }
-                        await renderAdminProjectsList();
-                        // Refrescar portfolio general
-                        const activeFilterBtn = document.querySelector(".filter-btn.active");
-                        await renderPortfolio(activeFilterBtn ? activeFilterBtn.dataset.filter : "all");
-                        Swal.fire('¡Eliminado!', 'El proyecto ha sido eliminado con éxito.', 'success');
-                    }
-                });
-            });
-        });
-    }
-
     // ==========================================================================
     // 6. Cotizador Interactivo de Presupuestos
     // ==========================================================================
@@ -885,9 +528,32 @@ document.addEventListener("DOMContentLoaded", () => {
     // ==========================================================================
     // 7. Envíos de Cotización (WhatsApp & Mail)
     // ==========================================================================
-    function generateQuotationText() {
-        const clientName = contactName.value.trim() || "Cliente Interesado";
-        
+    /**
+     * Pide el nombre del cliente antes de generar el presupuesto.
+     * Lo usan tanto el envío por WhatsApp como la descarga del PDF, para que
+     * ambos se comporten igual. Precarga el valor del formulario de contacto
+     * si ya lo completó.
+     */
+    async function pedirNombreCliente(textoConfirmar) {
+        const { value, isConfirmed } = await Swal.fire({
+            title: "¿A nombre de quién?",
+            input: "text",
+            inputLabel: "Nombre o empresa para el presupuesto",
+            inputPlaceholder: "Ej: Juan Pérez / Empresa SRL",
+            inputValue: contactName.value.trim() || "",
+            showCancelButton: true,
+            confirmButtonText: textoConfirmar,
+            cancelButtonText: "Cancelar",
+            confirmButtonColor: "#6366f1",
+            inputValidator: (v) => (!v || !v.trim()) ? "Por favor ingresá un nombre." : undefined,
+        });
+
+        if (!isConfirmed || !value) return null;
+        return sanitizeText(value, LIMITS.NAME);
+    }
+
+    function generateQuotationText(clientName) {
+
         const activeComboCard = document.querySelector(".combo-card.active");
         const comboName = activeComboCard.querySelector("h4").textContent;
         const comboBasePrice = activeComboCard.dataset.price;
@@ -934,40 +600,40 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Botón de WhatsApp
-    btnQuoteWhatsapp.addEventListener("click", () => {
-        const message = generateQuotationText();
+    btnQuoteWhatsapp.addEventListener("click", async () => {
+        const clientName = await pedirNombreCliente("Enviar por WhatsApp");
+        if (!clientName) return;
+
+        const message = generateQuotationText(clientName);
         const encodedMessage = encodeURIComponent(message);
-        const phoneNumber = "543517877753"; 
+        const phoneNumber = "543517877753";
         const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-        // noopener/noreferrer: impide que la pestaña destino acceda a window.opener.
-        window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+
+        // En móvil, window.open tras un await suele quedar bloqueado por el
+        // navegador (se perdió la interacción del usuario). Navegar en la misma
+        // pestaña siempre funciona: WhatsApp abre su propia app igual.
+        if (esMovil()) {
+            window.location.href = whatsappUrl;
+        } else {
+            // noopener/noreferrer: impide que la pestaña destino acceda a window.opener.
+            window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+        }
     });
 
 
 
     // Botón de PDF
     if (btnQuotePdf) {
-        btnQuotePdf.addEventListener("click", async () => {
-            // --- Pedir nombre del destinatario con SweetAlert ---
-            const { value: recipientName, isConfirmed } = await Swal.fire({
-                title: "Nombre del destinatario",
-                input: "text",
-                inputLabel: "Ingresá el nombre o empresa para el presupuesto",
-                inputPlaceholder: "Ej: Juan Pérez / Empresa SRL",
-                inputValue: contactName.value.trim() || "",
-                showCancelButton: true,
-                confirmButtonText: "Generar PDF",
-                cancelButtonText: "Cancelar",
-                confirmButtonColor: "#6366f1",
-                inputValidator: (value) => {
-                    if (!value || !value.trim()) {
-                        return "Por favor ingresá un nombre para el destinatario.";
-                    }
-                }
-            });
+        // La librería empieza a bajar apenas el usuario toca el botón, en
+        // paralelo con el diálogo del nombre. Así ya está lista cuando confirma
+        // y la descarga no se demora — que es lo que hacía fallar en móvil.
+        btnQuotePdf.addEventListener("pointerdown", () => {
+            loadHtml2Pdf().catch(() => { /* se reintenta al confirmar */ });
+        }, { once: true });
 
-            if (!isConfirmed || !recipientName) return;
-            const clientName = recipientName.trim();
+        btnQuotePdf.addEventListener("click", async () => {
+            const clientName = await pedirNombreCliente("Generar PDF");
+            if (!clientName) return;
 
             const activeComboCard = document.querySelector(".combo-card.active");
             if (!activeComboCard) return;
@@ -1398,9 +1064,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 margin:       0,
                 filename:     pdfFilename,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { 
-                    scale: 2, 
-                    useCORS: true, 
+                html2canvas:  {
+                    // scale 2 en un celular genera un lienzo enorme y el
+                    // navegador puede quedarse sin memoria y fallar sin aviso.
+                    scale: esMovil() ? 1.5 : 2,
+                    useCORS: true,
                     logging: false,
                     scrollX: 0,
                     scrollY: 0,
@@ -1412,13 +1080,56 @@ document.addEventListener("DOMContentLoaded", () => {
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
+            Swal.fire({
+                title: "Generando tu presupuesto...",
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+            });
+
             try {
-                // La librería (885 KB) se descarga recién en este punto.
                 await loadHtml2Pdf();
-                await html2pdf().set(opt).from(tempDiv).save();
+
+                // Se genera el PDF en memoria y se entrega a mano, en vez de
+                // usar .save(). Así se puede adaptar la entrega a cada
+                // plataforma en lugar de depender del comportamiento interno
+                // de jsPDF, que en móvil no siempre dispara la descarga.
+                const blob = await html2pdf().set(opt).from(tempDiv).outputPdf("blob");
+                const url = URL.createObjectURL(blob);
+
+                if (esIOS()) {
+                    // iOS ignora el atributo `download`. Se ofrece un enlace
+                    // para que el usuario lo toque: ese gesto real es lo que
+                    // permite abrir el archivo sin que Safari lo bloquee.
+                    Swal.fire({
+                        icon: "success",
+                        title: "Presupuesto listo",
+                        html: `<p>Tocá el botón para abrirlo y luego usá <strong>Compartir → Guardar en Archivos</strong>.</p>
+                               <a href="${url}" target="_blank" rel="noopener noreferrer"
+                                  class="btn btn-primary" style="margin-top:12px; display:inline-block;">
+                                  Abrir presupuesto
+                               </a>`,
+                        showConfirmButton: false,
+                        showCloseButton: true,
+                    });
+                } else {
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = pdfFilename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    Swal.close();
+                }
+
+                // Se libera la memoria del blob, dando margen para la descarga.
+                setTimeout(() => URL.revokeObjectURL(url), 120000);
             } catch (err) {
-                console.error("Error al descargar PDF:", err);
-                Swal.fire("No se pudo generar el PDF", "Revisá tu conexión e intentá de nuevo.", "error");
+                console.error("Error al descargar PDF:", err?.message || err);
+                Swal.fire({
+                    icon: "error",
+                    title: "No se pudo generar el PDF",
+                    text: "Podés pedirme el presupuesto por WhatsApp mientras tanto.",
+                });
             } finally {
                 if (container.parentNode) document.body.removeChild(container);
             }
@@ -1546,94 +1257,49 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Agregar nueva categoría
-    btnAddCategory.addEventListener("click", async () => {
-        const label = newCategoryInput.value.trim();
-        if (!label) {
-            Swal.fire("Atención", "Por favor escribe un nombre para la categoría.", "warning");
-            return;
-        }
-
-        const res = await addCategory(label);
-        if (res.error) {
-            Swal.fire("Error", res.error, "error");
-        } else {
-            newCategoryInput.value = "";
-            await renderFilters();
-            await renderCategoryDropdown();
-            await renderAdminCategoriesList();
-            Swal.fire("¡Éxito!", `Categoría "${label}" agregada con éxito.`, "success");
-        }
-    });
-
-    newCategoryInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") {
-            btnAddCategory.click();
-        }
-    });
-
-    // Renderizar la lista de categorías en Admin
-    async function renderAdminCategoriesList() {
-        adminCategoriesList.innerHTML = "";
-        const categories = await getCategories();
-        const defaultIds = ["landing", "ecommerce", "portfolio", "custom"];
-
-        categories.forEach(cat => {
-            const item = document.createElement("div");
-            item.className = "admin-category-item";
-            const isDefault = defaultIds.includes(cat.id);
-            
-            item.innerHTML = `
-                <div class="admin-category-name">${escapeHtml(cat.label)}</div>
-                <button class="btn-delete-cat" data-id="${escapeHtml(cat.id)}" ${isDefault ? 'disabled' : ''} title="${isDefault ? 'Las categorías por defecto no se pueden borrar' : 'Eliminar categoría'}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
-            `;
-            adminCategoriesList.appendChild(item);
-        });
-
-        // Event listeners para borrar categorías
-        adminCategoriesList.querySelectorAll(".btn-delete-cat").forEach(btn => {
-            btn.addEventListener("click", async () => {
-                const id = btn.dataset.id;
-                const catName = btn.parentElement.querySelector(".admin-category-name").textContent;
-                Swal.fire({
-                    title: '¿Estás seguro?',
-                    text: `¿Estás seguro de eliminar la categoría "${catName}"?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#6366f1',
-                    cancelButtonColor: '#ef4444',
-                    confirmButtonText: 'Sí, eliminar',
-                    cancelButtonText: 'Cancelar'
-                }).then(async (result) => {
-                    if (result.isConfirmed) {
-                        const res = await deleteCategory(id);
-                        if (res.error) {
-                            Swal.fire("Error", res.error, "error");
-                        } else {
-                            await renderFilters();
-                            await renderCategoryDropdown();
-                            await renderAdminCategoriesList();
-                            await renderPortfolio();
-                            Swal.fire('¡Eliminado!', 'La categoría ha sido eliminada con éxito.', 'success');
-                        }
-                    }
-                });
-            });
-        });
-    }
-
     // ==========================================================================
     // 8. Inicialización al cargar la página
     // ==========================================================================
     async function init() {
-        // Cargar caché de categorías inicialmente
-        cachedCategories = await getCategories();
-        await renderFilters();
-        await renderCategoryDropdown();
-        await renderPortfolio();
-        await fetchDollarRate();
+        // Primero de todo: dejar SweetAlert2 en la capa correcta. Si algo falla
+        // más abajo, al menos el cartel de error se va a ver.
+        configurarDialogos();
+
+        // ------------------------------------------------------------------
+        // BUG CORREGIDO: el orden importaba y estaba al revés.
+        //
+        // Antes esto empezaba con `await getCategories()` y `await
+        // fetchDollarRate()`, y recién DESPUÉS arrancaba el scroll suave, el
+        // tilt 3D y los efectos de scroll. Consecuencia: si Supabase estaba
+        // lento, caído o mal configurado, esos awaits colgaban la función y
+        // los efectos NO se inicializaban nunca. La página quedaba "muerta"
+        // por un problema de red que no tiene nada que ver con la animación.
+        //
+        // Ahora todo lo que NO depende de la red arranca primero y de forma
+        // síncrona. Los datos se piden después, en paralelo, y un fallo ahí
+        // solo afecta a la sección que los necesita.
+        // ------------------------------------------------------------------
+        initSmoothScroll();
+        initScrollEffects();
+        initMagnetEffect();
+        initCodeTypingEffect();
+        init3DTilt();
+        initStackingProjectsScroll();
+        // initCustomCursor();      // Desactivado
+        // initCardGlowTracker();   // Desactivado — CSS vars en cada mousemove
+
+        // Los datos van en paralelo: el portfolio y la cotización del dólar no
+        // dependen entre sí, y esperarlos en fila duplica el tiempo de carga.
+        // Cada uno atrapa su propio error para que uno caído no tumbe al otro.
+        await Promise.all([
+            (async () => {
+                cachedCategories = await getCategories();
+                await renderFilters();
+                await renderPortfolio();
+            })().catch((e) => console.error("No se pudo cargar el portfolio:", e?.message || e)),
+
+            fetchDollarRate().catch((e) => console.error("No se pudo cotizar el dólar:", e?.message || e)),
+        ]);
 
         // Redirección de "Beneficios de Tener"
         const btnVerVentajas = document.getElementById("btn-ver-ventajas");
@@ -1655,15 +1321,9 @@ document.addEventListener("DOMContentLoaded", () => {
             selectServicio.addEventListener("change", sincronizarDestino);
         }
 
-        // ---- REDISEÑO PREMIUM ----
-        // initSmoothScroll();
-        // initCustomCursor(); // Desactivado
-        initScrollEffects();
-        initMagnetEffect();
-        initCodeTypingEffect();
-        init3DTilt();
-        initStackingProjectsScroll();
-        // initCardGlowTracker(); // Desactivado — CSS vars en cada mousemove
+        // El portfolio se acaba de renderizar: hay que re-vincular los efectos
+        // a las tarjetas nuevas, que no existían cuando corrió init3DTilt().
+        if (typeof bindCardGlowTracker === "function") bindCardGlowTracker();
     }
 
     // ==========================================================================
@@ -2018,40 +1678,127 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /**
-     * Inicializa Lenis Smooth Scroll con soporte de inercia
+     * Inicializa Lenis Smooth Scroll con soporte de inercia.
+     *
+     * BUG CORREGIDO: Lenis se cargaba desde cdn.jsdelivr.net por <script>, pero
+     * la CSP de produccion declara script-src 'self'. El navegador bloqueaba el
+     * archivo y, como el codigo preguntaba `typeof Lenis !== 'undefined'`, el
+     * fallo era SILENCIOSO: en Vercel nunca hubo scroll suave y nadie se
+     * enteraba. Ahora Lenis viene del bundle (npm), asi que la CSP sigue
+     * estricta y el scroll funciona de verdad.
+     *
+     * Ademas se respeta prefers-reduced-motion: forzar inercia a quien pidio
+     * menos movimiento provoca mareo y es un incumplimiento de WCAG 2.3.3.
      */
+    let lenisInstance = null;
+
     function initSmoothScroll() {
-        if (typeof Lenis !== 'undefined') {
-            const lenis = new Lenis({
+        // Se marca SIEMPRE, incluso si Lenis no llega a arrancar: el atributo
+        // es inofensivo sin Lenis y evita olvidarse si algun dia se reactiva.
+        marcarContenedoresScrolleables();
+
+        const prefiereMenosMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        // El scroll nativo del navegador ya funciona bien en tactil y consume
+        // menos bateria; Lenis solo aporta en desktop con rueda o trackpad.
+        if (prefiereMenosMovimiento || esMovil()) {
+            enlazarAnclasNativas();
+            return;
+        }
+
+        try {
+            lenisInstance = new Lenis({
                 duration: 1.2,
                 easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-                direction: 'vertical',
-                gestureDirection: 'vertical',
-                smooth: true,
-                mouseMultiplier: 1.0,
-                smoothTouch: false,
+                orientation: "vertical",
+                gestureOrientation: "vertical",
+                smoothWheel: true,
+                wheelMultiplier: 1.0,
                 touchMultiplier: 2,
                 infinite: false,
             });
 
             function raf(time) {
-                lenis.raf(time);
+                lenisInstance.raf(time);
                 requestAnimationFrame(raf);
             }
             requestAnimationFrame(raf);
 
-            // Vinculación de Lenis con los saltos de menú
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('href');
+                anchor.addEventListener("click", function (e) {
+                    const targetId = this.getAttribute("href");
+                    // href="#" solo no apunta a nada: dejarlo pasar evita
+                    // romper botones que usan el ancla como marcador.
+                    if (!targetId || targetId === "#") return;
                     const target = document.querySelector(targetId);
-                    if (target) {
-                        lenis.scrollTo(target, { offset: -20 });
-                    }
+                    if (!target) return;
+                    e.preventDefault();
+                    lenisInstance.scrollTo(target, { offset: -20 });
                 });
             });
+        } catch (err) {
+            console.error("Lenis no pudo inicializarse, se usa el scroll nativo:", err?.message || err);
+            enlazarAnclasNativas();
         }
+    }
+
+    /** Saltos de ancla sin Lenis, con el mismo margen superior. */
+    function enlazarAnclasNativas() {
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener("click", function (e) {
+                const targetId = this.getAttribute("href");
+                if (!targetId || targetId === "#") return;
+                const target = document.querySelector(targetId);
+                if (!target) return;
+                e.preventDefault();
+                const y = target.getBoundingClientRect().top + window.scrollY - 20;
+                window.scrollTo({ top: y, behavior: "smooth" });
+            });
+        });
+    }
+
+    /**
+     * Lenis secuestra la rueda del mouse de TODA la pagina, y eso rompe el
+     * scroll de cualquier contenedor interno que tenga su propio overflow.
+     *
+     * BUG REAL QUE ESTO CORRIGE: con el panel admin abierto (cuando todavia
+     * era un modal), la rueda no hacia nada adentro de la tarjeta. Y llamar a
+     * `lenis.stop()` NO alcanzaba: stop() bloquea el scroll en todos lados,
+     * incluido el contenedor de adentro. La solucion correcta es marcar esos
+     * contenedores con data-lenis-prevent, que le dice a Lenis "no toques los
+     * eventos que ocurran acá adentro".
+     *
+     * Se aplica a todo lo que scrollea por su cuenta:
+     *   - el cajon del menu movil
+     *   - la fila horizontal de proyectos
+     *   - los dialogos de SweetAlert2 (que aparecen despues, ver el observer)
+     */
+    function marcarContenedoresScrolleables() {
+        const fijos = [
+            document.getElementById("mobile-drawer"),
+            document.getElementById("projects-stack-container"),
+        ];
+        fijos.forEach((el) => el && el.setAttribute("data-lenis-prevent", ""));
+
+        // SweetAlert2 inyecta su contenedor recien al abrirse, asi que no
+        // alcanza con marcarlo una vez al inicio: hay que esperarlo.
+        const observer = new MutationObserver(() => {
+            document.querySelectorAll(".swal2-container:not([data-lenis-prevent])")
+                .forEach((el) => el.setAttribute("data-lenis-prevent", ""));
+        });
+        observer.observe(document.body, { childList: true });
+    }
+
+    /**
+     * Pausa/reanuda el scroll suave. Se usa cuando algo cubre la pagina entera
+     * y no queremos que el fondo siga moviendose detras.
+     */
+    function pausarScrollSuave() {
+        if (lenisInstance) lenisInstance.stop();
+    }
+
+    function reanudarScrollSuave() {
+        if (lenisInstance) lenisInstance.start();
     }
 
     /**
