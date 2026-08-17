@@ -265,13 +265,19 @@ async function render() {
     if (linkFinal) linkFinal.href = safeUrl(production_url, "#");
   }
 
-  // --- Dejanos tu Reseña (Aparece al finalizar en Paso 4) ---
-  const mostrarResena = pasoActual === 4 || finalizado || progreso >= 99;
+  // --- Dejanos tu Reseña (Aparece ÚNICAMENTE al finalizar en Paso 4) ---
+  const mostrarResena = pasoActual === 4 || status === "finalizado";
   mostrarBloque("pc-bloque-resena", mostrarResena);
   if (mostrarResena) {
-    const inputEmpresa = $("pc-resena-empresa");
-    if (inputEmpresa && !inputEmpresa.value) {
-      inputEmpresa.value = domain_name || (production_url ? production_url.replace(/^https?:\/\//, "") : "");
+    const yaEnvio = localStorage.getItem(`resena_enviada_${TOKEN}`) === "true";
+    mostrarBloque("pc-form-resena", !yaEnvio);
+    mostrarBloque("pc-resena-completada", yaEnvio);
+
+    if (!yaEnvio) {
+      const inputEmpresa = $("pc-resena-empresa");
+      if (inputEmpresa && !inputEmpresa.value) {
+        inputEmpresa.value = domain_name || (production_url ? production_url.replace(/^https?:\/\//, "") : "");
+      }
     }
   }
 
@@ -1050,10 +1056,17 @@ $("pc-form-resena")?.addEventListener("submit", async (e) => {
       comment: comentario,
     });
 
-    $("pc-form-resena").reset();
+    localStorage.setItem(`resena_enviada_${TOKEN}`, "true");
+    mostrarBloque("pc-form-resena", false);
+    mostrarBloque("pc-resena-completada", true);
+
+    if (typeof window.confetti === "function") {
+      window.confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+    }
+
     avisar(
       "¡Muchas gracias por tu reseña!",
-      "Tu comentario fue recibido y se mostrará destacado en mi página web.",
+      "Tu comentario fue registrado exitosamente y se mostrará en mi sitio web.",
       "success"
     );
   } catch (err) {
