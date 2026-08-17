@@ -620,8 +620,18 @@
                     <p class="section-desc">Experiencias reales de clientes que confiaron en mi trabajo para impulsar su presencia online.</p>
                 </div>
 
-                <div id="grid-resenas-publicas" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 40px;">
-                    <!-- Se renderiza dinámicamente desde JS -->
+                <div class="resenas-carousel-wrapper">
+                    <button type="button" class="resenas-nav-btn prev" id="resenas-btn-prev" aria-label="Anterior testimonio">
+                        ‹
+                    </button>
+
+                    <div class="resenas-carousel-track" id="grid-resenas-publicas">
+                        <!-- Se renderiza dinámicamente desde JS -->
+                    </div>
+
+                    <button type="button" class="resenas-nav-btn next" id="resenas-btn-next" aria-label="Siguiente testimonio">
+                        ›
+                    </button>
                 </div>
             </div>
         </section>

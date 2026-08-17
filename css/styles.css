@@ -3527,3 +3527,90 @@ body.light-theme .admin-step-item {
         width: 100%;
     }
 }
+
+/* ==========================================================================
+   Carousel de Reseñas / Testimonios
+   ========================================================================== */
+.resenas-carousel-wrapper {
+  position: relative;
+  margin-top: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.resenas-carousel-track {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 4px;
+  width: 100%;
+}
+
+.resenas-carousel-track::-webkit-scrollbar {
+  display: none;
+}
+.resenas-carousel-track {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.resena-card-item {
+  flex: 0 0 calc((100% - 40px) / 3);
+  scroll-snap-align: start;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+  .resena-card-item {
+    flex: 0 0 calc((100% - 20px) / 2);
+  }
+}
+
+@media (max-width: 640px) {
+  .resena-card-item {
+    flex: 0 0 100%;
+  }
+}
+
+.resenas-nav-btn {
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.resenas-nav-btn:hover {
+  background: var(--primary, #6366f1);
+  color: #ffffff;
+  border-color: var(--primary, #6366f1);
+  transform: scale(1.08);
+}
+
+.resenas-nav-btn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 640px) {
+  .resenas-nav-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+  }
+}

@@ -1265,34 +1265,58 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const resenas = await obtenerResenasPublicas();
             if (!resenas || resenas.length === 0) {
-                cont.innerHTML = `<p style="text-align:center; color:var(--text-secondary); grid-column: 1 / -1;">Próximamente más testimonios.</p>`;
+                cont.innerHTML = `<p style="text-align:center; color:var(--text-secondary); width:100%;">Próximamente más testimonios.</p>`;
                 return;
             }
 
             cont.innerHTML = resenas.map(r => `
-                <div class="glass" style="padding: 24px; border-radius: 16px; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; gap: 16px; transition: transform 0.3s ease;">
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <div style="color: #f59e0b; font-size: 1.1rem; letter-spacing: 2px;">
-                            ${"★".repeat(r.rating || 5)}${"☆".repeat(5 - (r.rating || 5))}
+                <div class="resena-card-item">
+                    <div class="glass" style="padding: 24px; border-radius: 16px; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; gap: 16px; height: 100%; box-sizing: border-box; transition: transform 0.3s ease;">
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="color: #f59e0b; font-size: 1.1rem; letter-spacing: 2px;">
+                                ${"★".repeat(r.rating || 5)}${"☆".repeat(5 - (r.rating || 5))}
+                            </div>
+                            <p style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.6; font-style: italic;">
+                                "${escapeHtml(r.comment)}"
+                            </p>
                         </div>
-                        <p style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.6; font-style: italic;">
-                            "${escapeHtml(r.comment)}"
-                        </p>
-                    </div>
 
-                    <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 4px;">
-                        <div>
-                            <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">${escapeHtml(r.client_name)}</strong>
-                            <span style="font-size: 0.8rem; color: var(--text-muted);">${r.project_name ? escapeHtml(r.project_name) : 'Cliente Satisfecho'}</span>
+                        <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 4px; gap: 10px;">
+                            <div style="min-width: 0;">
+                                <strong style="display: block; font-size: 0.95rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(r.client_name)}</strong>
+                                <span style="font-size: 0.8rem; color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${r.project_name ? escapeHtml(r.project_name) : 'Cliente Satisfecho'}</span>
+                            </div>
+                            ${r.company_url ? `
+                                <a href="${safeUrl(r.company_url, '#')}" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline" style="font-size:0.78rem; padding: 5px 12px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;">
+                                    Ver página ↗
+                                </a>
+                            ` : ''}
                         </div>
-                        ${r.company_url ? `
-                            <a href="${safeUrl(r.company_url, '#')}" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline" style="font-size:0.78rem; padding: 5px 12px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;">
-                                Ver página ↗
-                            </a>
-                        ` : ''}
                     </div>
                 </div>
             `).join("");
+
+            // Conectar botones de navegación del carousel
+            const prevBtn = document.getElementById("resenas-btn-prev");
+            const nextBtn = document.getElementById("resenas-btn-next");
+
+            if (prevBtn && !prevBtn.dataset.bound) {
+                prevBtn.dataset.bound = "true";
+                prevBtn.addEventListener("click", () => {
+                    const card = cont.querySelector(".resena-card-item");
+                    const scrollAmount = card ? card.getBoundingClientRect().width + 20 : 320;
+                    cont.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+                });
+            }
+
+            if (nextBtn && !nextBtn.dataset.bound) {
+                nextBtn.dataset.bound = "true";
+                nextBtn.addEventListener("click", () => {
+                    const card = cont.querySelector(".resena-card-item");
+                    const scrollAmount = card ? card.getBoundingClientRect().width + 20 : 320;
+                    cont.scrollBy({ left: scrollAmount, behavior: "smooth" });
+                });
+            }
         } catch (err) {
             console.error("Error cargando reseñas públicas:", err);
         }
