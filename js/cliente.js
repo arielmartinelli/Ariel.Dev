@@ -278,29 +278,98 @@ function verificarCelebracion(status, progreso) {
   }
 }
 
-function generarReciboPDF() {
+let html2pdfPromise = null;
+function loadHtml2Pdf() {
+  if (window.html2pdf) return Promise.resolve(window.html2pdf);
+  if (html2pdfPromise) return html2pdfPromise;
+
+  html2pdfPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "/html2pdf.bundle.min.js";
+    script.onload = () => resolve(window.html2pdf);
+    script.onerror = () => {
+      html2pdfPromise = null;
+      reject(new Error("No se pudo cargar la librería PDF."));
+    };
+    document.head.appendChild(script);
+  });
+  return html2pdfPromise;
+}
+
+async function generarReciboPDF(kindFilter = "total", botonTarget = null) {
   if (!datos) {
     avisar("Cargando...", "Esperá a que carguen los datos del proyecto.", "info");
     return;
   }
-  const { client_name, project_name, total_usd, pagos = [] } = datos;
 
-  const totalUsdNum = Number(total_usd || 0);
-  const totalArsNum = Math.round(totalUsdNum * cotizacionDolarOficial);
+  const { client_name, project_name, total_usd, price_usd, pagos = [] } = datos;
   const fechaHoy = new Date().toLocaleDateString("es-AR");
 
-  const pagosFilasHTML = pagos.map(p => `
-    <tr style="border-bottom: 1px solid #e2e8f0;">
-      <td style="padding: 12px; font-weight: 500;">${ETIQUETA_PAGO[p.kind] || p.kind}</td>
-      <td style="padding: 12px; font-size: 0.9rem;">
-        <span style="color: ${p.status === 'pagado' ? '#16a34a' : '#ea580c'}; font-weight: 600;">
-          ${p.status === 'pagado' ? 'PAGADO' : p.status === 'en_revision' ? 'EN REVISIÓN' : 'PENDIENTE'}
-        </span>
-      </td>
-      <td style="padding: 12px; text-align: right; font-weight: 600;">USD ${Number(p.amount_usd || 0).toLocaleString("es-AR")}</td>
-      <td style="padding: 12px; text-align: right; color: #64748b;">≈ $${Math.round(Number(p.amount_usd || 0) * cotizacionDolarOficial).toLocaleString("es-AR")} ARS</td>
-    </tr>
-  `).join('');
+  const esAnticipo = kindFilter === "anticipo";
+  const esSaldo = kindFilter === "saldo";
+
+  const pagoAnticipo = pagos.find(p => p.kind === "anticipo");
+  const totalUsdNum = Number(total_usd || price_usd || 0);
+  const totalArsNum = Math.round(totalUsdNum * cotizacionDolarOficial);
+
+  let tituloDoc = "RESUMEN DE CUENTA Y COMPROBANTE DE PAGO";
+  let tipoEtiqueta = "RECIBO GENERAL DE PROYECTO";
+  let notaInformativa = "Documento generado digitalmente por Ariel.Dev · Panel de seguimiento privado.";
+  let pagosAMostrar = pagos;
+
+  if (esAnticipo) {
+    tituloDoc = "COMPROBANTE DE ANTICIPO (50%)";
+    tipoEtiqueta = "PAGO ADELANTADO DE SEÑA Y RESERVA";
+    notaInformativa = "Este comprobante certifica el cobro del 50% de anticipo inicial para dar comienzo a la producción. El saldo del 50% restante se abonará al finalizar el desarrollo previo a la publicación del sitio.";
+    pagosAMostrar = pagoAnticipo ? [pagoAnticipo] : [];
+  } else if (esSaldo) {
+    tituloDoc = "RECIBO FINAL Y CANCELACIÓN DE CUENTA";
+    tipoEtiqueta = "COMPROBANTE DE CANCELACIÓN TOTAL";
+    notaInformativa = "Este comprobante certifica la cancelación total del proyecto web con la acreditación previa del 50% de anticipo inicial.";
+  }
+
+  const pagosFilasHTML = pagosAMostrar.map(p => {
+    const pUsd = Number(p.amount_usd || 0);
+    const pArs = Math.round(pUsd * cotizacionDolarOficial);
+    const est = p.status === 'pagado' ? 'PAGADO' : p.status === 'en_revision' ? 'EN REVISIÓN' : 'PENDIENTE';
+    const colorEst = p.status === 'pagado' ? '#16a34a' : '#ea580c';
+
+    return `
+      <tr style="border-bottom: 1px solid #e2e8f0;">
+        <td style="padding: 12px; font-weight: 600;">${ETIQUETA_PAGO[p.kind] || p.kind}</td>
+        <td style="padding: 12px;">
+          <span style="color: ${colorEst}; font-weight: 700; font-size: 0.85rem; padding: 3px 8px; background: #f8fafc; border-radius: 4px; border: 1px solid #e2e8f0;">
+            ${est}
+          </span>
+        </td>
+        <td style="padding: 12px; text-align: right; font-weight: 700;">USD ${pUsd.toLocaleString("es-AR")}</td>
+        <td style="padding: 12px; text-align: right; color: #64748b;">≈ $${pArs.toLocaleString("es-AR")} ARS</td>
+      </tr>
+    `;
+  }).join('');
+
+  let resumenAcreditacionesHTML = "";
+  if (!esAnticipo && pagoAnticipo) {
+    const anticipoPagado = pagoAnticipo.status === "pagado";
+    const montoAnticipoUsd = Number(pagoAnticipo.amount_usd || 0);
+
+    resumenAcreditacionesHTML = `
+      <div style="background: #f1f5f9; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; border: 1px solid #e2e8f0;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span>Monto Total del Proyecto:</span>
+          <strong>USD ${totalUsdNum.toLocaleString("es-AR")}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; color: ${anticipoPagado ? '#16a34a' : '#64748b'}; margin-bottom: 6px;">
+          <span>Pago Previo Acreditado (50% Adelanto):</span>
+          <strong>${anticipoPagado ? `- USD ${montoAnticipoUsd.toLocaleString("es-AR")}` : 'Pendiente'}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 6px; font-size: 14px; font-weight: 700;">
+          <span>Saldo Restante a Cancelar:</span>
+          <span>USD ${(totalUsdNum - (anticipoPagado ? montoAnticipoUsd : 0)).toLocaleString("es-AR")}</span>
+        </div>
+      </div>
+    `;
+  }
 
   const contenedor = document.createElement("div");
   contenedor.style.position = "absolute";
@@ -316,28 +385,28 @@ function generarReciboPDF() {
           <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Desarrollo Web & Software Freelance</p>
         </div>
         <div style="text-align: right;">
-          <h2 style="font-size: 18px; margin: 0; color: #0f172a; font-weight: 700;">RESUMEN DE CUENTA</h2>
-          <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Fecha: ${fechaHoy}</p>
+          <h2 style="font-size: 15px; margin: 0; color: #0f172a; font-weight: 700; text-transform: uppercase;">${tituloDoc}</h2>
+          <p style="margin: 4px 0 0; font-size: 12px; color: #64748b;">Fecha de emisión: ${fechaHoy}</p>
         </div>
       </div>
 
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 24px; display: flex; justify-content: space-between;">
         <div>
-          <p style="margin: 0 0 4px; font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600;">Cliente</p>
+          <p style="margin: 0 0 4px; font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700;">Cliente</p>
           <strong style="font-size: 16px; color: #0f172a;">${escapeHtml(client_name || 'Cliente')}</strong>
         </div>
         <div style="text-align: right;">
-          <p style="margin: 0 0 4px; font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600;">Proyecto</p>
+          <p style="margin: 0 0 4px; font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700;">Proyecto</p>
           <strong style="font-size: 16px; color: #0f172a;">${escapeHtml(project_name || 'Proyecto Web')}</strong>
         </div>
       </div>
 
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px;">
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
         <thead>
           <tr style="background: #f1f5f9; text-align: left; color: #475569;">
             <th style="padding: 12px;">Concepto</th>
             <th style="padding: 12px;">Estado</th>
-            <th style="padding: 12px; text-align: right;">USD</th>
+            <th style="padding: 12px; text-align: right;">Monto USD</th>
             <th style="padding: 12px; text-align: right;">ARS Estimado</th>
           </tr>
         </thead>
@@ -346,64 +415,76 @@ function generarReciboPDF() {
         </tbody>
       </table>
 
-      <div style="text-align: right; border-top: 2px solid #e2e8f0; padding-top: 16px; margin-bottom: 30px;">
+      ${resumenAcreditacionesHTML}
+
+      <div style="text-align: right; border-top: 2px solid #e2e8f0; padding-top: 16px; margin-bottom: 26px;">
         <p style="margin: 0; font-size: 13px; color: #64748b;">Cotización USD Dólar Oficial: $${cotizacionDolarOficial.toLocaleString("es-AR")} ARS</p>
         <p style="margin: 6px 0 0; font-size: 19px; font-weight: 800; color: #0f172a;">
-          Total Proyecto: USD ${totalUsdNum.toLocaleString("es-AR")} (≈ $${totalArsNum.toLocaleString("es-AR")} ARS)
+          Total: USD ${totalUsdNum.toLocaleString("es-AR")} (≈ $${totalArsNum.toLocaleString("es-AR")} ARS)
         </p>
       </div>
 
-      <div style="text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
-        Documento generado digitalmente por Ariel.Dev · Panel de seguimiento privado
+      <div style="background: #f8fafc; border-left: 3px solid #6366f1; padding: 12px 16px; border-radius: 4px; margin-bottom: 24px;">
+        <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.5;">${notaInformativa}</p>
+      </div>
+
+      <div style="text-align: center; color: #94a3b8; font-size: 11px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+        Ariel.Dev · arieldev.com.ar · Córdoba, Argentina
       </div>
     </div>
   `;
 
   document.body.appendChild(contenedor);
 
-  const nombreArchivo = `Recibo_${(project_name || 'Proyecto').replace(/\s+/g, '_')}.pdf`;
+  const nombreArchivo = esAnticipo
+    ? `Recibo_Adelanto_50_${(project_name || 'Proyecto').replace(/\s+/g, '_')}.pdf`
+    : `Recibo_Final_${(project_name || 'Proyecto').replace(/\s+/g, '_')}.pdf`;
+
   const opt = {
-    margin: [10, 10, 10, 10],
+    margin: [8, 8, 8, 8],
     filename: nombreArchivo,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, logging: false, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
-  const btn = $("pc-btn-descargar-pdf");
+  const btn = botonTarget || $("pc-btn-descargar-pdf");
+  const txtOrig = btn ? btn.textContent : "";
   if (btn) {
     btn.disabled = true;
     btn.textContent = "Generando PDF…";
   }
 
-  if (window.html2pdf) {
-    window.html2pdf()
-      .set(opt)
-      .from(contenedor)
-      .save()
-      .then(() => {
-        contenedor.remove();
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = "📄 Descargar Recibo PDF";
-        }
-      })
-      .catch((err) => {
-        console.error("Error html2pdf:", err);
-        contenedor.remove();
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = "📄 Descargar Recibo PDF";
-        }
-        avisar("Error al generar PDF", "Ocurrió un problema generando el archivo. Intentá nuevamente.", "error");
-      });
-  } else {
+  try {
+    await loadHtml2Pdf();
+    const pdfLib = window.html2pdf;
+    if (!pdfLib) throw new Error("html2pdf no disponible");
+
+    const worker = pdfLib().set(opt).from(contenedor);
+    const blob = await worker.outputPdf("blob");
+    contenedor.remove();
+
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = nombreArchivo;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = txtOrig;
+    }
+  } catch (err) {
+    console.error("Error generando recibo PDF:", err);
     contenedor.remove();
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "📄 Descargar Recibo PDF";
+      btn.textContent = txtOrig;
     }
-    avisar("Generador no disponible", "La librería PDF no terminó de cargar. Recargá la página.", "error");
+    avisar("No se pudo descargar el PDF", "Ocurrió un problema generando el archivo. Intentá de nuevo.", "error");
   }
 }
 
@@ -501,6 +582,18 @@ function pintarPagos(pagos) {
         </div>
       </div>
     `;
+
+    const esAnticipo = p.kind === "anticipo";
+    const btnPdfItem = document.createElement("button");
+    btnPdfItem.type = "button";
+    btnPdfItem.className = "btn btn-outline btn-xs mt-2";
+    btnPdfItem.style.display = "block";
+    btnPdfItem.style.marginLeft = "auto";
+    btnPdfItem.innerHTML = `📄 Recibo ${esAnticipo ? 'Adelanto 50%' : 'Final'}`;
+    btnPdfItem.addEventListener("click", () => generarReciboPDF(p.kind, btnPdfItem));
+
+    const montoContainer = fila.querySelector(".portal-pago-monto-container");
+    if (montoContainer) montoContainer.appendChild(btnPdfItem);
 
     const btnReintentar = fila.querySelector("[data-reintentar]");
     if (btnReintentar) {
