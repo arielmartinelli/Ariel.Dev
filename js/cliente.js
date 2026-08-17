@@ -278,6 +278,14 @@ function verificarCelebracion(status, progreso) {
   }
 }
 
+function esIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function esMovil() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
 let html2pdfPromise = null;
 function loadHtml2Pdf() {
   if (window.html2pdf) return Promise.resolve(window.html2pdf);
@@ -304,6 +312,7 @@ async function generarReciboPDF(kindFilter = "total", botonTarget = null) {
 
   const { client_name, project_name, total_usd, price_usd, pagos = [] } = datos;
   const fechaHoy = new Date().toLocaleDateString("es-AR");
+  const refNum = `REC-${Math.floor(1000 + Math.random() * 9000)}`;
 
   const esAnticipo = kindFilter === "anticipo";
   const esSaldo = kindFilter === "saldo";
@@ -313,18 +322,15 @@ async function generarReciboPDF(kindFilter = "total", botonTarget = null) {
   const totalArsNum = Math.round(totalUsdNum * cotizacionDolarOficial);
 
   let tituloDoc = "RESUMEN DE CUENTA Y COMPROBANTE DE PAGO";
-  let tipoEtiqueta = "RECIBO GENERAL DE PROYECTO";
   let notaInformativa = "Documento generado digitalmente por Ariel.Dev · Panel de seguimiento privado.";
   let pagosAMostrar = pagos;
 
   if (esAnticipo) {
-    tituloDoc = "COMPROBANTE DE ANTICIPO (50%)";
-    tipoEtiqueta = "PAGO ADELANTADO DE SEÑA Y RESERVA";
+    tituloDoc = "COMPROBANTE DE PAGO ADELANTADO (50%)";
     notaInformativa = "Este comprobante certifica el cobro del 50% de anticipo inicial para dar comienzo a la producción. El saldo del 50% restante se abonará al finalizar el desarrollo previo a la publicación del sitio.";
     pagosAMostrar = pagoAnticipo ? [pagoAnticipo] : [];
   } else if (esSaldo) {
     tituloDoc = "RECIBO FINAL Y CANCELACIÓN DE CUENTA";
-    tipoEtiqueta = "COMPROBANTE DE CANCELACIÓN TOTAL";
     notaInformativa = "Este comprobante certifica la cancelación total del proyecto web con la acreditación previa del 50% de anticipo inicial.";
   }
 
@@ -335,15 +341,11 @@ async function generarReciboPDF(kindFilter = "total", botonTarget = null) {
     const colorEst = p.status === 'pagado' ? '#16a34a' : '#ea580c';
 
     return `
-      <tr style="border-bottom: 1px solid #e2e8f0;">
-        <td style="padding: 12px; font-weight: 600;">${ETIQUETA_PAGO[p.kind] || p.kind}</td>
-        <td style="padding: 12px;">
-          <span style="color: ${colorEst}; font-weight: 700; font-size: 0.85rem; padding: 3px 8px; background: #f8fafc; border-radius: 4px; border: 1px solid #e2e8f0;">
-            ${est}
-          </span>
-        </td>
-        <td style="padding: 12px; text-align: right; font-weight: 700;">USD ${pUsd.toLocaleString("es-AR")}</td>
-        <td style="padding: 12px; text-align: right; color: #64748b;">≈ $${pArs.toLocaleString("es-AR")} ARS</td>
+      <tr>
+        <td><strong>${ETIQUETA_PAGO[p.kind] || p.kind}</strong></td>
+        <td><span style="color: ${colorEst}; font-weight: 700;">${est}</span></td>
+        <td class="price-col">$${pUsd.toLocaleString("es-AR")}</td>
+        <td class="price-col">$${pArs.toLocaleString("es-AR")}</td>
       </tr>
     `;
   }).join('');
@@ -354,137 +356,317 @@ async function generarReciboPDF(kindFilter = "total", botonTarget = null) {
     const montoAnticipoUsd = Number(pagoAnticipo.amount_usd || 0);
 
     resumenAcreditacionesHTML = `
-      <div style="background: #f1f5f9; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; border: 1px solid #e2e8f0;">
+      <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; font-size: 0.9rem;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
           <span>Monto Total del Proyecto:</span>
-          <strong>USD ${totalUsdNum.toLocaleString("es-AR")}</strong>
+          <strong>USD $${totalUsdNum.toLocaleString("es-AR")}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; color: ${anticipoPagado ? '#16a34a' : '#64748b'}; margin-bottom: 6px;">
           <span>Pago Previo Acreditado (50% Adelanto):</span>
-          <strong>${anticipoPagado ? `- USD ${montoAnticipoUsd.toLocaleString("es-AR")}` : 'Pendiente'}</strong>
+          <strong>${anticipoPagado ? `- USD $${montoAnticipoUsd.toLocaleString("es-AR")}` : 'Pendiente'}</strong>
         </div>
-        <div style="display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 6px; font-size: 14px; font-weight: 700;">
+        <div style="display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 6px; font-size: 0.95rem; font-weight: 700;">
           <span>Saldo Restante a Cancelar:</span>
-          <span>USD ${(totalUsdNum - (anticipoPagado ? montoAnticipoUsd : 0)).toLocaleString("es-AR")}</span>
+          <span>USD $${(totalUsdNum - (anticipoPagado ? montoAnticipoUsd : 0)).toLocaleString("es-AR")}</span>
         </div>
       </div>
     `;
   }
 
-  const contenedor = document.createElement("div");
-  contenedor.style.position = "absolute";
-  contenedor.style.left = "-9999px";
-  contenedor.style.top = "-9999px";
-  contenedor.style.width = "750px";
-  contenedor.style.background = "#ffffff";
-  contenedor.innerHTML = `
-    <div style="font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: #0f172a; background: #ffffff;">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #6366f1; padding-bottom: 16px; margin-bottom: 24px;">
-        <div>
-          <h1 style="font-size: 26px; color: #6366f1; margin: 0; font-weight: 800; letter-spacing: -0.5px;">Ariel.Dev</h1>
-          <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Desarrollo Web & Software Freelance</p>
-        </div>
-        <div style="text-align: right;">
-          <h2 style="font-size: 15px; margin: 0; color: #0f172a; font-weight: 700; text-transform: uppercase;">${tituloDoc}</h2>
-          <p style="margin: 4px 0 0; font-size: 12px; color: #64748b;">Fecha de emisión: ${fechaHoy}</p>
+  // Contenedor idéntico al de exportarPDF() en app.js para evitar lienzos en blanco
+  const container = document.createElement("div");
+  container.id = "recibo-print-container";
+  container.style.position = "fixed";
+  container.style.left = "0";
+  container.style.top = "0";
+  container.style.width = "1px";
+  container.style.height = "1px";
+  container.style.overflow = "hidden";
+  container.style.background = "transparent";
+  container.style.zIndex = "99999";
+  container.style.pointerEvents = "none";
+
+  const tempDiv = document.createElement("div");
+  tempDiv.id = "recibo-print-temp";
+  tempDiv.style.width = "750px";
+  tempDiv.style.background = "#ffffff";
+  tempDiv.style.boxSizing = "border-box";
+
+  const htmlContent = `
+    <style>
+      .pdf-container {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        color: #1e293b;
+        background-color: #ffffff;
+        padding: 0;
+        line-height: 1.5;
+        font-size: 13px;
+        box-sizing: border-box;
+      }
+      .pdf-header-bar {
+        background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+        padding: 24px 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .pdf-header-bar .logo {
+        font-family: system-ui, sans-serif;
+        font-weight: 800;
+        font-size: 1.8rem;
+        color: #ffffff;
+        letter-spacing: -0.5px;
+      }
+      .pdf-header-bar .logo span { opacity: 0.85; }
+      .pdf-header-bar .doc-meta { text-align: right; color: rgba(255,255,255,0.9); font-size: 0.85rem; }
+      .pdf-header-bar .quote-ref {
+        font-family: monospace;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #fff;
+        background: rgba(255,255,255,0.2);
+        padding: 3px 10px;
+        border-radius: 4px;
+        display: inline-block;
+        margin-bottom: 4px;
+      }
+      .pdf-body { padding: 28px 40px 20px 40px; }
+      .pdf-title {
+        font-family: system-ui, sans-serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 18px 0;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e2e8f0;
+      }
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 22px;
+      }
+      .info-card {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 14px 16px;
+      }
+      .info-card h4 {
+        margin: 0 0 6px 0;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6366f1;
+        font-weight: 600;
+      }
+      .info-card p { margin: 3px 0; font-size: 0.9rem; color: #334155; }
+      .pdf-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+      .pdf-table th {
+        background-color: #f1f5f9;
+        color: #0f172a;
+        font-weight: 600;
+        text-align: left;
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        border-bottom: 2px solid #cbd5e1;
+      }
+      .pdf-table td {
+        padding: 10px 14px;
+        font-size: 0.9rem;
+        border-bottom: 1px solid #e2e8f0;
+        color: #334155;
+      }
+      .price-col { text-align: right; font-weight: 500; }
+      .totals-section { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+      .totals-table { width: 340px; border-collapse: collapse; }
+      .totals-table td { padding: 6px 12px; font-size: 0.9rem; }
+      .totals-table tr.grand-total td {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #6366f1;
+        border-top: 2px solid #e2e8f0;
+        padding-top: 8px;
+      }
+      .totals-table tr.grand-total-ars td {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #06b6d4;
+      }
+      .note-box {
+        background: #f8fafc;
+        border-left: 3px solid #6366f1;
+        padding: 12px 16px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        font-size: 0.85rem;
+        color: #475569;
+      }
+      .pdf-footer {
+        border-top: 2px solid #e2e8f0;
+        padding-top: 12px;
+        margin-top: 15px;
+        font-size: 0.8rem;
+        color: #64748b;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+      }
+      .pdf-footer p { margin: 2px 0; }
+      .pdf-footer span { color: #334155; font-weight: 500; }
+      .pdf-footer .brand { font-weight: 700; color: #6366f1; font-size: 0.9rem; }
+    </style>
+    <div class="pdf-container">
+      <div class="pdf-header-bar">
+        <div class="logo">Ariel<span>.Dev</span></div>
+        <div class="doc-meta">
+          <div class="quote-ref">${refNum}</div>
+          <p>${fechaHoy}</p>
         </div>
       </div>
 
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 24px; display: flex; justify-content: space-between;">
-        <div>
-          <p style="margin: 0 0 4px; font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700;">Cliente</p>
-          <strong style="font-size: 16px; color: #0f172a;">${escapeHtml(client_name || 'Cliente')}</strong>
+      <div class="pdf-body">
+        <h1 class="pdf-title">${tituloDoc}</h1>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <h4>Cliente / Destinatario</h4>
+            <p style="font-weight: 600; color: #0f172a;">${escapeHtml(client_name || 'Cliente')}</p>
+          </div>
+          <div class="info-card">
+            <h4>Proyecto</h4>
+            <p style="font-weight: 600; color: #0f172a;">${escapeHtml(project_name || 'Proyecto Web')}</p>
+          </div>
+          <div class="info-card">
+            <h4>Desarrollador</h4>
+            <p style="font-weight: 600; color: #0f172a;">Ariel Martinelli</p>
+            <p>Córdoba, Argentina</p>
+          </div>
+          <div class="info-card">
+            <h4>Cotización Dólar</h4>
+            <p><strong>Dólar Oficial:</strong> $${cotizacionDolarOficial.toLocaleString("es-AR")} ARS</p>
+          </div>
         </div>
-        <div style="text-align: right;">
-          <p style="margin: 0 0 4px; font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700;">Proyecto</p>
-          <strong style="font-size: 16px; color: #0f172a;">${escapeHtml(project_name || 'Proyecto Web')}</strong>
+
+        <table class="pdf-table">
+          <thead>
+            <tr>
+              <th>Concepto</th>
+              <th>Estado</th>
+              <th class="price-col">Monto USD</th>
+              <th class="price-col">ARS Estimado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pagosFilasHTML}
+          </tbody>
+        </table>
+
+        ${resumenAcreditacionesHTML}
+
+        <div class="totals-section">
+          <table class="totals-table">
+            <tr class="grand-total">
+              <td>Total USD</td>
+              <td style="text-align: right;">$${totalUsdNum.toLocaleString("es-AR")}</td>
+            </tr>
+            <tr class="grand-total-ars">
+              <td>Total ARS</td>
+              <td style="text-align: right;">$${totalArsNum.toLocaleString("es-AR")}</td>
+            </tr>
+          </table>
         </div>
-      </div>
 
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
-        <thead>
-          <tr style="background: #f1f5f9; text-align: left; color: #475569;">
-            <th style="padding: 12px;">Concepto</th>
-            <th style="padding: 12px;">Estado</th>
-            <th style="padding: 12px; text-align: right;">Monto USD</th>
-            <th style="padding: 12px; text-align: right;">ARS Estimado</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${pagosFilasHTML}
-        </tbody>
-      </table>
+        <div class="note-box">
+          ${notaInformativa}
+        </div>
 
-      ${resumenAcreditacionesHTML}
-
-      <div style="text-align: right; border-top: 2px solid #e2e8f0; padding-top: 16px; margin-bottom: 26px;">
-        <p style="margin: 0; font-size: 13px; color: #64748b;">Cotización USD Dólar Oficial: $${cotizacionDolarOficial.toLocaleString("es-AR")} ARS</p>
-        <p style="margin: 6px 0 0; font-size: 19px; font-weight: 800; color: #0f172a;">
-          Total: USD ${totalUsdNum.toLocaleString("es-AR")} (≈ $${totalArsNum.toLocaleString("es-AR")} ARS)
-        </p>
-      </div>
-
-      <div style="background: #f8fafc; border-left: 3px solid #6366f1; padding: 12px 16px; border-radius: 4px; margin-bottom: 24px;">
-        <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.5;">${notaInformativa}</p>
-      </div>
-
-      <div style="text-align: center; color: #94a3b8; font-size: 11px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
-        Ariel.Dev · arieldev.com.ar · Córdoba, Argentina
+        <div class="pdf-footer">
+          <div>
+            <p>Email: <span>ariel.martinelli.dev@gmail.com</span></p>
+            <p>WhatsApp: <span>+54 351 612 1498</span></p>
+            <p>Córdoba, Argentina</p>
+          </div>
+          <div style="text-align: right;">
+            <div class="brand">Ariel.Dev</div>
+            <p>arieldev.com.ar</p>
+          </div>
+        </div>
       </div>
     </div>
   `;
 
-  document.body.appendChild(contenedor);
+  tempDiv.innerHTML = htmlContent;
+  container.appendChild(tempDiv);
+  document.body.appendChild(container);
 
-  const nombreArchivo = esAnticipo
-    ? `Recibo_Adelanto_50_${(project_name || 'Proyecto').replace(/\s+/g, '_')}.pdf`
-    : `Recibo_Final_${(project_name || 'Proyecto').replace(/\s+/g, '_')}.pdf`;
+  const safeFilePart = (project_name || "Proyecto").replace(/[^\p{L}\p{N}_-]+/gu, "_").slice(0, 60);
+  const pdfFilename = esAnticipo ? `Recibo_Adelanto_50_${safeFilePart}.pdf` : `Recibo_Final_${safeFilePart}.pdf`;
 
   const opt = {
-    margin: [8, 8, 8, 8],
-    filename: nombreArchivo,
+    margin: 0,
+    filename: pdfFilename,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, logging: false, useCORS: true },
+    html2canvas: {
+      scale: esMovil() ? 1.5 : 2,
+      useCORS: true,
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      x: 0,
+      y: 0,
+      windowWidth: 750
+    },
+    pagebreak: { mode: 'avoid-all' },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
-  const btn = botonTarget || $("pc-btn-descargar-pdf");
-  const txtOrig = btn ? btn.textContent : "";
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = "Generando PDF…";
-  }
+  Swal.fire({
+    title: "Generando tu recibo...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading(),
+  });
 
   try {
     await loadHtml2Pdf();
-    const pdfLib = window.html2pdf;
-    if (!pdfLib) throw new Error("html2pdf no disponible");
+    const blob = await html2pdf().set(opt).from(tempDiv).outputPdf("blob");
+    const url = URL.createObjectURL(blob);
 
-    const worker = pdfLib().set(opt).from(contenedor);
-    const blob = await worker.outputPdf("blob");
-    contenedor.remove();
-
-    const blobUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = blobUrl;
-    link.download = nombreArchivo;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
-
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = txtOrig;
+    if (esIOS()) {
+      Swal.fire({
+        icon: "success",
+        title: "Recibo listo",
+        html: `<p>Tocá el botón para abrirlo y luego usá <strong>Compartir → Guardar en Archivos</strong>.</p>
+               <a href="${url}" target="_blank" rel="noopener noreferrer"
+                  class="btn btn-primary" style="margin-top:12px; display:inline-block;">
+                  Abrir recibo
+               </a>`,
+        showConfirmButton: false,
+        showCloseButton: true,
+      });
+    } else {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = pdfFilename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      Swal.close();
     }
+
+    setTimeout(() => {
+      container.remove();
+      URL.revokeObjectURL(url);
+    }, 120000);
   } catch (err) {
     console.error("Error generando recibo PDF:", err);
-    contenedor.remove();
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = txtOrig;
-    }
-    avisar("No se pudo descargar el PDF", "Ocurrió un problema generando el archivo. Intentá de nuevo.", "error");
+    container.remove();
+    avisar("Error", "No se pudo generar el recibo PDF.", "error");
   }
 }
 
