@@ -351,6 +351,41 @@
                    target="_blank" rel="noopener noreferrer">Abrir mi página</a>
             </div>
 
+            <!-- Dejanos tu Reseña -->
+            <div class="portal-card" id="pc-bloque-resena">
+                <h2 class="portal-h2" style="margin-bottom:6px;">⭐ Dejanos tu Reseña</h2>
+                <p class="portal-muted mb-3" style="font-size:0.88rem;">
+                    Tu opinión me ayuda muchísimo y se mostrará destacada en mi sitio web.
+                </p>
+
+                <form id="pc-form-resena">
+                    <div class="form-group" style="margin-bottom:12px;">
+                        <label for="pc-resena-estrellas">Calificación</label>
+                        <select id="pc-resena-estrellas" class="w-full" style="padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text);">
+                            <option value="5">⭐⭐⭐⭐⭐ (Excelente - 5 Estrellas)</option>
+                            <option value="4">⭐⭐⭐⭐ (Muy bueno - 4 Estrellas)</option>
+                            <option value="3">⭐⭐⭐ (Bueno - 3 Estrellas)</option>
+                            <option value="2">⭐⭐ (Regular - 2 Estrellas)</option>
+                            <option value="1">⭐ (A mejorar - 1 Estrella)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:12px;">
+                        <label for="pc-resena-empresa">Tu Página o Empresa (opcional)</label>
+                        <input type="text" id="pc-resena-empresa" class="w-full" placeholder="Ej: lopez-odontologia.com">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:12px;">
+                        <label for="pc-resena-comentario">Comentario</label>
+                        <textarea id="pc-resena-comentario" class="w-full" rows="3" required placeholder="Contanos qué tal fue tu experiencia desarrollando tu sitio web…"></textarea>
+                    </div>
+
+                    <button type="submit" id="pc-btn-enviar-resena" class="btn btn-primary w-full mt-1">
+                        ⭐ Publicar mi Reseña
+                    </button>
+                </form>
+            </div>
+
             <!-- Proyecto rechazado -->
             <div class="portal-card" id="pc-bloque-rechazado" hidden>
                 <h2 class="portal-h2">Quedamos así por ahora</h2>

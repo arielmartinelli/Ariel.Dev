@@ -323,6 +323,10 @@ function conectarFicha(ficha, c, link) {
     });
     if (!ok) return;
 
+    let brief = c.project_brief || "";
+    if (!brief.includes("[DESARROLLO_LISTO]")) {
+      brief = (brief + " [DESARROLLO_LISTO]").trim();
+    }
     let notas = c.admin_notes || "";
     if (!notas.includes("[DESARROLLO_LISTO]")) {
       notas = (notas + " [DESARROLLO_LISTO]").trim();
@@ -331,12 +335,14 @@ function conectarFicha(ficha, c, link) {
     let res = await adminActualizarCliente(c.id, {
       status: "desarrollo_listo",
       desarrollo_listo: true,
+      project_brief: brief,
       admin_notes: notas,
     });
 
     if (!res.ok) {
       res = await adminActualizarCliente(c.id, {
         status: "en_produccion",
+        project_brief: brief,
         admin_notes: notas,
       });
     }
@@ -358,6 +364,10 @@ function conectarFicha(ficha, c, link) {
     });
     if (!ok) return;
 
+    let brief = c.project_brief || "";
+    if (!brief.includes("[DOMINIO_LISTO]")) {
+      brief = (brief + " [DOMINIO_LISTO]").trim();
+    }
     let notas = c.admin_notes || "";
     if (!notas.includes("[DOMINIO_LISTO]")) {
       notas = (notas + " [DOMINIO_LISTO]").trim();
@@ -366,12 +376,14 @@ function conectarFicha(ficha, c, link) {
     let res = await adminActualizarCliente(c.id, {
       status: "dominio_listo",
       dominio_listo: true,
+      project_brief: brief,
       admin_notes: notas,
     });
 
     if (!res.ok) {
       res = await adminActualizarCliente(c.id, {
         status: "en_produccion",
+        project_brief: brief,
         admin_notes: notas,
       });
     }

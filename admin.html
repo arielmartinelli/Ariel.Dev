@@ -327,6 +327,22 @@
                     </div>
                 </section>
 
+                <!-- ======================= RESEÑAS ======================= -->
+                <section class="admin-vista" id="vista-resenas" hidden>
+                    <div class="admin-tarjeta">
+                        <div class="admin-tarjeta-head" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                            <div>
+                                <h2 class="admin-tarjeta-titulo">⭐ Reseñas de Clientes</h2>
+                                <p class="admin-hint">Gestioná los testimonios recibidos de tus clientes para mostrarlos en tu página web.</p>
+                            </div>
+                        </div>
+
+                        <div id="admin-lista-resenas" style="margin-top:16px; display:flex; flex-direction:column; gap:12px;">
+                            <p class="admin-hint">Cargando reseñas…</p>
+                        </div>
+                    </div>
+                </section>
+
             </main>
 
             <!--
@@ -366,6 +382,12 @@
                 <button class="admin-tab" data-vista="portfolio" type="button">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
                     <span class="admin-tab-texto">Portfolio</span>
+                </button>
+
+                <button class="admin-tab" data-vista="resenas" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <span class="admin-tab-texto">Reseñas</span>
+                    <span class="admin-tab-punto" id="badge-resenas" hidden></span>
                 </button>
             </nav>
         </div>

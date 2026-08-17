@@ -2,6 +2,7 @@ import Lenis from "lenis";
 import { getProjects, getCategories } from "./projects.js";
 import { supabase, isSupabaseConfigured } from "./supabase.js";
 import { configurarDialogos, confirmar, avisar } from "./ui-dialogs.js";
+import { obtenerResenasPublicas } from "./reviews.js";
 import {
     escapeHtml,
     safeUrl,
@@ -1257,6 +1258,46 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    async function renderizarResenasPublicas() {
+        const cont = document.getElementById("grid-resenas-publicas");
+        if (!cont) return;
+
+        try {
+            const resenas = await obtenerResenasPublicas();
+            if (!resenas || resenas.length === 0) {
+                cont.innerHTML = `<p style="text-align:center; color:var(--text-secondary); grid-column: 1 / -1;">Próximamente más testimonios.</p>`;
+                return;
+            }
+
+            cont.innerHTML = resenas.map(r => `
+                <div class="glass" style="padding: 24px; border-radius: 16px; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; gap: 16px; transition: transform 0.3s ease;">
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div style="color: #f59e0b; font-size: 1.1rem; letter-spacing: 2px;">
+                            ${"★".repeat(r.rating || 5)}${"☆".repeat(5 - (r.rating || 5))}
+                        </div>
+                        <p style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.6; font-style: italic;">
+                            "${escapeHtml(r.comment)}"
+                        </p>
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 4px;">
+                        <div>
+                            <strong style="display: block; font-size: 0.95rem; color: var(--text-primary);">${escapeHtml(r.client_name)}</strong>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">${r.project_name ? escapeHtml(r.project_name) : 'Cliente Satisfecho'}</span>
+                        </div>
+                        ${r.company_url ? `
+                            <a href="${safeUrl(r.company_url, '#')}" target="_blank" rel="noopener" class="btn btn-xs btn-outline" style="font-size:0.75rem; padding: 4px 8px;">
+                                🔗 ${escapeHtml(r.company_url.replace(/^https?:\/\//, ''))}
+                            </a>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join("");
+        } catch (err) {
+            console.error("Error cargando reseñas públicas:", err);
+        }
+    }
+
     // ==========================================================================
     // 8. Inicialización al cargar la página
     // ==========================================================================
@@ -1285,6 +1326,7 @@ document.addEventListener("DOMContentLoaded", () => {
         initCodeTypingEffect();
         init3DTilt();
         initStackingProjectsScroll();
+        renderizarResenasPublicas();
         // initCustomCursor();      // Desactivado
         // initCardGlowTracker();   // Desactivado — CSS vars en cada mousemove
 

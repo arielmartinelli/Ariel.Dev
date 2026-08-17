@@ -27,6 +27,7 @@ import {
 import { escapeHtml, safeUrl, sanitizeText } from "./security.js";
 import { configurarDialogos, confirmar, avisar } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
+import { guardarResena } from "./reviews.js";
 
 const WHATSAPP = "543516121498";
 
@@ -158,17 +159,19 @@ async function cargarCotizacionDolar() {
  */
 function obtenerPasoActual(datos) {
   if (!datos) return 1;
-  const { status, desarrollo_listo, dominio_listo, production_url, admin_notes = "" } = datos;
+  const { status, desarrollo_listo, dominio_listo, production_url, project_brief = "", admin_notes = "" } = datos;
 
   if (status === "finalizado" || Boolean(production_url)) {
     return 4; // Paso 4: Publicado
   }
 
-  if (status === "dominio_listo" || Boolean(dominio_listo) || String(admin_notes).includes("[DOMINIO_LISTO]")) {
+  const tagDominio = String(project_brief).includes("[DOMINIO_LISTO]") || String(admin_notes).includes("[DOMINIO_LISTO]");
+  if (status === "dominio_listo" || Boolean(dominio_listo) || tagDominio) {
     return 3; // Paso 3: Pago Final (50%)
   }
 
-  if (status === "desarrollo_listo" || Boolean(desarrollo_listo) || String(admin_notes).includes("[DESARROLLO_LISTO]")) {
+  const tagDesarrollo = String(project_brief).includes("[DESARROLLO_LISTO]") || String(admin_notes).includes("[DESARROLLO_LISTO]");
+  if (status === "desarrollo_listo" || Boolean(desarrollo_listo) || tagDesarrollo) {
     return 2; // Paso 2: Elección de Dominio
   }
 
@@ -193,9 +196,10 @@ async function render() {
   $("pc-proyecto").textContent = project_name || "Tu proyecto";
   document.title = `${project_name || "Tu proyecto"} | Seguimiento`;
 
+  const briefLimpio = (project_brief || "").replace(/\[(DESARROLLO_LISTO|DOMINIO_LISTO)\]/g, "").trim();
   const brief = $("pc-brief");
-  brief.textContent = project_brief || "";
-  brief.hidden = !project_brief;
+  brief.textContent = briefLimpio;
+  brief.hidden = !briefLimpio;
 
   const meta = ESTADOS[status] || { label: status, color: "#64748b" };
   const chip = $("pc-estado");
@@ -1009,6 +1013,45 @@ $("pc-form-comprobante")?.addEventListener("submit", async (e) => {
   } finally {
     boton.disabled = false;
     boton.textContent = "Enviar comprobante";
+  }
+});
+
+$("pc-form-resena")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const estrellas = Number($("pc-resena-estrellas").value) || 5;
+  const empresa = sanitizeText($("pc-resena-empresa").value, 120);
+  const comentario = sanitizeText($("pc-resena-comentario").value, 1000);
+
+  if (!comentario) {
+    avisar("Falta tu comentario", "Escribí unas palabras sobre tu experiencia.", "warning");
+    return;
+  }
+
+  const btn = $("pc-btn-enviar-resena");
+  btn.disabled = true;
+  btn.textContent = "Enviando…";
+
+  try {
+    await guardarResena({
+      client_name: datos?.client_name || "Cliente",
+      project_name: datos?.project_name || "Proyecto Web",
+      company_url: empresa,
+      rating: estrellas,
+      comment: comentario,
+    });
+
+    $("pc-form-resena").reset();
+    avisar(
+      "¡Muchas gracias por tu reseña!",
+      "Tu comentario fue recibido y se mostrará destacado en mi página web.",
+      "success"
+    );
+  } catch (err) {
+    console.error("Error enviando reseña:", err);
+    avisar("Error", "No se pudo registrar la reseña. Probá de nuevo.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "⭐ Publicar mi Reseña";
   }
 });
 
