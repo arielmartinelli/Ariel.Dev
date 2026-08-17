@@ -149,16 +149,44 @@ async function cargarCotizacionDolar() {
 /* ==========================================================================
    Render principal
    ========================================================================== */
+/**
+ * Determina el Paso activo (1 a 4) según el avance del desarrollo y las confirmaciones del admin:
+ * Paso 1: Demo & Desarrollo (Avance, tareas, pedido de cambios, pago 50% adelanto, recibo adelanto)
+ * Paso 2: Elección de Dominio (Habilitado cuando el desarrollo está listo al 100% y Ariel presiona 'Desarrollo listo')
+ * Paso 3: Pago Final (50%) (Habilitado cuando el dominio está listo y Ariel presiona 'Dominio listo')
+ * Paso 4: Publicado (Sitio online publicado con link definitivo y confeti)
+ */
+function obtenerPasoActual(datos) {
+  if (!datos) return 1;
+  const { status, desarrollo_listo, dominio_listo, production_url } = datos;
+
+  if (status === "finalizado" || Boolean(production_url)) {
+    return 4; // Paso 4: Publicado
+  }
+
+  if (status === "dominio_listo" || Boolean(dominio_listo)) {
+    return 3; // Paso 3: Pago Final (50%)
+  }
+
+  if (status === "desarrollo_listo" || Boolean(desarrollo_listo)) {
+    return 2; // Paso 2: Elección de Dominio
+  }
+
+  return 1; // Paso 1: Demo & Desarrollo
+}
+
 async function render() {
   if (!datos) return;
 
   await cargarCotizacionDolar();
 
   const {
-    client_name, project_name, project_brief, status, demo_url,
-    price_usd, total_usd, domain_choice, domain_extra_usd,
+    client_name, project_name, project_brief, status, demo_url, price_usd,
+    domain_choice, domain_name, domain_extra_usd, total_usd,
     progreso, production_url, tareas = [], pagos = [],
   } = datos;
+
+  const pasoActual = obtenerPasoActual(datos);
 
   // --- Encabezado ---
   $("pc-nombre").textContent = client_name || "";
@@ -175,7 +203,7 @@ async function render() {
   chip.style.setProperty("--chip-color", meta.color);
 
   // --- Bloque demo ---
-  const enDemo = status === "demo_lista";
+  const enDemo = status === "demo_lista" && pasoActual === 1;
   mostrarBloque("pc-bloque-demo", enDemo);
   if (enDemo && demo_url) {
     const link = $("pc-demo-link");
@@ -186,17 +214,15 @@ async function render() {
   }
   $("pc-anticipo-monto").textContent = usd((Number(price_usd) || 0) * 0.5);
 
-  // --- Progreso ---
-  const enProduccion = status === "en_produccion" || status === "finalizado";
-  mostrarBloque("pc-bloque-progreso", enProduccion);
-  mostrarBloque("pc-hero-progreso", enProduccion);
-  if (enProduccion) pintarProgreso(progreso, tareas, domain_choice);
+  // --- Progreso (Visible para transparencia) ---
+  mostrarBloque("pc-bloque-progreso", true);
+  mostrarBloque("pc-hero-progreso", true);
+  pintarProgreso(progreso, tareas, domain_choice);
 
-  // --- Dominio: aparece RECIÉN cuando TODOS los cambios/tareas están listos ---
-  const tareasCompletadas = tareas.length > 0 ? tareas.every((t) => t.done) : (progreso >= 99);
-  const necesitaDominio = status === "en_produccion" && !domain_choice && tareasCompletadas;
-  mostrarBloque("pc-bloque-dominio", necesitaDominio);
-  if (necesitaDominio) {
+  // --- Dominio: SE MUESTRA ÚNICAMENTE EN PASO 2 ---
+  const mostrarDominio = pasoActual === 2;
+  mostrarBloque("pc-bloque-dominio", mostrarDominio);
+  if (mostrarDominio) {
     $("pc-dom-precio").textContent = `+${usd(domain_extra_usd)}`;
     if (demo_url) {
       $("pc-dom-vercel-desc").textContent =
@@ -204,26 +230,40 @@ async function render() {
     }
   }
 
-  // --- Pagos ---
+  // --- Pagos: Filtrados por el Paso Actual ---
   mostrarBloque("pc-bloque-pagos", pagos.length > 0);
   if (pagos.length > 0) {
     const totalUsdNum = Number(total_usd || 0);
     const totalArsNum = Math.round(totalUsdNum * cotizacionDolarOficial);
     $("pc-total").innerHTML = `Total: ${usd(total_usd)} <span style="font-size:0.85rem; font-weight:normal; opacity:0.8;">(≈ $${totalArsNum.toLocaleString("es-AR")} ARS)</span>`;
-    pintarPagos(pagos);
+
+    let pagosVisibles = pagos;
+    if (pasoActual === 1) {
+      // En Paso 1: Únicamente el Adelanto (50%)
+      pagosVisibles = pagos.filter((p) => p.kind === "anticipo");
+    } else if (pasoActual === 2) {
+      // En Paso 2: Adelanto + Dominio (si es propio)
+      pagosVisibles = pagos.filter((p) => p.kind === "anticipo" || p.kind === "dominio");
+    }
+    // En Pasos 3 y 4: Todos los pagos (incluyendo Saldo 50%)
+
+    pintarPagos(pagosVisibles, pasoActual);
   }
 
-  // --- Pedido de cambios extra ---
-  mostrarBloque("pc-bloque-pedido", status === "en_produccion");
+  // --- Pedido de cambios extra (Habilitado en Pasos 1 y 2) ---
+  mostrarBloque("pc-bloque-pedido", pasoActual === 1 || pasoActual === 2);
 
-  // --- Final ---
-  const finalizado = status === "finalizado" && production_url;
-  mostrarBloque("pc-bloque-final", Boolean(finalizado));
-  if (finalizado) $("pc-final-link").href = safeUrl(production_url, "#");
+  // --- Final / Publicado: SE MUESTRA ÚNICAMENTE EN PASO 4 ---
+  const finalizado = pasoActual === 4 && Boolean(production_url);
+  mostrarBloque("pc-bloque-final", finalizado);
+  if (finalizado) {
+    const linkFinal = $("pc-final-link");
+    if (linkFinal) linkFinal.href = safeUrl(production_url, "#");
+  }
 
   // --- Roadmap Timeline ---
-  actualizarRoadmap(status, progreso);
-  verificarCelebracion(status, progreso);
+  actualizarRoadmap(pasoActual);
+  if (pasoActual === 4) verificarCelebracion(status, progreso);
 
   // --- Links de WhatsApp contextualizados ---
   const asunto = `Hola Ariel, te escribo por el proyecto "${project_name || ""}".`;
@@ -233,34 +273,28 @@ async function render() {
   });
 
   // PDF Recibo
-  $("pc-btn-descargar-pdf")?.addEventListener("click", generarReciboPDF);
+  $("pc-btn-descargar-pdf")?.addEventListener("click", () => generarReciboPDF(pasoActual === 1 ? 'anticipo' : 'total'));
 
   mostrarVista("contenido");
 }
 
-function actualizarRoadmap(status, progreso) {
+function actualizarRoadmap(pasoActual) {
   const steps = document.querySelectorAll(".roadmap-step");
   const lines = document.querySelectorAll(".roadmap-line");
   if (!steps.length) return;
 
-  let activeStepNum = 1;
-  if (status === "presupuesto_enviado") activeStepNum = 1;
-  else if (status === "demo_lista") activeStepNum = 2;
-  else if (status === "en_produccion") activeStepNum = 3;
-  else if (status === "finalizado" || progreso === 100) activeStepNum = 4;
-
   steps.forEach((st) => {
     const sNum = Number(st.dataset.step);
     st.classList.remove("active", "completed");
-    if (sNum < activeStepNum) {
+    if (sNum < pasoActual) {
       st.classList.add("completed");
-    } else if (sNum === activeStepNum) {
-      st.classList.add(activeStepNum === 4 ? "completed" : "active");
+    } else if (sNum === pasoActual) {
+      st.classList.add(pasoActual === 4 ? "completed" : "active");
     }
   });
 
   lines.forEach((ln, idx) => {
-    ln.classList.toggle("completed", idx < activeStepNum - 1);
+    ln.classList.toggle("completed", idx < pasoActual - 1);
   });
 }
 
@@ -712,9 +746,17 @@ function pintarProgreso(progreso, tareas, domainChoice) {
   });
 }
 
-function pintarPagos(pagos) {
+function pintarPagos(pagos, pasoActual = 1) {
   const cont = $("pc-pagos");
   cont.innerHTML = "";
+
+  if (pasoActual === 3) {
+    const avisoPaso3 = document.createElement("div");
+    avisoPaso3.className = "portal-nota-paso3";
+    avisoPaso3.style.cssText = "background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%); color: #ffffff; padding: 14px 16px; border-radius: 8px; margin-bottom: 16px; font-weight: 600; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(99,102,241,0.25);";
+    avisoPaso3.innerHTML = "🚀 ¡Tu proyecto está en el último paso! Aboná el 50% restante para subir tu página a producción.";
+    cont.appendChild(avisoPaso3);
+  }
 
   pagos.forEach((p) => {
     const pagado = p.status === "pagado";

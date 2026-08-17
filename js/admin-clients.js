@@ -148,6 +148,46 @@ function ficha(c) {
       </p>
     </div>
 
+    <div class="admin-bloque" style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; padding: 14px 16px;">
+      <label class="admin-bloque-label" style="color: #4f46e5; font-weight: 700; margin-bottom: 10px;">
+        ⚡ Control de Pasos del Proyecto
+      </label>
+      
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 10px 14px; border-radius: 6px; border: 1px solid #e2e8f0;">
+          <div>
+            <strong style="display: block; font-size: 0.9rem;">Paso 1: Demo & Desarrollo (${c.progreso}%)</strong>
+            <span style="font-size: 0.8rem; color: #64748b;">${c.progreso >= 100 ? '✓ Desarrollo al 100%' : 'En proceso de desarrollo'}</span>
+          </div>
+          <button type="button" class="btn btn-sm ${c.status === 'desarrollo_listo' || c.desarrollo_listo ? 'btn-outline' : 'btn-primary'}" data-accion="desarrollo-listo">
+            ${c.status === 'desarrollo_listo' || c.desarrollo_listo ? '✓ Desarrollo Listo' : '✅ Marcar Desarrollo Listo'}
+          </button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 10px 14px; border-radius: 6px; border: 1px solid #e2e8f0;">
+          <div>
+            <strong style="display: block; font-size: 0.9rem;">Paso 2: Elección de Dominio</strong>
+            <span style="font-size: 0.8rem; color: #64748b;">
+              ${c.domain_choice ? (c.domain_choice === 'propio' ? `Propio: ${c.domain_name || 'Sin especificar'}` : 'Gratuito (Demo)') : 'Esperando selección del cliente…'}
+            </span>
+          </div>
+          <button type="button" class="btn btn-sm ${c.status === 'dominio_listo' || c.dominio_listo ? 'btn-outline' : 'btn-primary'}" data-accion="dominio-listo">
+            ${c.status === 'dominio_listo' || c.dominio_listo ? '✓ Dominio Listo' : '🌐 Marcar Dominio Listo'}
+          </button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 10px 14px; border-radius: 6px; border: 1px solid #e2e8f0;">
+          <div>
+            <strong style="display: block; font-size: 0.9rem;">Paso 3 y 4: Pago Final y Publicación</strong>
+            <span style="font-size: 0.8rem; color: #64748b;">${c.status === 'finalizado' ? `✓ Publicado en ${c.production_url}` : 'Abonar 50% restante y publicar'}</span>
+          </div>
+          <button type="button" class="btn btn-sm ${c.status === 'finalizado' ? 'btn-outline' : 'btn-primary'}" data-accion="publicar-proyecto">
+            ${c.status === 'finalizado' ? '✓ Publicado' : '🚀 Pago Completado y Publicar'}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="admin-bloque">
       <div class="admin-form-grid">
         <div class="form-group">
@@ -237,6 +277,81 @@ function conectarFicha(ficha, c, link) {
       input.select();
       avisar("Copialo a mano", "Tu navegador bloqueó el portapapeles: el link quedó seleccionado.", "info");
     }
+  });
+
+  // --- Acciones de Pasos del Workflow ---
+  accion("desarrollo-listo")?.addEventListener("click", async () => {
+    const ok = await confirmar({
+      titulo: "¿Marcar Desarrollo Listo?",
+      texto: "El cliente avanzará al Paso 2 en su portal para elegir su dominio.",
+      confirmar: "Sí, Desarrollo Listo",
+      icono: "question",
+    });
+    if (!ok) return;
+
+    const res = await adminActualizarCliente(c.id, {
+      status: "desarrollo_listo",
+      desarrollo_listo: true,
+    });
+    if (!res.ok) {
+      avisar("No se pudo actualizar", res.error, "error");
+      return;
+    }
+    await recargar();
+    avisar("¡Paso 2 Habilitado!", "El cliente ya puede elegir su dominio desde su portal.", "success");
+  });
+
+  accion("dominio-listo")?.addEventListener("click", async () => {
+    const ok = await confirmar({
+      titulo: "¿Marcar Dominio Listo?",
+      texto: "El cliente avanzará al Paso 3 para abonar el 50% saldo restante.",
+      confirmar: "Sí, Dominio Configurado",
+      icono: "question",
+    });
+    if (!ok) return;
+
+    const res = await adminActualizarCliente(c.id, {
+      status: "dominio_listo",
+      dominio_listo: true,
+    });
+    if (!res.ok) {
+      avisar("No se pudo actualizar", res.error, "error");
+      return;
+    }
+    await recargar();
+    avisar("¡Paso 3 Habilitado!", "El cliente ahora puede abonar el saldo final del 50%.", "success");
+  });
+
+  accion("publicar-proyecto")?.addEventListener("click", async () => {
+    let urlActual = c.production_url || (c.domain_name ? `https://${c.domain_name}` : c.demo_url || "");
+    const { isConfirmed, value: urlPublicacion } = await Swal.fire({
+      title: "🚀 Publicar Proyecto",
+      html: "<p style='margin-bottom:10px'>Ingresá o confirmá el dominio/link de producción definitivo para el cliente:</p>",
+      input: "url",
+      inputValue: urlActual,
+      inputPlaceholder: "https://elcliente.com",
+      showCancelButton: true,
+      confirmButtonText: "¡Publicar Ahora!",
+      cancelButtonText: "Cancelar",
+      inputValidator: (value) => {
+        if (!value || !/^https?:\/\//.test(value)) {
+          return "Ingresá una URL válida que empiece con http:// o https://";
+        }
+      }
+    });
+
+    if (!isConfirmed || !urlPublicacion) return;
+
+    const res = await adminActualizarCliente(c.id, {
+      status: "finalizado",
+      production_url: urlPublicacion.trim(),
+    });
+    if (!res.ok) {
+      avisar("No se pudo publicar", res.error, "error");
+      return;
+    }
+    await recargar();
+    avisar("🎉 ¡Proyecto Publicado!", `La página está online en ${urlPublicacion}`, "success");
   });
 
   // --- Enviar por WhatsApp ---

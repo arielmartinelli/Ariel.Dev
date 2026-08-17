@@ -22,11 +22,13 @@ import { supabase } from "./supabase.js";
    Estados y etiquetas
    ========================================================================== */
 export const ESTADOS = {
-  demo_pendiente: { label: "Armando la demo", color: "#64748b" },
-  demo_lista: { label: "Demo lista para revisar", color: "#06b6d4" },
+  demo_pendiente: { label: "1. Armando la demo", color: "#64748b" },
+  demo_lista: { label: "1. Demo & Desarrollo (50% Adelanto)", color: "#06b6d4" },
+  en_produccion: { label: "1. En producción (50% Adelanto)", color: "#6366f1" },
+  desarrollo_listo: { label: "2. Elección de Dominio", color: "#8b5cf6" },
+  dominio_listo: { label: "3. Pago Final (50% Restante)", color: "#f59e0b" },
+  finalizado: { label: "4. Publicación Lista 🚀", color: "#22c55e" },
   rechazado: { label: "No continúa", color: "#ef4444" },
-  en_produccion: { label: "En producción", color: "#6366f1" },
-  finalizado: { label: "Finalizado", color: "#22c55e" },
 };
 
 export const ETIQUETA_PAGO = {
