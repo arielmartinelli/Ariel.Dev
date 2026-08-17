@@ -1528,9 +1528,11 @@ body.light-theme .footer {
 
 .footer-content {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    gap: 20px;
+    text-align: center;
+    gap: 16px;
 }
 
 .social-links {
