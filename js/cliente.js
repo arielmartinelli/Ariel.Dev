@@ -279,7 +279,10 @@ function verificarCelebracion(status, progreso) {
 }
 
 function generarReciboPDF() {
-  if (!datos) return;
+  if (!datos) {
+    avisar("Cargando...", "Esperá a que carguen los datos del proyecto.", "info");
+    return;
+  }
   const { client_name, project_name, total_usd, pagos = [] } = datos;
 
   const totalUsdNum = Number(total_usd || 0);
@@ -299,37 +302,43 @@ function generarReciboPDF() {
     </tr>
   `).join('');
 
-  const htmlContent = `
-    <div style="font-family: 'Inter', sans-serif; padding: 30px; color: #0f172a; background: #ffffff;">
+  const contenedor = document.createElement("div");
+  contenedor.style.position = "absolute";
+  contenedor.style.left = "-9999px";
+  contenedor.style.top = "-9999px";
+  contenedor.style.width = "750px";
+  contenedor.style.background = "#ffffff";
+  contenedor.innerHTML = `
+    <div style="font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: #0f172a; background: #ffffff;">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #6366f1; padding-bottom: 16px; margin-bottom: 24px;">
         <div>
-          <h1 style="font-size: 24px; color: #6366f1; margin: 0; font-weight: 800;">Ariel.Dev</h1>
-          <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Desarrollo Web & Software</p>
+          <h1 style="font-size: 26px; color: #6366f1; margin: 0; font-weight: 800; letter-spacing: -0.5px;">Ariel.Dev</h1>
+          <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Desarrollo Web & Software Freelance</p>
         </div>
         <div style="text-align: right;">
-          <h2 style="font-size: 18px; margin: 0; color: #0f172a;">RESUMEN DE CUENTA</h2>
+          <h2 style="font-size: 18px; margin: 0; color: #0f172a; font-weight: 700;">RESUMEN DE CUENTA</h2>
           <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Fecha: ${fechaHoy}</p>
         </div>
       </div>
 
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 24px; display: flex; justify-content: space-between;">
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 24px; display: flex; justify-content: space-between;">
         <div>
-          <p style="margin: 0 0 4px; font-size: 12px; color: #64748b; text-transform: uppercase;">Cliente</p>
-          <strong style="font-size: 16px;">${client_name || 'Cliente'}</strong>
+          <p style="margin: 0 0 4px; font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600;">Cliente</p>
+          <strong style="font-size: 16px; color: #0f172a;">${escapeHtml(client_name || 'Cliente')}</strong>
         </div>
         <div style="text-align: right;">
-          <p style="margin: 0 0 4px; font-size: 12px; color: #64748b; text-transform: uppercase;">Proyecto</p>
-          <strong style="font-size: 16px;">${project_name || 'Proyecto Web'}</strong>
+          <p style="margin: 0 0 4px; font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: 600;">Proyecto</p>
+          <strong style="font-size: 16px; color: #0f172a;">${escapeHtml(project_name || 'Proyecto Web')}</strong>
         </div>
       </div>
 
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px;">
         <thead>
           <tr style="background: #f1f5f9; text-align: left; color: #475569;">
-            <th style="padding: 10px 12px;">Concepto</th>
-            <th style="padding: 10px 12px;">Estado</th>
-            <th style="padding: 10px 12px; text-align: right;">USD</th>
-            <th style="padding: 10px 12px; text-align: right;">ARS Estimado</th>
+            <th style="padding: 12px;">Concepto</th>
+            <th style="padding: 12px;">Estado</th>
+            <th style="padding: 12px; text-align: right;">USD</th>
+            <th style="padding: 12px; text-align: right;">ARS Estimado</th>
           </tr>
         </thead>
         <tbody>
@@ -338,8 +347,8 @@ function generarReciboPDF() {
       </table>
 
       <div style="text-align: right; border-top: 2px solid #e2e8f0; padding-top: 16px; margin-bottom: 30px;">
-        <p style="margin: 0; font-size: 14px; color: #64748b;">Cotización USD Dólar Oficial: $${cotizacionDolarOficial.toLocaleString("es-AR")} ARS</p>
-        <p style="margin: 6px 0 0; font-size: 20px; font-weight: 800; color: #0f172a;">
+        <p style="margin: 0; font-size: 13px; color: #64748b;">Cotización USD Dólar Oficial: $${cotizacionDolarOficial.toLocaleString("es-AR")} ARS</p>
+        <p style="margin: 6px 0 0; font-size: 19px; font-weight: 800; color: #0f172a;">
           Total Proyecto: USD ${totalUsdNum.toLocaleString("es-AR")} (≈ $${totalArsNum.toLocaleString("es-AR")} ARS)
         </p>
       </div>
@@ -350,18 +359,51 @@ function generarReciboPDF() {
     </div>
   `;
 
+  document.body.appendChild(contenedor);
+
+  const nombreArchivo = `Recibo_${(project_name || 'Proyecto').replace(/\s+/g, '_')}.pdf`;
   const opt = {
-    margin: 10,
-    filename: `Recibo_${(project_name || 'Proyecto').replace(/\s+/g, '_')}.pdf`,
+    margin: [10, 10, 10, 10],
+    filename: nombreArchivo,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
+    html2canvas: { scale: 2, logging: false, useCORS: true },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
+  const btn = $("pc-btn-descargar-pdf");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Generando PDF…";
+  }
+
   if (window.html2pdf) {
-    window.html2pdf().set(opt).from(htmlContent).save();
+    window.html2pdf()
+      .set(opt)
+      .from(contenedor)
+      .save()
+      .then(() => {
+        contenedor.remove();
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "📄 Descargar Recibo PDF";
+        }
+      })
+      .catch((err) => {
+        console.error("Error html2pdf:", err);
+        contenedor.remove();
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "📄 Descargar Recibo PDF";
+        }
+        avisar("Error al generar PDF", "Ocurrió un problema generando el archivo. Intentá nuevamente.", "error");
+      });
   } else {
-    avisar("Generando PDF...", "Tu navegador está procesando el recibo.", "info");
+    contenedor.remove();
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "📄 Descargar Recibo PDF";
+    }
+    avisar("Generador no disponible", "La librería PDF no terminó de cargar. Recargá la página.", "error");
   }
 }
 
