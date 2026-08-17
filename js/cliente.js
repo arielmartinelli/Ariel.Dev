@@ -28,7 +28,7 @@ import { escapeHtml, safeUrl, sanitizeText } from "./security.js";
 import { configurarDialogos, confirmar, avisar } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
 
-const WHATSAPP = "543517877753";
+const WHATSAPP = "543516121498";
 
 /* Datos para transferencia. Si algun dia cambian, se cambian ACA y listo:
    estan en un solo lugar y no repartidos por el HTML. */

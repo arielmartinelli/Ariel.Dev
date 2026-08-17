@@ -606,7 +606,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const message = generateQuotationText(clientName);
         const encodedMessage = encodeURIComponent(message);
-        const phoneNumber = "543517877753";
+        const phoneNumber = "543516121498";
         const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
 
         // En móvil, window.open tras un await suele quedar bloqueado por el
@@ -1041,7 +1041,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <div class="pdf-footer">
                             <div>
                                 <p>Email: <span>ariel.martinelli.dev@gmail.com</span></p>
-                                <p>WhatsApp: <span>+54 351 787 7753</span></p>
+                                <p>WhatsApp: <span>+54 351 612 1498</span></p>
                                 <p>Córdoba, Argentina</p>
                             </div>
                             <div style="text-align: right;">
@@ -1144,7 +1144,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // sin haber enviado, que era el problema original.
     // ==========================================================================
     const FORMSPREE_ID = import.meta.env.VITE_FORMSPREE_ID || "";
-    const WHATSAPP_NUMBER = "543517877753";
+    const WHATSAPP_NUMBER = "543516121498";
 
     /** Última marca de tiempo de envío, para frenar clics repetidos. */
     let lastContactSubmit = 0;
