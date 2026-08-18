@@ -2802,7 +2802,7 @@ body.light-theme .mobile-dot.active {
         scroll-snap-type: x mandatory !important;
         scroll-behavior: smooth;
         gap: 16px !important;
-        padding: 8px 16px 20px 16px !important;
+        padding: 8px 0 20px 0 !important;
         margin-bottom: 0 !important;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
@@ -2816,11 +2816,14 @@ body.light-theme .mobile-dot.active {
         position: relative !important;
         top: 0 !important;
         left: 0 !important;
-        flex: 0 0 88% !important;
-        max-width: 88% !important;
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        max-width: 100% !important;
         margin-bottom: 0 !important;
         scroll-snap-align: center !important;
+        scroll-snap-stop: always !important;
         z-index: 1 !important;
+        box-sizing: border-box !important;
     }
 
     .stage-card-inner {
@@ -2828,9 +2831,14 @@ body.light-theme .mobile-dot.active {
         filter: none !important;
         display: flex !important;
         flex-direction: column !important;
-        padding: 18px !important;
+        justify-content: space-between !important;
+        padding: 20px !important;
         gap: 16px !important;
-        border-radius: 22px !important;
+        height: 450px !important;
+        min-height: 450px !important;
+        max-height: 450px !important;
+        box-sizing: border-box !important;
+        border-radius: 24px !important;
         background: linear-gradient(145deg, rgba(20, 26, 45, 0.95), rgba(12, 16, 30, 0.98)) !important;
         border: 1px solid rgba(255, 255, 255, 0.12) !important;
         box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4) !important;
@@ -2839,7 +2847,10 @@ body.light-theme .mobile-dot.active {
     .stage-img-box {
         order: 1 !important;
         width: 100% !important;
-        border-radius: 14px !important;
+        height: 190px !important;
+        min-height: 190px !important;
+        max-height: 190px !important;
+        border-radius: 16px !important;
         overflow: hidden !important;
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important;
     }
@@ -2849,25 +2860,27 @@ body.light-theme .mobile-dot.active {
         width: 100% !important;
         display: flex !important;
         flex-direction: column !important;
+        justify-content: space-between !important;
+        flex: 1 !important;
     }
 
     .stack-card-title {
         font-size: 1.25rem !important;
         margin-top: 4px !important;
-        margin-bottom: 8px !important;
+        margin-bottom: 6px !important;
         font-weight: 800 !important;
         color: var(--text-primary, #ffffff) !important;
     }
 
     .stack-card-desc {
         font-size: 0.88rem !important;
-        line-height: 1.5 !important;
+        line-height: 1.45 !important;
         color: var(--text-secondary, #94a3b8) !important;
         display: -webkit-box !important;
-        -webkit-line-clamp: 3 !important;
+        -webkit-line-clamp: 2 !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
-        margin-bottom: 14px !important;
+        margin-bottom: 10px !important;
     }
 
     .stage-card-inner::after {
@@ -2875,7 +2888,8 @@ body.light-theme .mobile-dot.active {
     }
 
     .stage-img {
-        height: 190px !important;
+        height: 100% !important;
+        width: 100% !important;
         object-fit: cover !important;
         filter: none !important;
     }
@@ -2899,7 +2913,236 @@ body.light-theme .mobile-dot.active {
     }
 }
 
+/* ==========================================================================
+   Carousel de Reseñas / Testimonios (Diseño Uniforme, Rectangular y Compacto)
+   ========================================================================== */
+.resenas-carousel-wrapper {
+  position: relative;
+  margin-top: 36px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
 
+.resenas-carousel-track {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 4px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.resenas-carousel-track::-webkit-scrollbar {
+  display: none;
+}
+.resenas-carousel-track {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.resena-card-item {
+  flex: 0 0 calc((100% - 40px) / 3);
+  scroll-snap-align: start;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 1024px) {
+  .resena-card-item {
+    flex: 0 0 calc((100% - 20px) / 2);
+  }
+}
+
+@media (max-width: 640px) {
+  .resena-card-item {
+    flex: 0 0 100%;
+  }
+}
+
+.resena-card-inner {
+  background: var(--surface, rgba(15, 23, 42, 0.65));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 16px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  height: 195px;
+  min-height: 195px;
+  box-sizing: border-box;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.resena-card-inner:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  transform: translateY(-2px);
+}
+
+.resena-card-inner.expandido {
+  height: auto !important;
+  min-height: 195px !important;
+  border-color: var(--primary, #6366f1) !important;
+  box-shadow: 0 12px 30px rgba(99, 102, 241, 0.25) !important;
+  z-index: 2;
+}
+
+.resena-top-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resena-stars {
+  color: #f59e0b;
+  font-size: 1rem;
+  letter-spacing: 2px;
+}
+
+.resena-comment {
+  font-size: 0.88rem;
+  color: var(--text-secondary, #94a3b8);
+  line-height: 1.5;
+  font-style: italic;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.3s ease;
+}
+
+.resena-card-inner.expandido .resena-comment {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  overflow: visible !important;
+}
+
+.resena-ver-mas-btn {
+  background: transparent;
+  border: none;
+  color: var(--primary, #6366f1);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 0;
+  margin-top: 2px;
+  text-align: left;
+  display: inline-block;
+  width: fit-content;
+  transition: color 0.2s ease;
+}
+
+.resena-ver-mas-btn:hover {
+  color: #a5b4fc;
+  text-decoration: underline;
+}
+
+.resena-author-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  padding-top: 10px;
+  gap: 10px;
+}
+
+.resena-author-info {
+  min-width: 0;
+}
+
+.resena-author-name {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resena-author-project {
+  font-size: 0.78rem;
+  color: var(--text-muted, #64748b);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resena-company-link {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.2));
+  color: var(--text-primary, #ffffff);
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.resena-company-link:hover {
+  background: var(--primary, #6366f1);
+  border-color: var(--primary, #6366f1);
+  color: #ffffff;
+}
+
+.resenas-nav-btn {
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  z-index: 10;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  user-select: none;
+}
+
+.resenas-nav-btn:hover {
+  background: var(--primary, #6366f1);
+  color: #ffffff;
+  border-color: var(--primary, #6366f1);
+  transform: scale(1.1);
+}
+
+.resenas-nav-btn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 640px) {
+  .resenas-carousel-wrapper {
+    position: relative;
+    gap: 8px;
+  }
+
+  .resenas-nav-btn {
+    width: 38px;
+    height: 38px;
+    font-size: 1.2rem;
+  }
+}
 
 /* ==========================================================================
    SweetAlert2 — capa y tema

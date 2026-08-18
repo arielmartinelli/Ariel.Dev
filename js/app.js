@@ -1269,52 +1269,108 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            cont.innerHTML = resenas.map(r => `
-                <div class="resena-card-item">
-                    <div class="glass" style="padding: 24px; border-radius: 16px; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; gap: 16px; height: 100%; box-sizing: border-box; transition: transform 0.3s ease;">
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
-                            <div style="color: #f59e0b; font-size: 1.1rem; letter-spacing: 2px;">
-                                ${"★".repeat(r.rating || 5)}${"☆".repeat(5 - (r.rating || 5))}
-                            </div>
-                            <p style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.6; font-style: italic;">
-                                "${escapeHtml(r.comment)}"
-                            </p>
-                        </div>
+            cont.innerHTML = resenas.map((r, idx) => {
+                const commentText = (r.comment || "").trim();
+                const esLargo = commentText.length > 95;
 
-                        <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 4px; gap: 10px;">
-                            <div style="min-width: 0;">
-                                <strong style="display: block; font-size: 0.95rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(r.client_name)}</strong>
-                                <span style="font-size: 0.8rem; color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${r.project_name ? escapeHtml(r.project_name) : 'Cliente Satisfecho'}</span>
+                return `
+                    <div class="resena-card-item">
+                        <div class="resena-card-inner glass" id="resena-card-${idx}">
+                            <div class="resena-top-box">
+                                <div class="resena-stars">
+                                    ${"★".repeat(r.rating || 5)}${"☆".repeat(5 - (r.rating || 5))}
+                                </div>
+                                <p class="resena-comment">
+                                    "${escapeHtml(commentText)}"
+                                </p>
+                                ${esLargo ? `
+                                    <button type="button" class="resena-ver-mas-btn" data-target="${idx}">
+                                        Ver más
+                                    </button>
+                                ` : ''}
                             </div>
-                            ${r.company_url ? `
-                                <a href="${safeUrl(r.company_url, '#')}" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline" style="font-size:0.78rem; padding: 5px 12px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;">
-                                    Ver página ↗
-                                </a>
-                            ` : ''}
+
+                            <div class="resena-author-box">
+                                <div class="resena-author-info">
+                                    <strong class="resena-author-name">${escapeHtml(r.client_name)}</strong>
+                                    <span class="resena-author-project">${r.project_name ? escapeHtml(r.project_name) : 'Cliente Satisfecho'}</span>
+                                </div>
+                                ${(r.company_url && r.company_url.trim().length > 0) ? `
+                                    <a href="${safeUrl(r.company_url, '#')}" target="_blank" rel="noopener noreferrer" class="resena-company-link">
+                                        Ver página ↗
+                                    </a>
+                                ` : ''}
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join("");
+                `;
+            }).join("");
 
-            // Conectar botones de navegación del carousel
+            // Lógica de despliegue "Ver más" / "Ver menos"
+            cont.querySelectorAll(".resena-ver-mas-btn").forEach((btn) => {
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const idx = btn.dataset.target;
+                    const card = document.getElementById(`resena-card-${idx}`);
+                    if (!card) return;
+                    const estaExpandido = card.classList.contains("expandido");
+                    
+                    if (estaExpandido) {
+                        card.classList.remove("expandido");
+                        btn.textContent = "Ver más";
+                    } else {
+                        // Contraer otras expandidas para mantener formato uniforme
+                        cont.querySelectorAll(".resena-card-inner.expandido").forEach(c => c.classList.remove("expandido"));
+                        cont.querySelectorAll(".resena-ver-mas-btn").forEach(b => b.textContent = "Ver más");
+                        
+                        card.classList.add("expandido");
+                        btn.textContent = "Ver menos";
+                    }
+                });
+            });
+
+            // Función para contraer tarjetas desplegadas al deslizar
+            const contraerExpandidas = () => {
+                cont.querySelectorAll(".resena-card-inner.expandido").forEach(c => c.classList.remove("expandido"));
+                cont.querySelectorAll(".resena-ver-mas-btn").forEach(b => b.textContent = "Ver más");
+            };
+
+            // Conectar botones de navegación con BUCLE INFINITO (Infinite Loop)
             const prevBtn = document.getElementById("resenas-btn-prev");
             const nextBtn = document.getElementById("resenas-btn-next");
 
             if (prevBtn && !prevBtn.dataset.bound) {
                 prevBtn.dataset.bound = "true";
                 prevBtn.addEventListener("click", () => {
+                    contraerExpandidas();
                     const card = cont.querySelector(".resena-card-item");
                     const scrollAmount = card ? card.getBoundingClientRect().width + 20 : 320;
-                    cont.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+                    const atStart = cont.scrollLeft <= 15;
+
+                    if (atStart) {
+                        // Si está en la primera, vuelve al final (bucle infinito)
+                        cont.scrollTo({ left: cont.scrollWidth, behavior: "smooth" });
+                    } else {
+                        cont.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+                    }
                 });
             }
 
             if (nextBtn && !nextBtn.dataset.bound) {
                 nextBtn.dataset.bound = "true";
                 nextBtn.addEventListener("click", () => {
+                    contraerExpandidas();
                     const card = cont.querySelector(".resena-card-item");
                     const scrollAmount = card ? card.getBoundingClientRect().width + 20 : 320;
-                    cont.scrollBy({ left: scrollAmount, behavior: "smooth" });
+                    const maxScroll = cont.scrollWidth - cont.clientWidth;
+                    const atEnd = cont.scrollLeft >= maxScroll - 15;
+
+                    if (atEnd) {
+                        // Si llegó a la última, vuelve al inicio (bucle infinito)
+                        cont.scrollTo({ left: 0, behavior: "smooth" });
+                    } else {
+                        cont.scrollBy({ left: scrollAmount, behavior: "smooth" });
+                    }
                 });
             }
         } catch (err) {
