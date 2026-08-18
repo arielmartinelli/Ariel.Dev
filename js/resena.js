@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const nombre = sanitizeText(document.getElementById("resena-nombre").value, 100);
     const estrellas = Number(document.getElementById("resena-estrellas").value) || 5;
     const empresa = sanitizeText(document.getElementById("resena-empresa").value, 100);
-    const url = sanitizeText(document.getElementById("resena-url").value, 200);
     const comentario = sanitizeText(document.getElementById("resena-comentario").value, 1000);
 
     if (!nombre || !comentario) {
@@ -28,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
       await guardarResena({
         client_name: nombre,
         project_name: empresa || "Proyecto Web",
-        company_url: url || empresa,
+        company_url: "", // El link del sitio web lo asigna Ariel desde el panel de administración
         rating: estrellas,
         comment: comentario,
       });

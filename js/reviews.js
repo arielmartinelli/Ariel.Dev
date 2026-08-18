@@ -187,3 +187,45 @@ export async function eliminarResena(id) {
   } catch {}
   return { ok: true };
 }
+
+export async function actualizarUrlResena(id, company_url) {
+  const urlLimpia = (company_url || "").trim();
+  const lista = leerLocal();
+  const res = lista.find(r => r.id === id);
+  if (res) {
+    res.company_url = urlLimpia;
+    guardarLocal(lista);
+  }
+
+  try {
+    await supabase.from("reviews").update({ company_url: urlLimpia }).eq("id", id);
+  } catch {}
+
+  // Fallback en clients.admin_notes si aplica
+  try {
+    const { data: clientes } = await supabase.from("clients").select("id, admin_notes");
+    if (clientes) {
+      for (const c of clientes) {
+        if (c.admin_notes && c.admin_notes.includes(id)) {
+          const matches = c.admin_notes.match(/\[RESEÑA_JSON:(.*?)\]/g);
+          if (matches) {
+            let notas = c.admin_notes;
+            matches.forEach((m) => {
+              try {
+                const jsonStr = m.replace(/^\[RESEÑA_JSON:/, "").replace(/\]$/, "");
+                const rObj = JSON.parse(jsonStr);
+                if (rObj.id === id) {
+                  rObj.company_url = urlLimpia;
+                  notas = notas.replace(m, `[RESEÑA_JSON:${JSON.stringify(rObj)}]`);
+                }
+              } catch {}
+            });
+            await supabase.from("clients").update({ admin_notes: notas }).eq("id", c.id);
+          }
+        }
+      }
+    }
+  } catch {}
+
+  return { ok: true };
+}

@@ -276,7 +276,7 @@ async function render() {
     if (!yaEnvio) {
       const inputEmpresa = $("pc-resena-empresa");
       if (inputEmpresa && !inputEmpresa.value) {
-        inputEmpresa.value = domain_name || (production_url ? production_url.replace(/^https?:\/\//, "") : "");
+        inputEmpresa.value = project_name || "";
       }
     }
   }
@@ -1106,8 +1106,8 @@ $("pc-form-resena")?.addEventListener("submit", async (e) => {
   try {
     await guardarResena({
       client_name: datos?.client_name || "Cliente",
-      project_name: datos?.project_name || "Proyecto Web",
-      company_url: empresa,
+      project_name: empresa || datos?.project_name || "Proyecto Web",
+      company_url: "", // El link del sitio web lo asigna Ariel desde el panel admin
       rating: estrellas,
       comment: comentario,
     });

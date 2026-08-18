@@ -120,3 +120,33 @@ export function cerrarCargando() {
   const S = swal();
   if (S) S.close();
 }
+
+/** Prompt simple para ingresar o editar un texto. */
+export async function pedirTexto({
+  titulo,
+  texto = "",
+  placeholder = "",
+  valorInicial = "",
+  confirmar: textoConfirmar = "Guardar",
+  cancelar = "Cancelar",
+}) {
+  const S = swal();
+  if (!S) {
+    const res = window.prompt(`${titulo}\n\n${texto}`, valorInicial);
+    return res;
+  }
+
+  const { isConfirmed, value } = await S.fire({
+    title: titulo,
+    text: texto,
+    input: "text",
+    inputValue: valorInicial,
+    inputPlaceholder: placeholder,
+    showCancelButton: true,
+    confirmButtonText: textoConfirmar,
+    cancelButtonText: cancelar,
+    reverseButtons: true,
+  });
+
+  return isConfirmed ? (value || "").trim() : null;
+}

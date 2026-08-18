@@ -21,11 +21,11 @@
 import { supabase, isSupabaseConfigured } from "./supabase.js";
 import { adminTareasDeTodos, adminPagosDeTodos, adminListarClientes, adminMarcarTarea, adminMarcarPago, adminObtenerComprobante, ETIQUETA_PAGO } from "./clients.js";
 import { escapeHtml } from "./security.js";
-import { configurarDialogos, confirmar, avisar } from "./ui-dialogs.js";
+import { configurarDialogos, confirmar, avisar, pedirTexto } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
 import { iniciarSeccionClientes, refrescarClientes } from "./admin-clients.js";
 import { iniciarSeccionPortfolio, refrescarPortfolio } from "./admin-portfolio.js";
-import { obtenerResenasAdmin, togglePublicarResena, eliminarResena } from "./reviews.js";
+import { obtenerResenasAdmin, togglePublicarResena, eliminarResena, actualizarUrlResena } from "./reviews.js";
 import { safeUrl } from "./security.js";
 
 const $ = (id) => document.getElementById(id);
@@ -310,6 +310,10 @@ export async function refrescarResenas() {
             ${r.is_published ? '✓ En Portfolio' : '🙈 Oculta'}
           </span>
 
+          <button type="button" class="btn btn-sm btn-outline" data-accion="editar-url">
+            ${r.company_url ? "🌐 Editar Link" : "🔗 Asignar Link"}
+          </button>
+
           <button type="button" class="btn btn-sm ${r.is_published ? 'btn-outline' : 'btn-primary'}" data-accion="toggle-vis">
             ${r.is_published ? 'Ocultar' : 'Mostrar en Web'}
           </button>
@@ -324,6 +328,19 @@ export async function refrescarResenas() {
         "${escapeHtml(r.comment)}"
       </div>
     `;
+
+    card.querySelector('[data-accion="editar-url"]').addEventListener("click", async () => {
+      const nuevaUrl = await pedirTexto({
+        titulo: `Link web para ${r.client_name}`,
+        texto: "Ingresá la URL del sitio web del cliente para que aparezca el botón 'Ver página ↗' en tu portfolio (o dejalo vacío para quitarlo):",
+        placeholder: "Ej: https://lopez-odontologia.com",
+        valorInicial: r.company_url || "",
+      });
+      if (nuevaUrl === null) return;
+      await actualizarUrlResena(r.id, nuevaUrl);
+      await refrescarResenas();
+      avisar("Link Guardado", nuevaUrl ? `Se asignó ${nuevaUrl} a la reseña.` : "Se quitó el link web de la reseña.", "success");
+    });
 
     card.querySelector('[data-accion="toggle-vis"]').addEventListener("click", async () => {
       await togglePublicarResena(r.id, !r.is_published);

@@ -3529,14 +3529,15 @@ body.light-theme .admin-step-item {
 }
 
 /* ==========================================================================
-   Carousel de Reseñas / Testimonios
+   Carousel de Reseñas / Testimonios (Diseño Uniforme y Responsive)
    ========================================================================== */
 .resenas-carousel-wrapper {
   position: relative;
-  margin-top: 40px;
+  margin-top: 36px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  width: 100%;
 }
 
 .resenas-carousel-track {
@@ -3546,8 +3547,9 @@ body.light-theme .admin-step-item {
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  padding: 12px 4px;
+  padding: 16px 4px;
   width: 100%;
+  align-items: stretch; /* TODAS LAS TARJETAS SE ALINEAN AL MISMO ALTO */
 }
 
 .resenas-carousel-track::-webkit-scrollbar {
@@ -3563,6 +3565,8 @@ body.light-theme .admin-step-item {
   scroll-snap-align: start;
   min-width: 0;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 1024px) {
@@ -3577,6 +3581,26 @@ body.light-theme .admin-step-item {
   }
 }
 
+.resena-card-inner {
+  background: var(--surface, rgba(15, 23, 42, 0.6));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 18px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  height: 100%;
+  box-sizing: border-box;
+  min-height: 230px;
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.resena-card-inner:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  transform: translateY(-2px);
+}
+
 .resenas-nav-btn {
   background: rgba(15, 23, 42, 0.85);
   color: #ffffff;
@@ -3587,20 +3611,21 @@ body.light-theme .admin-step-item {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.25s ease;
   flex-shrink: 0;
   z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  user-select: none;
 }
 
 .resenas-nav-btn:hover {
   background: var(--primary, #6366f1);
   color: #ffffff;
   border-color: var(--primary, #6366f1);
-  transform: scale(1.08);
+  transform: scale(1.1);
 }
 
 .resenas-nav-btn:active {
@@ -3608,9 +3633,14 @@ body.light-theme .admin-step-item {
 }
 
 @media (max-width: 640px) {
+  .resenas-carousel-wrapper {
+    position: relative;
+    gap: 8px;
+  }
+
   .resenas-nav-btn {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     font-size: 1.2rem;
   }
 }
