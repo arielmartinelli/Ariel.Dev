@@ -36,6 +36,7 @@ export function iniciarSeccionPortfolio() {
   conectarFormulario();
   conectarSubidaImagen();
   conectarCategorias();
+  inicializarTechPresets();
 }
 
 export async function refrescarPortfolio() {
@@ -152,6 +153,67 @@ function portadaGenerada(title) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
+const PRESET_TECNOLOGIAS = [
+  "HTML5", "CSS3", "JavaScript", "TypeScript", "Node.js", "Python",
+  "React", "Next.js", "Vite", "TailwindCSS", "Bootstrap", "Vue", "Express",
+  "Supabase", "Firebase", "PostgreSQL", "MongoDB", "Vercel",
+  "Mercado Pago", "WhatsApp API", "E-Commerce", "Carrito", "Dashboard", "Responsive", "Modo Oscuro", "SEO", "Auth System", "Drag & Drop", "Charts"
+];
+
+function inicializarTechPresets() {
+  const cont = $("tech-presets-container");
+  if (!cont) return;
+
+  cont.innerHTML = PRESET_TECNOLOGIAS.map((tech) => `
+    <button type="button" class="tech-badge-btn" data-tech="${escapeHtml(tech)}">
+      + ${escapeHtml(tech)}
+    </button>
+  `).join("");
+
+  cont.querySelectorAll(".tech-badge-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      toggleTechTag(btn.dataset.tech);
+    });
+  });
+
+  const inputTags = $("proj-tags");
+  if (inputTags) {
+    inputTags.addEventListener("input", actualizarEstadoBadgeTech);
+  }
+}
+
+function toggleTechTag(tech) {
+  const input = $("proj-tags");
+  if (!input) return;
+
+  let tags = input.value.split(",").map((t) => t.trim()).filter(Boolean);
+  const index = tags.findIndex((t) => t.toLowerCase() === tech.toLowerCase());
+
+  if (index >= 0) {
+    tags.splice(index, 1);
+  } else {
+    tags.push(tech);
+  }
+
+  input.value = tags.join(", ");
+  actualizarEstadoBadgeTech();
+}
+
+function actualizarEstadoBadgeTech() {
+  const input = $("proj-tags");
+  const cont = $("tech-presets-container");
+  if (!input || !cont) return;
+
+  const actualTags = input.value.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+
+  cont.querySelectorAll(".tech-badge-btn").forEach((btn) => {
+    const techLower = btn.dataset.tech.toLowerCase();
+    const activo = actualTags.includes(techLower);
+    btn.classList.toggle("activo", activo);
+    btn.textContent = activo ? `✓ ${btn.dataset.tech}` : `+ ${btn.dataset.tech}`;
+  });
+}
+
 function entrarEnEdicion(proyecto) {
   editando = proyecto.id;
 
@@ -160,6 +222,7 @@ function entrarEnEdicion(proyecto) {
   $("proj-demo").value = proyecto.demoUrl === "#" ? "" : proyecto.demoUrl;
   $("proj-tags").value = (proyecto.tags || []).join(", ");
   $("proj-desc").value = proyecto.description;
+  actualizarEstadoBadgeTech();
 
   imagenBase64 = proyecto.image;
   $("image-preview").src = proyecto.image;
@@ -180,6 +243,7 @@ function salirDeEdicion() {
   imagenBase64 = "";
 
   $("form-proyecto").reset();
+  actualizarEstadoBadgeTech();
   $("image-preview").classList.add("hidden");
   $("image-preview").src = "";
   $("upload-dropzone").classList.remove("hidden");

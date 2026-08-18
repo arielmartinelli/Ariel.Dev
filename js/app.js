@@ -361,6 +361,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Renderizar Filtros del Portfolio dinámicamente
     async function renderFilters() {
+        if (!filterWrapper) return;
         const activeBtn = filterWrapper.querySelector(".filter-btn.active");
         const activeFilter = activeBtn ? activeBtn.dataset.filter : "all";
 

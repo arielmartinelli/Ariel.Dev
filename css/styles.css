@@ -2832,11 +2832,12 @@ body.light-theme .mobile-dot.active {
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
-        padding: 20px !important;
-        gap: 16px !important;
-        height: 450px !important;
-        min-height: 450px !important;
-        max-height: 450px !important;
+        padding: 18px 18px 22px 18px !important;
+        gap: 14px !important;
+        height: auto !important;
+        min-height: 440px !important;
+        max-height: none !important;
+        overflow: visible !important;
         box-sizing: border-box !important;
         border-radius: 24px !important;
         background: var(--surface, #0f121d) !important;
@@ -3940,4 +3941,32 @@ body.light-theme .admin-step-item {
     height: 38px;
     font-size: 1.2rem;
   }
+}
+
+/* Badges de tecnologías y librerías en el panel de administración */
+.tech-badge-btn {
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.tech-badge-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #ffffff;
+}
+
+.tech-badge-btn.activo {
+  background: linear-gradient(135deg, var(--primary, #6366f1) 0%, #06b6d4 100%);
+  border-color: transparent;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }

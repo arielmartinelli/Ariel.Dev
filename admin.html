@@ -278,8 +278,17 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="proj-tags">Tecnologías (separadas por coma)</label>
+                                    <label for="proj-tags">Tecnologías y Librerías (separadas por coma o hacé clic abajo)</label>
                                     <input type="text" id="proj-tags" placeholder="React, Node, CSS">
+                                    
+                                    <div style="margin-top: 10px;">
+                                        <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">
+                                            ⚡ Tocar para agregar / quitar tecnología:
+                                        </span>
+                                        <div id="tech-presets-container" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                            <!-- Renderizado dinámicamente desde admin-portfolio.js -->
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="form-group">
