@@ -34,7 +34,7 @@ cargada — antes se quedaba en 0% durante media obra y parecía que nada pasaba
 
 | De | A | Quién | Con qué |
 |---|---|---|---|
-| `demo_pendiente` | `demo_lista` | **Ariel** | Carga el link de la demo y toca «Enviar demo» |
+| `demo_pendiente` | `demo_lista` | **Ariel** | Carga el link de la demo y toca «Enviar demo» — **sin link el botón no funciona** |
 | `demo_lista` | `anticipo_pendiente` | **Cliente** | «Sí, quiero continuar» |
 | `demo_lista` | `rechazado` | **Cliente** | «Por ahora no» |
 | `anticipo_pendiente` | `en_produccion` | **automático** | Cuando el anticipo queda **pagado** |
@@ -45,6 +45,29 @@ cargada — antes se quedaba en 0% durante media obra y parecía que nada pasaba
 
 Además, desde mi panel puedo forzar cualquier etapa y reabrir la decisión del
 cliente. Eso es una salida de emergencia, no el camino normal.
+
+### El cartel de espera
+
+Mientras el proyecto está en `demo_pendiente`, el cliente ve un **cartel de
+demo en espera** y nada más: un panel punteado que dice «Todavía no hay nada
+para revisar · No tenés que hacer nada por ahora», y debajo la ruta de lo que
+viene (ver la demo → anticipo → cargar cambios). No hay botones que no llevan
+a ningún lado ni links vacíos.
+
+Ese cartel se levanta con **dos** condiciones, no una:
+
+1. que yo mueva la etapa a `demo_lista`, **y**
+2. que el link de la demo esté cargado.
+
+Las dos juntas. El panel directamente **no me deja** pasar a `demo_lista` con
+el campo del link vacío — no es un aviso que se puede ignorar, el botón no
+funciona. Y como red de seguridad, si alguna vez la etapa quedara en
+`demo_lista` sin link (por ejemplo si lo borro después), el portal vuelve solo
+al cartel de espera en vez de mostrarle al cliente una tarjeta rota con un
+botón que no abre nada.
+
+Recién cuando se cumplen las dos, el cliente ve la demo de verdad y se le
+abre el camino: mirarla → aceptar → anticipo → cargar sus cambios.
 
 ### Los dos pasos automáticos
 

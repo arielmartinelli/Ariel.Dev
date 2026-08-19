@@ -195,6 +195,30 @@ svg{display:block}
 .link-final b{font-size:1.3rem;font-weight:700;letter-spacing:-.02em;word-break:break-all}
 .link-final small{display:block;color:var(--text-2);font-size:.8rem;margin-top:3px}
 
+/* Cartel de espera: hasta que Ariel no cargue el link, esto es lo único que hay.
+   Es un estado vacío que enseña, no un "no hay nada". */
+.espera-caja{
+  display:grid;place-items:center;gap:5px;text-align:center;
+  padding:34px 20px;border-radius:var(--r-sm);
+  border:1px dashed rgba(245,158,11,.32);background:rgba(245,158,11,.05);
+}
+.espera-caja p{font-weight:600;font-size:.98rem;margin-top:6px}
+.espera-caja small{color:var(--text-3);font-size:.85rem}
+.espera-pulso{display:flex;gap:6px}
+.espera-pulso span{width:8px;height:8px;border-radius:50%;background:#fbbf24;opacity:.35;
+  animation:lat 1.4s var(--ease) infinite}
+.espera-pulso span:nth-child(2){animation-delay:.18s}
+.espera-pulso span:nth-child(3){animation-delay:.36s}
+@keyframes lat{0%,70%,100%{opacity:.3;transform:scale(.82)}35%{opacity:1;transform:scale(1)}}
+
+.ruta-tit{margin:24px 0 12px;font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);font-weight:700}
+.ruta{list-style:none;display:grid;gap:3px}
+.ruta li{display:flex;gap:13px;align-items:flex-start;padding:11px 14px;border-radius:var(--r-sm);background:rgba(255,255,255,.025)}
+.ruta li span{flex:0 0 auto;width:23px;height:23px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(255,255,255,.07);color:var(--text-2);font-size:.76rem;font-weight:700}
+.ruta li b{display:block;font-size:.92rem;font-weight:600}
+.ruta li small{display:block;color:var(--text-3);font-size:.82rem;margin-top:2px}
+
 .pie{padding:26px 0 40px;border-top:1px solid var(--border);color:var(--text-3);font-size:.85rem;
   display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
 
@@ -292,10 +316,36 @@ const FINAL_URL = "panaderiaespiga.com";
 /* Cada etapa declara: en qué paso del rail está, cuánto avance muestra,
    y qué tarjeta ve el cliente. */
 const ETAPAS = {
-  demo_pendiente:{ paso:0, num:5, chip:"1 · Armando la demo", ico:"reloj", tono:"espera",
-    h:"Estamos armando tu demo",
-    s:"Te aviso por WhatsApp apenas esté lista para que la veas. Por ahora no tenés que hacer nada.",
-    cuerpo:`<div class="nota">${svg('info','ico ico-sm')}<div>Este link es tuyo y no vence. Guardalo: desde acá vas a seguir todo el proyecto de punta a punta.</div></div>` },
+  demo_pendiente:{ paso:0, num:5, chip:"1 · Demo en espera", ico:"reloj", tono:"espera",
+    h:"Tu demo está en preparación",
+    s:"Estoy armando una primera versión de tu página. Cuando esté lista aparece acá mismo y te aviso por WhatsApp.",
+    cuerpo:`
+      <div class="espera-caja">
+        <div class="espera-pulso" aria-hidden="true"><span></span><span></span><span></span></div>
+        <p>Todavía no hay nada para revisar</p>
+        <small>No tenés que hacer nada por ahora.</small>
+      </div>
+      <p class="ruta-tit">Lo que viene después</p>
+      <ol class="ruta">
+        <li><span>1</span><div><b>Ver la demo y decidir</b><small>Si te gusta cómo va, seguimos.</small></div></li>
+        <li><span>2</span><div><b>Anticipo del 50%</b><small>Con eso arranco a trabajar en serio.</small></div></li>
+        <li><span>3</span><div><b>Cargar tus cambios</b><small>Todo lo que quieras ajustar, lo escribís acá.</small></div></li>
+      </ol>
+      <div class="nota">${svg('info','ico ico-sm')}<div>Este link es tuyo y <strong>no vence</strong>. Guardalo: desde acá vas a seguir todo el proyecto de punta a punta.</div></div>` },
+
+  /* Red de seguridad: si la etapa dice "demo lista" pero el link está vacío,
+     el cliente NO ve una tarjeta rota — sigue viendo el cartel de espera.
+     Se llega acá solo si borro el link después de haberlo cargado. */
+  demo_sin_link:{ paso:0, num:5, chip:"1b · Marcada lista, sin link", ico:"reloj", tono:"espera",
+    h:"Tu demo está en preparación",
+    s:"Estoy dando los últimos retoques. En cuanto suba la versión para que la veas, aparece acá.",
+    cuerpo:`
+      <div class="espera-caja">
+        <div class="espera-pulso" aria-hidden="true"><span></span><span></span><span></span></div>
+        <p>Todavía no hay nada para revisar</p>
+        <small>No tenés que hacer nada por ahora.</small>
+      </div>
+      <div class="nota warn">${svg('alerta','ico ico-sm')}<div><strong>Esto el cliente no lo debería ver nunca.</strong> Es la red de seguridad: la etapa quedó en «demo lista» pero sin link cargado. En vez de mostrar una tarjeta vacía, el portal vuelve solo al cartel de espera.</div></div>` },
 
   demo_lista:{ paso:0, num:15, chip:"2 · Demo lista", ico:"ojo",
     h:"Tu demo está lista",
