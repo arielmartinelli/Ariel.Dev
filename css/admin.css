@@ -893,6 +893,99 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* ==========================================================================
+   Flujo del proyecto
+   --------------------------------------------------------------------------
+   Los cinco pasos en columna: se lee de arriba a abajo en cualquier ancho, y
+   el color dice el estado sin depender del ícono (que además está marcado
+   aria-hidden, porque el texto ya lo explica).
+   ========================================================================== */
+.flujo-pasos {
+    list-style: none;
+    margin: 0 0 14px;
+    padding: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.flujo-paso {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 9px 12px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.flujo-paso strong {
+    display: block;
+    font-size: 0.86rem;
+    line-height: 1.3;
+}
+
+.flujo-detalle {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    margin-top: 2px;
+}
+
+.flujo-icono {
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-top: 1px;
+    background: rgba(148, 163, 184, 0.16);
+    color: var(--text-muted);
+}
+
+.flujo-ok        { background: rgba(34, 197, 94, 0.07); }
+.flujo-ok .flujo-icono   { background: rgba(34, 197, 94, 0.19); color: #4ade80; }
+.flujo-curso     { background: rgba(99, 102, 241, 0.08); }
+.flujo-curso .flujo-icono { background: rgba(99, 102, 241, 0.22); color: #a5b4fc; }
+.flujo-no        { background: rgba(239, 68, 68, 0.07); }
+.flujo-no .flujo-icono   { background: rgba(239, 68, 68, 0.19); color: #f87171; }
+
+.flujo-traba {
+    margin: 0 0 15px;
+    padding: 11px 13px;
+    border-radius: 9px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text);
+    border: 1px solid transparent;
+}
+
+/* Ámbar = te toca a vos. Azul = está bien, esperando al cliente.
+   Verde = no falta nada. El texto ya lo dice; el color solo lo refuerza. */
+.flujo-traba-falta  { background: rgba(245, 158, 11, 0.09); border-color: rgba(245, 158, 11, 0.24); }
+.flujo-traba-espera { background: rgba(99, 102, 241, 0.09); border-color: rgba(99, 102, 241, 0.24); }
+.flujo-traba-ok     { background: rgba(34, 197, 94, 0.08);  border-color: rgba(34, 197, 94, 0.22); }
+
+.flujo-decision {
+    margin-top: 13px;
+    padding-top: 13px;
+    border-top: 1px dashed var(--border);
+}
+
+.flujo-decision .admin-hint { margin-bottom: 9px; }
+
+@media (max-width: 640px) {
+    /* 44px es el mínimo táctil de WCAG 2.5.5. El resto de los botones del
+       panel quedan chicos a propósito (son muchos y juntos), pero este es
+       uno solo y hay que poder tocarlo sin apuntar. */
+    .flujo-decision .btn { width: 100%; min-height: 44px; }
+
+    .flujo-paso { padding: 10px 11px; }
+    .flujo-detalle { font-size: 0.76rem; }
+}
+
 .admin-bloque-peligro {
     display: flex;
     gap: 10px;

@@ -22,13 +22,11 @@ import { supabase } from "./supabase.js";
    Estados y etiquetas
    ========================================================================== */
 export const ESTADOS = {
-  demo_pendiente: { label: "1. Armando la demo", color: "#64748b" },
-  demo_lista: { label: "1. Demo & Desarrollo (50% Adelanto)", color: "#06b6d4" },
-  en_produccion: { label: "1. En producción (50% Adelanto)", color: "#6366f1" },
-  desarrollo_listo: { label: "2. Elección de Dominio", color: "#8b5cf6" },
-  dominio_listo: { label: "3. Pago Final (50% Restante)", color: "#f59e0b" },
-  finalizado: { label: "4. Publicación Lista 🚀", color: "#22c55e" },
+  demo_pendiente: { label: "Armando la demo", color: "#64748b" },
+  demo_lista: { label: "Demo lista para revisar", color: "#06b6d4" },
   rechazado: { label: "No continúa", color: "#ef4444" },
+  en_produccion: { label: "En producción", color: "#6366f1" },
+  finalizado: { label: "Finalizado", color: "#22c55e" },
 };
 
 export const ETIQUETA_PAGO = {
@@ -199,6 +197,51 @@ export async function adminActualizarCliente(id, campos) {
     return { ok: false, error: "No se actualizó ninguna fila (¿el cliente fue eliminado?)." };
   }
   return { ok: true };
+}
+
+/**
+ * Mueve el flujo del proyecto desde el panel: estado, dominio y reapertura
+ * de la decisión del cliente, todo en una sola transacción del lado de la base.
+ *
+ * POR QUÉ NO ES UN UPDATE COMÚN
+ * -----------------------------
+ * Cada paso del flujo arrastra efectos que un UPDATE suelto no hace:
+ *   - pasar a producción tiene que crear el anticipo del 50%;
+ *   - elegir "dominio propio" tiene que crear el cobro de USD 10 aparte;
+ *   - volver a "demo lista" tiene que borrar la decisión anterior, si no el
+ *     cliente choca con "Ya registramos tu respuesta" para siempre.
+ *
+ * Antes esos efectos vivían solo dentro de las funciones del portal, así que
+ * el flujo únicamente avanzaba si lo movía el cliente. Como la mitad de los
+ * pasos se arreglan por WhatsApp, el panel se quedaba trabado. Ver
+ * supabase/migracion-04-flujo-admin.sql.
+ *
+ * `dominio` acepta 'vercel' | 'propio' | 'ninguno'. null = no tocarlo.
+ */
+export async function adminMoverFlujo(id, { status = null, dominio = null, dominioNombre = null, reabrirDecision = false } = {}) {
+  const { data, error } = await supabase.rpc("admin_mover_flujo", {
+    p_client_id: id,
+    p_status: status,
+    p_dominio: dominio,
+    p_dominio_nombre: dominioNombre,
+    p_reabrir_decision: reabrirDecision,
+  });
+
+  if (error) {
+    console.error("admin_mover_flujo:", error.message);
+    const e = { ok: false, error: traducirError(error) };
+    // Si la función todavía no existe en la base, el mensaje genérico no
+    // ayuda: hay que decir qué archivo falta correr.
+    if (faltaEsquema(error)) {
+      e.error = "Falta correr supabase/migracion-04-flujo-admin.sql en el SQL Editor de Supabase.";
+      e.faltaEsquema = true;
+    }
+    return e;
+  }
+  if (!data || data.ok !== true) {
+    return { ok: false, error: data?.error || "No se pudo mover el flujo." };
+  }
+  return { ok: true, ...data };
 }
 
 export async function adminEliminarCliente(id) {
@@ -436,7 +479,11 @@ export function faltaEsquema(error) {
   return (
     code === "42P01" ||
     code === "PGRST205" ||
-    /does not exist|schema cache|Could not find the table/i.test(msg)
+    // PGRST202 = la función RPC no está en el schema cache. Pasa cuando falta
+    // correr una migración que agrega funciones nuevas, no solo tablas.
+    code === "PGRST202" ||
+    code === "42883" ||
+    /does not exist|schema cache|Could not find the table|Could not find the function/i.test(msg)
   );
 }
 

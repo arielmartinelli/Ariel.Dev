@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Maqueta · Portal del cliente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070913; --surface:#0f172a; --surface-2:#151f38; --card:rgba(22,30,57,.5);
+  --primary:#6366f1; --primary-light:#818cf8; --secondary:#06b6d4;
+  --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444;
+  --text:#f3f4f6; --text-2:#9ca3af; --text-3:#6b7280;
+  --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.16);
+  --r:14px; --r-sm:10px;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg); color:var(--text);
+  font:400 16px/1.6 Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased; padding-bottom:96px;
+}
+svg{display:block}
+.ico{width:20px;height:20px;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.ico-sm{width:16px;height:16px}
+
+/* ---------- Cabecera ---------- */
+.top{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; padding:14px 20px;
+  background:rgba(7,9,19,.86); backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.marca{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:-.02em}
+.marca-punto{width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 4px rgba(99,102,241,.18)}
+.top-priv{display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--text-3)}
+
+.wrap{max-width:940px;margin:0 auto;padding:0 20px}
+
+/* ---------- Saludo + progreso + pasos ---------- */
+.hero{padding:34px 0 26px}
+.hero-fila{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.hero h1{font-size:2rem;font-weight:700;letter-spacing:-.03em;line-height:1.15}
+.hero-proyecto{margin-top:5px;color:var(--text-2);font-size:1.0625rem}
+.hero-num{text-align:right;line-height:1}
+.hero-num b{font-size:3.25rem;font-weight:700;letter-spacing:-.045em;font-variant-numeric:tabular-nums}
+.hero-num span{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-top:6px}
+
+.barra{height:6px;border-radius:99px;background:rgba(255,255,255,.07);margin:22px 0 26px;overflow:hidden}
+.barra i{display:block;height:100%;width:100%;border-radius:99px;background:linear-gradient(90deg,var(--primary),var(--secondary));
+  transform-origin:left center;transform:scaleX(0);transition:transform .7s var(--ease)}
+
+/* ---------- Rail de pasos ---------- */
+.pasos{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;list-style:none}
+.paso{display:flex;flex-direction:column;gap:9px;padding-top:12px;border-top:2px solid rgba(255,255,255,.09);transition:border-color .35s var(--ease)}
+.paso-n{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.14);color:var(--text-3);font-size:.78rem;font-weight:600;flex:0 0 auto}
+.paso-t{font-size:.8rem;color:var(--text-3);font-weight:500;line-height:1.25}
+.paso.hecho{border-top-color:var(--ok)}
+.paso.hecho .paso-n{background:rgba(34,197,94,.16);border-color:transparent;color:#4ade80}
+.paso.hecho .paso-t{color:var(--text-2)}
+.paso.activo{border-top-color:var(--primary)}
+.paso.activo .paso-n{background:var(--primary);border-color:transparent;color:#fff}
+.paso.activo .paso-t{color:var(--text);font-weight:600}
+
+/* ---------- Tarjeta de etapa ---------- */
+.etapa{
+  background:var(--card); border:1px solid var(--border); border-radius:var(--r);
+  padding:30px; margin:30px 0;
+}
+.etapa-cab{display:flex;gap:15px;align-items:flex-start;margin-bottom:8px}
+.etapa-ico{flex:0 0 auto;width:42px;height:42px;border-radius:11px;display:grid;place-items:center;
+  background:rgba(99,102,241,.14);color:var(--primary-light)}
+.etapa-ico.espera{background:rgba(245,158,11,.13);color:#fbbf24}
+.etapa-ico.listo{background:rgba(34,197,94,.14);color:#4ade80}
+.etapa h2{font-size:1.35rem;font-weight:700;letter-spacing:-.025em;line-height:1.25}
+.etapa-sub{color:var(--text-2);margin-top:7px;max-width:62ch}
+.etapa-cuerpo{margin-top:22px}
+
+/* ---------- Botones ---------- */
+.acciones{display:flex;gap:11px;flex-wrap:wrap;margin-top:22px}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:46px;padding:0 20px;border-radius:var(--r-sm);border:1px solid transparent;
+  font:600 .9rem Inter,sans-serif;cursor:pointer;
+  transition:background .18s,border-color .18s,color .18s,transform .18s var(--ease);
+}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--primary-light);outline-offset:2px}
+.btn-p{background:var(--primary);color:#fff}
+.btn-p:hover{background:#5457e5}
+.btn-o{background:transparent;border-color:var(--border-2);color:var(--text)}
+.btn-o:hover{border-color:rgba(255,255,255,.32);background:rgba(255,255,255,.04)}
+.btn-q{background:transparent;color:var(--text-2);padding:0 12px}
+.btn-q:hover{color:var(--text)}
+.btn-ok{background:var(--ok);color:#062b13}
+.btn-ok:hover{background:#1eb355}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* ---------- Bloques de contenido ---------- */
+.nota{
+  display:flex;gap:11px;align-items:flex-start;
+  margin-top:20px;padding:13px 15px;border-radius:var(--r-sm);
+  background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);
+  font-size:.875rem;color:var(--text-2);line-height:1.55;
+}
+.nota.warn{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.22)}
+.nota.ok{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.22)}
+.nota .ico{flex:0 0 auto;margin-top:1px}
+.nota strong{color:var(--text)}
+
+.monto{display:flex;align-items:baseline;gap:10px;margin:4px 0 6px}
+.monto b{font-size:2.5rem;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.monto span{color:var(--text-3);font-size:.9rem}
+
+.desglose{border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;margin-bottom:20px}
+.desglose div{display:flex;justify-content:space-between;gap:16px;padding:12px 16px;font-size:.9rem;border-bottom:1px solid var(--border)}
+.desglose div:last-child{border-bottom:none;background:rgba(255,255,255,.03);font-weight:700;font-size:1rem}
+.desglose span:last-child{font-variant-numeric:tabular-nums}
+.desglose .det{color:var(--text-2)}
+
+/* Opciones (pago / dominio) */
+.ops{display:grid;gap:11px}
+.op{
+  display:flex;gap:14px;align-items:flex-start;padding:16px;cursor:pointer;
+  border:1px solid var(--border);border-radius:var(--r-sm);background:rgba(255,255,255,.02);
+  transition:border-color .18s,background .18s;
+}
+.op:hover{border-color:var(--border-2);background:rgba(255,255,255,.04)}
+.op input{position:absolute;opacity:0;pointer-events:none}
+.op-marca{flex:0 0 auto;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border-2);margin-top:2px;
+  display:grid;place-items:center;transition:border-color .18s}
+.op-marca::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--primary);transform:scale(0);transition:transform .2s var(--ease)}
+.op input:checked ~ .op-marca{border-color:var(--primary)}
+.op input:checked ~ .op-marca::after{transform:scale(1)}
+.op:has(input:checked){border-color:rgba(99,102,241,.5);background:rgba(99,102,241,.07)}
+.op input:focus-visible ~ .op-marca{outline:2px solid var(--primary-light);outline-offset:2px}
+.op-txt{flex:1;min-width:0}
+.op-txt b{display:block;font-size:.95rem;font-weight:600}
+.op-txt small{display:block;color:var(--text-2);font-size:.84rem;margin-top:3px;word-break:break-word}
+.op-precio{flex:0 0 auto;font-size:.8rem;font-weight:600;padding:4px 10px;border-radius:99px;
+  background:rgba(255,255,255,.06);color:var(--text-2)}
+.op-precio.free{background:rgba(34,197,94,.14);color:#4ade80}
+
+/* Datos de transferencia */
+.datos{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;margin-top:14px}
+.dato{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 15px;background:var(--surface)}
+.dato small{display:block;color:var(--text-3);font-size:.72rem;text-transform:uppercase;letter-spacing:.07em}
+.dato b{font-size:.95rem;font-weight:600}
+.copiar{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 11px;border-radius:8px;
+  border:1px solid var(--border-2);background:transparent;color:var(--text-2);font:600 .78rem Inter,sans-serif;cursor:pointer}
+.copiar:hover{color:var(--text);border-color:rgba(255,255,255,.3)}
+
+/* Campos */
+.campo{display:block;margin-top:14px}
+.campo span{display:block;font-size:.82rem;color:var(--text-2);margin-bottom:7px;font-weight:500}
+.campo input,.campo textarea{
+  width:100%;padding:12px 14px;border-radius:var(--r-sm);
+  border:1px solid var(--border-2);background:rgba(0,0,0,.28);color:var(--text);
+  font:400 16px Inter,sans-serif;transition:border-color .18s;
+}
+.campo input:focus,.campo textarea:focus{outline:none;border-color:var(--primary)}
+.campo input::placeholder,.campo textarea::placeholder{color:var(--text-3)}
+.fila-campo{display:flex;gap:10px;align-items:flex-end}
+.fila-campo .campo{flex:1;margin-top:0}
+
+/* Lista de cambios */
+.cambios{list-style:none;display:grid;gap:8px;margin-top:18px}
+.cambio{display:flex;gap:12px;align-items:flex-start;padding:13px 15px;border-radius:var(--r-sm);
+  background:rgba(255,255,255,.025);border:1px solid var(--border)}
+.cambio-est{flex:0 0 auto;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(255,255,255,.06);color:var(--text-3)}
+.cambio.ok .cambio-est{background:rgba(34,197,94,.16);color:#4ade80}
+.cambio.ok p{color:var(--text-3);text-decoration:line-through;text-decoration-color:rgba(107,114,128,.5)}
+.cambio p{font-size:.92rem;line-height:1.45}
+.cambio small{display:block;color:var(--text-3);font-size:.75rem;margin-top:3px}
+
+.avance{display:flex;align-items:center;gap:13px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border)}
+.avance-barra{flex:1;height:6px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.avance-barra i{display:block;height:100%;width:100%;background:var(--ok);border-radius:99px;
+  transform-origin:left center;transition:transform .6s var(--ease)}
+.avance b{font-size:.85rem;font-variant-numeric:tabular-nums;color:var(--text-2)}
+
+/* Link final */
+.link-final{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:20px;border-radius:var(--r-sm);margin-top:4px;
+  background:linear-gradient(135deg,rgba(34,197,94,.13),rgba(6,182,212,.09));
+  border:1px solid rgba(34,197,94,.28)}
+.link-final b{font-size:1.3rem;font-weight:700;letter-spacing:-.02em;word-break:break-all}
+.link-final small{display:block;color:var(--text-2);font-size:.8rem;margin-top:3px}
+
+.pie{padding:26px 0 40px;border-top:1px solid var(--border);color:var(--text-3);font-size:.85rem;
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+
+/* ---------- Conmutador de maqueta (NO va en la versión real) ---------- */
+.demo-bar{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;
+  background:rgba(10,14,28,.96);backdrop-filter:blur(16px);border-top:1px solid var(--border-2);
+  padding:11px 16px calc(11px + env(safe-area-inset-bottom));
+}
+.demo-bar p{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:9px}
+.demo-chips{display:flex;gap:7px;overflow-x:auto;scrollbar-width:thin;padding-bottom:2px}
+.chip{white-space:nowrap;min-height:36px;padding:0 13px;border-radius:99px;cursor:pointer;
+  border:1px solid var(--border-2);background:transparent;color:var(--text-2);font:500 .8rem Inter,sans-serif}
+.chip:hover{color:var(--text)}
+.chip[aria-pressed="true"]{background:var(--primary);border-color:transparent;color:#fff;font-weight:600}
+
+@media (max-width:760px){
+  .hero{padding:26px 0 20px}
+  .hero h1{font-size:1.6rem}
+  .hero-fila{align-items:flex-start}
+  .hero-num b{font-size:2.5rem}
+  .pasos{grid-template-columns:repeat(5,1fr);gap:5px}
+  .paso-t{font-size:.68rem}
+  .paso-n{width:23px;height:23px;font-size:.72rem}
+  .etapa{padding:22px 18px;border-radius:12px}
+  .etapa h2{font-size:1.18rem}
+  .etapa-ico{width:38px;height:38px}
+  .acciones .btn{flex:1 1 100%}
+  .monto b{font-size:2rem}
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="marca"><span class="marca-punto"></span>Ariel.Dev</div>
+  <div class="top-priv">
+    <svg class="ico ico-sm" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+    Link privado
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div class="hero-fila">
+      <div>
+        <h1>Hola, Juan</h1>
+        <p class="hero-proyecto" id="proyecto">Panadería La Espiga</p>
+      </div>
+      <div class="hero-num"><b id="num">15</b><span>Avance</span></div>
+    </div>
+    <div class="barra"><i id="barra" style="transform:scaleX(.15)"></i></div>
+    <ol class="pasos" id="pasos"></ol>
+  </section>
+
+  <div id="etapa"></div>
+
+  <footer class="pie">
+    <span>Cualquier duda me escribís por WhatsApp.</span>
+    <a class="btn btn-o" href="#" style="text-decoration:none">
+      <svg class="ico ico-sm" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg>
+      Escribirme
+    </a>
+  </footer>
+</main>
+
+<nav class="demo-bar" aria-label="Selector de etapa (solo maqueta)">
+  <p>Maqueta · tocá una etapa para verla</p>
+  <div class="demo-chips" id="chips"></div>
+</nav>
+
+<script>
+const I = {
+  reloj:'<path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="9"/>',
+  ojo:'<path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/>',
+  tarjeta:'<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h3"/>',
+  lista:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
+  globo:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/>',
+  subir:'<path d="M12 19V5"/><path d="m5.5 11.5 6.5-6.5 6.5 6.5"/>',
+  check:'<path d="m4.5 12.5 5 5 10-11"/>',
+  copiar:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/>',
+  alerta:'<path d="M12 4.5 2.8 20h18.4L12 4.5z"/><path d="M12 10v4M12 17.2h.01"/>',
+  wa:'<path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/>',
+  cohete:'<path d="M13.5 4.5c3.5-2 6-1 6-1s1 2.5-1 6c-1.7 3-5 6-7 7l-4-4c1-2 4-5.3 6-8z"/><path d="M7.5 12.5 4 14l2 2 2 2 1.5-3.5"/>',
+  cruz:'<path d="M7 7l10 10M17 7 7 17"/>'
+};
+const svg = (k,c='ico') => `<svg class="${c}" viewBox="0 0 24 24">${I[k]}</svg>`;
+
+const PASOS = ["Demo","Anticipo","Cambios","Dominio","Entrega"];
+const DEMO_URL = "panaderia-espiga.vercel.app";
+const FINAL_URL = "panaderiaespiga.com";
+
+/* Cada etapa declara: en qué paso del rail está, cuánto avance muestra,
+   y qué tarjeta ve el cliente. */
+const ETAPAS = {
+  demo_pendiente:{ paso:0, num:5, chip:"1 · Armando la demo", ico:"reloj", tono:"espera",
+    h:"Estamos armando tu demo",
+    s:"Te aviso por WhatsApp apenas esté lista para que la veas. Por ahora no tenés que hacer nada.",
+    cuerpo:`<div class="nota">${svg('info','ico ico-sm')}<div>Este link es tuyo y no vence. Guardalo: desde acá vas a seguir todo el proyecto de punta a punta.</div></div>` },
+
+  demo_lista:{ paso:0, num:15, chip:"2 · Demo lista", ico:"ojo",
+    h:"Tu demo está lista",
+    s:"Miralá con calma, desde la computadora y desde el celular. Si te convence cómo va, arrancamos con tu página de verdad.",
+    cuerpo:`
+      <a class="btn btn-p" href="#" style="text-decoration:none">${svg('ojo','ico ico-sm')} Ver la demo</a>
+      <p style="color:var(--text-3);font-size:.85rem;margin-top:10px">${DEMO_URL}</p>
+      <div class="nota">${svg('info','ico ico-sm')}<div>Si continuás, el primer paso es el <strong>anticipo del 50%</strong>. El otro 50% se paga recién cuando la página está publicada y funcionando.</div></div>
+      <div class="acciones">
+        <button class="btn btn-ok">${svg('check','ico ico-sm')} Sí, quiero continuar</button>
+        <button class="btn btn-q">Por ahora no</button>
+      </div>` },
+
+  anticipo_pendiente:{ paso:1, num:30, chip:"3 · Anticipo 50%", ico:"tarjeta",
+    h:"Anticipo del 50%",
+    s:"Con el anticipo arranco a trabajar y se te habilita la lista de cambios para dejar la página a tu gusto.",
+    cuerpo:`
+      <div class="monto"><b>USD 200</b><span>de USD 400 totales</span></div>
+      <div class="ops" style="margin-top:18px">
+        <label class="op"><input type="radio" name="pago" checked><span class="op-marca"></span>
+          <span class="op-txt"><b>Mercado Pago</b><small>Tarjeta, débito o dinero en cuenta. Se acredita al instante.</small></span></label>
+        <label class="op"><input type="radio" name="pago"><span class="op-marca"></span>
+          <span class="op-txt"><b>Transferencia</b><small>Transferís y subís la foto del comprobante.</small></span></label>
+      </div>
+      <div class="datos">
+        <div class="dato"><span><small>Alias</small><b>Ariel.fit</b></span><button class="copiar">${svg('copiar','ico ico-sm')} Copiar</button></div>
+        <div class="dato"><span><small>Titular</small><b>Ariel Omar Martinelli</b></span></div>
+        <div class="dato"><span><small>Banco</small><b>Mercado Pago</b></span></div>
+      </div>
+      <div class="acciones">
+        <button class="btn btn-p">${svg('tarjeta','ico ico-sm')} Pagar con Mercado Pago</button>
+        <button class="btn btn-o">${svg('subir','ico ico-sm')} Subir comprobante</button>
+      </div>` },
+
+  anticipo_revision:{ paso:1, num:30, chip:"3b · Comprobante en revisión", ico:"reloj", tono:"espera",
+    h:"Recibí tu comprobante",
+    s:"Lo estoy verificando. Apenas confirmo el pago se te habilita la lista de cambios — normalmente en el día.",
+    cuerpo:`
+      <div class="nota warn">${svg('alerta','ico ico-sm')}<div>Si necesitás que lo mire ya, escribime por WhatsApp y lo destrabo en el momento.</div></div>
+      <div class="cambio" style="margin-top:16px">
+        <span class="cambio-est">${svg('reloj','ico ico-sm')}</span>
+        <div><p>Comprobante de transferencia · USD 200</p><small>Subido hoy 14:32 · en revisión</small></div>
+      </div>` },
+
+  en_produccion:{ paso:2, num:58, chip:"4 · Tus cambios", ico:"lista",
+    h:"Contame qué querés cambiar",
+    s:"Escribí cada cambio por separado, así los voy tachando a medida que los hago. Podés seguir sumando mientras trabajo.",
+    cuerpo:`
+      <div class="fila-campo">
+        <label class="campo"><span>Nuevo cambio</span>
+          <input type="text" placeholder="Ej: cambiar el color del botón de contacto"></label>
+        <button class="btn btn-p" style="margin-bottom:0">Agregar</button>
+      </div>
+      <ul class="cambios">
+        <li class="cambio ok"><span class="cambio-est">${svg('check','ico ico-sm')}</span><div><p>Poner el logo nuevo en el encabezado</p><small>Listo</small></div></li>
+        <li class="cambio ok"><span class="cambio-est">${svg('check','ico ico-sm')}</span><div><p>Cambiar los horarios de atención</p><small>Listo</small></div></li>
+        <li class="cambio"><span class="cambio-est">${svg('reloj','ico ico-sm')}</span><div><p>Sumar el mapa de cómo llegar</p><small>En curso</small></div></li>
+        <li class="cambio"><span class="cambio-est">${svg('reloj','ico ico-sm')}</span><div><p>Agregar las fotos de las tortas</p><small>Pendiente</small></div></li>
+      </ul>
+      <div class="avance"><b>2 de 4</b><div class="avance-barra"><i style="transform:scaleX(.5)"></i></div><b>50%</b></div>
+      <div class="nota">${svg('info','ico ico-sm')}<div>Cuando terminemos con todos los cambios te habilito el paso siguiente: elegir la dirección de tu página.</div></div>` },
+
+  dominio:{ paso:3, num:80, chip:"5 · Elegir dominio", ico:"globo",
+    h:"Elegí la dirección de tu página",
+    s:"Ya están todos los cambios hechos. Falta decidir con qué dirección va a quedar publicada.",
+    cuerpo:`
+      <div class="ops">
+        <label class="op"><input type="radio" name="dom" checked><span class="op-marca"></span>
+          <span class="op-txt"><b>La dirección que ya tiene</b><small>${DEMO_URL}</small></span>
+          <span class="op-precio free">Incluido</span></label>
+        <label class="op"><input type="radio" name="dom"><span class="op-marca"></span>
+          <span class="op-txt"><b>Un dominio propio</b><small>Más corto y más fácil de recordar. Lo compro y lo configuro yo.</small></span>
+          <span class="op-precio">+USD 10</span></label>
+      </div>
+      <label class="campo"><span>¿Qué dominio querés?</span>
+        <input type="text" placeholder="panaderiaespiga.com"></label>
+      <div class="nota">${svg('info','ico ico-sm')}<div>Los USD 10 del dominio propio se suman al pago final, así hacés una sola transferencia.</div></div>
+      <div class="acciones"><button class="btn btn-p">Confirmar y seguir ${svg('check','ico ico-sm')}</button></div>` },
+
+  publicando:{ paso:4, num:88, chip:"6 · Publicando", ico:"cohete", tono:"espera",
+    h:"Estamos publicando tu página",
+    s:`Ya tengo todo lo que necesito. Estoy subiendo la página y configurando <strong>${FINAL_URL}</strong>. Suele tardar unas horas.`,
+    cuerpo:`
+      <ul class="cambios">
+        <li class="cambio ok"><span class="cambio-est">${svg('check','ico ico-sm')}</span><div><p>Todos los cambios aplicados</p></div></li>
+        <li class="cambio ok"><span class="cambio-est">${svg('check','ico ico-sm')}</span><div><p>Dominio elegido: ${FINAL_URL}</p></div></li>
+        <li class="cambio"><span class="cambio-est">${svg('reloj','ico ico-sm')}</span><div><p>Subiendo la página y conectando el dominio</p><small>En curso</small></div></li>
+      </ul>
+      <div class="nota">${svg('info','ico ico-sm')}<div>No tenés que hacer nada. Apenas esté lista te habilito el último paso acá mismo y te aviso por WhatsApp.</div></div>` },
+
+  saldo_pendiente:{ paso:4, num:95, chip:"7 · Pago final", ico:"tarjeta",
+    h:"Último paso: el saldo",
+    s:"Tu página ya está lista y funcionando. Con este pago queda publicada y es toda tuya.",
+    cuerpo:`
+      <div class="desglose">
+        <div><span class="det">Saldo del desarrollo (50%)</span><span>USD 200</span></div>
+        <div><span class="det">Dominio propio · ${FINAL_URL}</span><span>USD 10</span></div>
+        <div><span>Total a pagar</span><span>USD 210</span></div>
+      </div>
+      <div class="datos">
+        <div class="dato"><span><small>Alias</small><b>Ariel.fit</b></span><button class="copiar">${svg('copiar','ico ico-sm')} Copiar</button></div>
+        <div class="dato"><span><small>Titular</small><b>Ariel Omar Martinelli</b></span></div>
+        <div class="dato"><span><small>Banco</small><b>Mercado Pago</b></span></div>
+      </div>
+      <div class="acciones">
+        <button class="btn btn-p">${svg('tarjeta','ico ico-sm')} Pagar con Mercado Pago</button>
+        <button class="btn btn-o">${svg('subir','ico ico-sm')} Subir comprobante</button>
+      </div>` },
+
+  finalizado:{ paso:4, num:100, chip:"8 · En línea", ico:"check", tono:"listo",
+    h:"Tu página está en línea",
+    s:"Listo el proyecto. Quedó publicada, es tuya, y este link te va a seguir funcionando por si querés volver a mirar el historial.",
+    cuerpo:`
+      <div class="link-final">
+        <div><b>${FINAL_URL}</b><small>Publicada y funcionando</small></div>
+        <a class="btn btn-ok" href="#" style="text-decoration:none">Abrir mi página</a>
+      </div>
+      <div class="nota ok">${svg('check','ico ico-sm')}<div>Pagos al día: USD 410 de USD 410.</div></div>
+      <div class="nota">${svg('wa','ico ico-sm')}<div>¿Querés sumar algo más adelante? Escribime y lo vemos.</div></div>` },
+
+  rechazado:{ paso:-1, num:0, chip:"✕ No continúa", ico:"cruz", tono:"espera",
+    h:"Quedamos en contacto",
+    s:"Anotado: por ahora no seguimos. Gracias por tomarte el tiempo de mirar la demo.",
+    cuerpo:`
+      <div class="nota">${svg('info','ico ico-sm')}<div>Si cambiás de idea, escribime y lo retomamos exactamente desde donde quedó. La demo queda guardada.</div></div>
+      <div class="acciones"><a class="btn btn-p" href="#" style="text-decoration:none">${svg('wa','ico ico-sm')} Escribirme</a></div>` },
+};
+
+const $ = (s) => document.querySelector(s);
+
+function pintar(clave){
+  const e = ETAPAS[clave];
+
+  $("#num").textContent = e.num;
+  $("#barra").style.transform = `scaleX(${e.num/100})`;
+
+  $("#pasos").innerHTML = PASOS.map((t,i)=>{
+    const cls = e.paso < 0 ? "" : i < e.paso ? "hecho" : i === e.paso ? "activo" : "";
+    const marca = (e.paso >= 0 && i < e.paso) ? svg('check','ico ico-sm') : (i+1);
+    return `<li class="paso ${cls}"><span class="paso-n">${marca}</span><span class="paso-t">${t}</span></li>`;
+  }).join("");
+
+  $("#etapa").innerHTML = `
+    <section class="etapa">
+      <div class="etapa-cab">
+        <div class="etapa-ico ${e.tono||''}">${svg(e.ico)}</div>
+        <div><h2>${e.h}</h2><p class="etapa-sub">${e.s}</p></div>
+      </div>
+      <div class="etapa-cuerpo">${e.cuerpo}</div>
+    </section>`;
+
+  document.querySelectorAll("#chips .chip").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.k === clave)));
+}
+
+$("#chips").innerHTML = Object.entries(ETAPAS)
+  .map(([k,e]) => `<button class="chip" data-k="${k}" aria-pressed="false">${e.chip}</button>`).join("");
+$("#chips").addEventListener("click", (ev) => {
+  const b = ev.target.closest(".chip");
+  if (b) pintar(b.dataset.k);
+});
+
+pintar("demo_lista");
+</script>
+</body>
+</html>

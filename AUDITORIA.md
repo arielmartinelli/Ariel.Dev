@@ -578,3 +578,190 @@ romperse o, peor, de abrir algo sin querer.
 Las dos últimas son las que más importan: la función elige campo por campo qué
 mandar en vez de serializar la fila entera. Si algún día alguien la cambia por
 un `to_jsonb(c)`, esas dos pruebas son las que lo detectan.
+
+---
+
+## 11. Auditoría de seguridad y funcionamiento (segunda revisión)
+
+Revisión enfocada en lo que pediste: token de sesión, control de administrador,
+límites de frecuencia y funcionamiento general. Todo lo de abajo se verificó
+ejecutándolo, no leyendo el código.
+
+### Lo que ya estaba bien
+
+| Chequeo | Resultado |
+|---|---|
+| El UID de admin **no aparece** en ningún archivo JavaScript | ✅ |
+| No hay **ninguna** decisión de acceso del lado del cliente | ✅ |
+| `service_role`, `MP_ACCESS_TOKEN` y el UID **no están** en el bundle público | ✅ |
+| Toda interpolación en `innerHTML` pasa por `escapeHtml`/`safeUrl` | ✅ |
+| El token del cliente **no** se guarda en `localStorage` | ✅ |
+| Sin token válido, el portal **no filtra ningún dato** | ✅ |
+| El comprobante **no viaja** de vuelta al navegador del cliente | ✅ |
+| CSP con `script-src 'self'` (sin CDNs, sin `unsafe-inline`) | ✅ |
+
+La clave anon **sí** está en el bundle, y está bien que esté: es pública por
+diseño. Lo que protege los datos son las policies RLS, no esconderla.
+
+### 🟠 S-02 · El comprobante no tenía límite de frecuencia
+
+`portal_subir_comprobante` aceptaba imágenes de hasta 2 MB sin ningún tope de
+llamadas. Con un link válido —el de un cliente real, o uno filtrado— se podían
+subir en bucle.
+
+**Corregido:** 5 subidas por hora y por cliente. El límite se evalúa **antes**
+de validar la imagen; si no, cada intento rechazado igual obliga al servidor a
+recibir y analizar 2 MB. Verificado: la sexta llamada seguida se rechaza.
+
+### 🟠 S-03 · La sesión vencida no se detectaba
+
+No había nada escuchando el estado de autenticación. Si dejabas el panel
+abierto y el token vencía (o el refresco fallaba por un corte de internet),
+todas las acciones empezaban a fallar con errores de permisos **y la pantalla
+seguía mostrando datos viejos**. Se veía como «el panel se rompió», no como
+«se venció la sesión».
+
+**Corregido:** `onAuthStateChange` devuelve al login con el motivo escrito.
+
+### 🟠 S-04 · El modo sin configurar estaba roto
+
+El cliente falso que se usa cuando falta el `.env` solo imitaba
+`from().select()`, `insert`, `update` y `delete`. El código nuevo usa además
+`rpc()`, `maybeSingle()`, `neq()` y `limit()` — así que sin `.env` el portal
+moría con `supabase.rpc is not a function` en vez de degradar con elegancia,
+que era todo el propósito de ese objeto.
+
+**Corregido:** ahora es un encadenador genérico y `rpc()` devuelve un error
+explicativo.
+
+### 🟡 S-06 · El formato del comprobante lo validaba un solo lugar
+
+Solo la función del portal verificaba que la imagen fuera PNG/JPG/WEBP. Una
+validación que vive en un único punto se pierde el día que alguien agrega una
+segunda vía de entrada.
+
+**Corregido en dos capas:** un `CHECK` en la base (verificado: rechaza un SVG
+aunque se intente insertar directamente, saltándose la función) y
+`safeImageSrc()` al mostrarlo en el panel. `escapeHtml` solo impide romper el
+atributo — no valida **qué** se está cargando.
+
+### 🟡 S-07 · No había forma de detectar un link filtrado
+
+**Agregado:** cada cliente registra `last_seen_at` y `view_count`, y la ficha
+del panel lo muestra en texto claro: *«Visto 12 veces · última hace 3 h»*. Si
+un link acumula cientos de vistas y el cliente no fue, se avisa que conviene
+revocarlo.
+
+De paso responde algo más mundano: **si el cliente abrió el link alguna vez**,
+o si nunca le llegó.
+
+### Dónde vive el token de sesión — y por qué
+
+El JWT se guarda en **`localStorage`**. Es el comportamiento por defecto de
+`supabase-js` y, para una app sin backend propio, es la opción razonable: la
+alternativa —cookie `httpOnly`— exige un servidor que maneje la sesión, que es
+justamente lo que este proyecto no tiene.
+
+La consecuencia hay que decirla: **si algún día entra un XSS en el panel, el
+token es robable.** Por eso el proyecto no depende de esconderlo — escape en
+todas las interpolaciones, CSP estricta, rotación automática del token, y
+sobre todo la autorización real en RLS: un token robado no habilita más de lo
+que ya habilita la cuenta.
+
+Se agregó `detectSessionInUrl: false`: el portal del cliente nunca usa
+sesiones, y no queremos que un flujo futuro de Supabase deje una sesión activa
+en esa página.
+
+### Lo que NO se hizo, y por qué
+
+**Límite de frecuencia en `portal_obtener`.** Es una lectura anónima y de alta
+frecuencia: el portal la llama en cada carga. Limitarla desde Postgres
+obligaría a escribir una fila por cada lectura —más caro que el ataque que
+evita— y además **Postgres no ve la IP del que llama**, así que no podría
+distinguir a un cliente recargando de un atacante.
+
+Ese límite corresponde al borde, no a la base. Dos opciones concretas:
+
+- **Vercel:** Firewall → Rate Limiting sobre `/cliente/*`
+- **Cloudflare** delante del dominio, con una regla por IP
+
+Adivinar un token es inviable de todos modos (43 caracteres aleatorios ≈ 2²⁵⁶
+combinaciones). Lo que un límite al borde protege es **tu cuota de Supabase**,
+no los datos.
+
+### Para revisar en tu panel de Supabase
+
+1. **Authentication → Providers → Email → «Allow new users to sign up»: OFF.**
+   Con la clave anon pública, cualquiera puede registrarse solo. Las policies
+   RLS lo frenan igual (exigen tu UID exacto), pero es superficie de ataque
+   regalada y llena tu tabla de usuarios.
+
+2. **Authentication → Rate Limits.** Supabase trae límites propios para el
+   login. Confirmá que estén activos: el proyecto no agrega ninguno encima.
+
+### Rendimiento
+
+| Archivo | gzip | Nota |
+|---|---|---|
+| `main.js` (portada) | 10,4 kB | código propio |
+| `admin.js` | 13,1 kB | solo lo baja quien entra a `/admin` |
+| `cliente.js` | 5,2 kB | solo el portal |
+| `supabase.js` | **57,4 kB** | sigue siendo el más pesado |
+
+La optimización pendiente sigue siendo la misma de la sección 6: leer el
+portfolio con `fetch` directo a PostgREST y cargar el SDK completo solo al
+abrir el panel. Serían ~57 kB menos en la portada.
+
+**Un límite a tener presente:** los comprobantes se guardan como base64 dentro
+de la tabla `payments`. Para tu volumen (2-3 pagos por cliente, ~200 KB cada
+imagen) es intrascendente. Si algún día pasás de unos cientos de comprobantes,
+conviene moverlos a Supabase Storage con URLs firmadas — no por seguridad,
+sino porque una tabla con megabytes por fila hace lentos hasta los `SELECT`
+que ni siquiera piden esa columna.
+
+---
+
+## 12. El flujo del proyecto no se podía manejar desde el panel
+
+**Síntoma reportado:** «no me deja manejar de mi panel el flujo del proyecto,
+no deja pasar los otros pasos».
+
+**Causa raíz.** Todo el flujo (demo → decisión → producción → dominio → 100%)
+estaba escrito asumiendo que siempre lo movía el cliente desde su portal. En
+la práctica la mitad de los pasos se arreglan por WhatsApp. El panel solo
+tenía un `<select>` de estado, y ese select no alcanzaba, por tres motivos
+distintos que se confirmaron reproduciéndolos contra un Postgres real:
+
+| # | Callejón sin salida | Reproducido |
+|---|---|---|
+| F-30 | `domain_choice` solo lo escribía `portal_elegir_dominio`. Sin esa columna, `calcular_progreso()` topeaba en 99 y `portal_obtener` nunca exponía `production_url`. Poner «Finalizado» en el panel no cambiaba nada. | Todas las tareas hechas + estado finalizado → **99%**, cliente sin link |
+| F-31 | `client_decision` era una traba de una sola dirección: escrita una vez, `portal_decidir` contesta «Ya registramos tu respuesta» para siempre. Volver el estado a «Demo lista» no servía, porque la guarda mira la decisión, no el estado. | Cliente que dijo que no → reintento rechazado |
+| F-32 | Mover el estado a mano saltaba los efectos. El anticipo del 50% lo creaba `portal_decidir`; si el cliente confirmaba por WhatsApp, el proyecto arrancaba **sin ningún cobro cargado** y no aparecía en el tablero. | 0 filas en `payments` |
+
+**Arreglo.** `supabase/migracion-04-flujo-admin.sql`:
+
+- `admin_mover_flujo(client_id, status, dominio, dominio_nombre, reabrir_decision)`
+  hace la transición y **sus efectos** en la misma transacción: crea el
+  anticipo, crea o borra el cobro del dominio, limpia la decisión.
+- Es **`SECURITY INVOKER`** a propósito: las policies RLS siguen decidiendo.
+  No hay un uid hardcodeado más que mantener. Verificado: otro usuario
+  autenticado recibe «no se encontró el cliente»; `anon` ni siquiera puede
+  ejecutarla (`permission denied for function`).
+- `calcular_progreso()` ahora también llega a 100 con el proyecto en
+  «Finalizado» y el dominio definido — antes un proyecto sin tareas cargadas
+  se quedaba en 0% aunque estuviera entregado.
+- `portal_decidir()` reordena `position` a partir de las tareas existentes,
+  para que reabrir un proyecto no pise el orden de las tareas viejas.
+
+**Panel.** La ficha del cliente ahora abre con un bloque **«Flujo del
+proyecto»**: los 5 pasos con su estado real, un cartel que dice *qué* está
+frenando el 100% (ámbar = te toca a vos, azul = esperando al cliente, verde =
+nada pendiente), el selector de etapa, el selector de dominio con su nombre, y
+el botón de reabrir la decisión. Los avisos que devuelve la función se
+muestran al guardar, así que ya no hay forma de dejar el proyecto en un estado
+que el cliente no puede ver sin enterarse.
+
+**Bug encontrado por el propio test:** `v_avisos || 'texto'` sobre un `text[]`
+falla con *malformed array literal* — Postgres interpreta el literal como
+array. Corregido con `array_append()`. Si no hubiera corrido el SQL de verdad,
+esto llegaba a producción.

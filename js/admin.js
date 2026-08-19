@@ -20,13 +20,11 @@
 
 import { supabase, isSupabaseConfigured } from "./supabase.js";
 import { adminTareasDeTodos, adminPagosDeTodos, adminListarClientes, adminMarcarTarea, adminMarcarPago, adminObtenerComprobante, ETIQUETA_PAGO } from "./clients.js";
-import { escapeHtml } from "./security.js";
-import { configurarDialogos, confirmar, avisar, pedirTexto } from "./ui-dialogs.js";
+import { escapeHtml, safeImageSrc } from "./security.js";
+import { configurarDialogos, confirmar, avisar } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
 import { iniciarSeccionClientes, refrescarClientes } from "./admin-clients.js";
 import { iniciarSeccionPortfolio, refrescarPortfolio } from "./admin-portfolio.js";
-import { obtenerResenasAdmin, togglePublicarResena, eliminarResena, actualizarUrlResena } from "./reviews.js";
-import { safeUrl } from "./security.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -35,7 +33,6 @@ const TITULOS = {
   clientes: "Clientes",
   cobros: "Cobros",
   portfolio: "Portfolio",
-  resenas: "Reseñas de Clientes",
 };
 
 let vistaActual = "resumen";
@@ -109,10 +106,40 @@ $("btn-logout").addEventListener("click", async () => {
   try {
     await supabase.auth.signOut();
   } finally {
-    $("admin-shell").classList.add("hidden");
-    $("admin-login").classList.remove("hidden");
     $("login-email").value = "";
-    $("login-password").value = "";
+    volverAlLogin();
+  }
+});
+
+/**
+ * Vuelve a la pantalla de acceso.
+ * @param {string} motivo  Se muestra en el login para que no parezca un
+ *                         cierre de sesión arbitrario.
+ */
+function volverAlLogin(motivo = "") {
+  $("admin-shell").classList.add("hidden");
+  $("admin-login").classList.remove("hidden");
+  $("login-password").value = "";
+  $("login-error").textContent = motivo;
+}
+
+/**
+ * Vigila la sesión.
+ *
+ * BUG CORREGIDO: no había nada escuchando el estado de autenticación. Si
+ * dejabas el panel abierto y el token vencía (o el refresco fallaba porque se
+ * cortó internet), TODAS las acciones empezaban a fallar con errores de
+ * permisos — y la pantalla seguía mostrando datos viejos como si nada. Se
+ * veía como "el panel se rompió", no como "se venció la sesión".
+ *
+ * Ahora, apenas Supabase avisa que no hay sesión, se vuelve al login con el
+ * motivo escrito.
+ */
+supabase.auth.onAuthStateChange((evento, sesion) => {
+  const panelAbierto = !$("admin-shell").classList.contains("hidden");
+
+  if ((evento === "SIGNED_OUT" || !sesion) && panelAbierto) {
+    volverAlLogin("Tu sesión venció. Volvé a entrar para seguir.");
   }
 });
 
@@ -147,9 +174,7 @@ function cambiarVista(vista) {
   });
 
   document.querySelectorAll(".admin-vista").forEach((sec) => {
-    const activa = sec.id === `vista-${vista}`;
-    sec.classList.toggle("hidden", !activa);
-    sec.hidden = !activa;
+    sec.classList.toggle("hidden", sec.id !== `vista-${vista}`);
   });
 
   $("admin-titulo").textContent = TITULOS[vista] || "Panel";
@@ -227,142 +252,10 @@ export async function refrescarTodo() {
     pintarBadges();
     refrescarClientes(clientes);
     await refrescarPortfolio();
-    await refrescarResenas();
   } finally {
     boton.classList.remove("girando");
     boton.disabled = false;
   }
-}
-
-export async function refrescarResenas() {
-  const cont = $("admin-lista-resenas");
-  if (!cont) return;
-
-  const linkResena = `${window.location.origin}/resena`;
-
-  const btnCopiar = $("btn-copiar-link-resena");
-  if (btnCopiar && !btnCopiar.dataset.bound) {
-    btnCopiar.dataset.bound = "true";
-    btnCopiar.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(linkResena);
-        avisar("Link copiado", `Se copió ${linkResena} al portapapeles. Podés enviárselo a tus clientes anteriores.`, "success");
-      } catch {
-        avisar("Link de reseña", `Copiá este enlace para enviar a tus clientes: ${linkResena}`, "info");
-      }
-    });
-  }
-
-  const btnWa = $("btn-wa-link-resena");
-  if (btnWa && !btnWa.dataset.bound) {
-    btnWa.dataset.bound = "true";
-    btnWa.addEventListener("click", () => {
-      const texto = `¡Hola! Te escribo para agradecerte por haber trabajado juntos en tu proyecto web. Me ayudaría muchísimo si me dejás una breve reseña de tu experiencia acá:\n\n${linkResena}\n\n¡Muchas gracias! 🙌`;
-      window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
-    });
-  }
-
-  cont.innerHTML = "<p class='admin-hint'>Cargando reseñas…</p>";
-  const lista = await obtenerResenasAdmin();
-
-  if (!lista || lista.length === 0) {
-    cont.innerHTML = `
-      <div style="padding: 24px; text-align: center; border: 1px dashed var(--border); border-radius: 12px; background: rgba(0,0,0,0.02);">
-        <p style="color: var(--text-secondary); font-weight: 600;">Aún no recibiste reseñas de clientes.</p>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Cuando tus clientes completen la reseña desde su portal, aparecerán acá automáticamente.</p>
-      </div>`;
-    return;
-  }
-
-  cont.innerHTML = "";
-  lista.forEach((r) => {
-    const estrellasStr = "⭐".repeat(r.rating || 5);
-    const card = document.createElement("div");
-    card.style.cssText = `
-      background: var(--surface);
-      border: 1px solid ${r.is_published ? "rgba(16, 185, 129, 0.3)" : "var(--border)"};
-      border-radius: 12px;
-      padding: 16px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      transition: all 0.2s ease;
-    `;
-
-    const fechaStr = r.created_at ? new Date(r.created_at).toLocaleDateString("es-AR") : "";
-
-    card.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
-        <div>
-          <div style="font-weight: 700; font-size: 1rem; color: var(--text); display: flex; align-items: center; gap: 8px;">
-            ${escapeHtml(r.client_name)}
-            <span style="font-size: 0.85rem;">${estrellasStr}</span>
-          </div>
-          <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">
-            ${r.project_name ? escapeHtml(r.project_name) : 'Proyecto Web'}
-            ${r.company_url ? ` · <a href="${safeUrl(r.company_url, '#')}" target="_blank" rel="noopener" style="color:var(--primary);">${escapeHtml(r.company_url)}</a>` : ''}
-            ${fechaStr ? ` · ${fechaStr}` : ''}
-          </div>
-        </div>
-
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 20px; ${r.is_published ? 'background: rgba(16, 185, 129, 0.15); color: #10b981;' : 'background: rgba(239, 68, 68, 0.15); color: #ef4444;'}">
-            ${r.is_published ? '✓ En Portfolio' : '🙈 Oculta'}
-          </span>
-
-          <button type="button" class="btn btn-sm btn-outline" data-accion="editar-url">
-            ${r.company_url ? "🌐 Editar Link" : "🔗 Asignar Link"}
-          </button>
-
-          <button type="button" class="btn btn-sm ${r.is_published ? 'btn-outline' : 'btn-primary'}" data-accion="toggle-vis">
-            ${r.is_published ? 'Ocultar' : 'Mostrar en Web'}
-          </button>
-          
-          <button type="button" class="btn btn-sm btn-outline admin-btn-peligro" data-accion="eliminar-resena">
-            Eliminar
-          </button>
-        </div>
-      </div>
-
-      <div style="font-size: 0.92rem; color: var(--text); line-height: 1.5; background: rgba(0,0,0,0.02); padding: 12px; border-radius: 8px; font-style: italic;">
-        "${escapeHtml(r.comment)}"
-      </div>
-    `;
-
-    card.querySelector('[data-accion="editar-url"]').addEventListener("click", async () => {
-      const nuevaUrl = await pedirTexto({
-        titulo: `Link web para ${r.client_name}`,
-        texto: "Ingresá la URL del sitio web del cliente para que aparezca el botón 'Ver página ↗' en tu portfolio (o dejalo vacío para quitarlo):",
-        placeholder: "Ej: https://lopez-odontologia.com",
-        valorInicial: r.company_url || "",
-      });
-      if (nuevaUrl === null) return;
-      await actualizarUrlResena(r.id, nuevaUrl);
-      await refrescarResenas();
-      avisar("Link Guardado", nuevaUrl ? `Se asignó ${nuevaUrl} a la reseña.` : "Se quitó el link web de la reseña.", "success");
-    });
-
-    card.querySelector('[data-accion="toggle-vis"]').addEventListener("click", async () => {
-      await togglePublicarResena(r.id, !r.is_published);
-      await refrescarResenas();
-      avisar("Actualizado", r.is_published ? "La reseña quedó oculta." : "La reseña ya se muestra en tu sitio web.", "success");
-    });
-
-    card.querySelector('[data-accion="eliminar-resena"]').addEventListener("click", async () => {
-      const ok = await confirmar({
-        titulo: "¿Eliminar esta reseña?",
-        texto: "Esta acción no se puede deshacer.",
-        confirmar: "Sí, eliminar",
-        icono: "warning"
-      });
-      if (!ok) return;
-      await eliminarResena(r.id);
-      await refrescarResenas();
-      avisar("Reseña eliminada", "", "success");
-    });
-
-    cont.appendChild(card);
-  });
 }
 
 /**
@@ -787,13 +680,23 @@ async function revisarComprobante(pago) {
     return;
   }
 
+  // safeImageSrc además de escapeHtml: escapar solo impide romper el atributo,
+  // no valida QUÉ se está cargando. Hoy la única vía de entrada es la función
+  // del portal, que valida el formato — pero esta pantalla no tiene por qué
+  // depender de eso. Un SVG con <script> adentro se bloquea acá también.
+  const imagenSegura = safeImageSrc(comprobante.imagen, "");
+  if (!imagenSegura) {
+    avisar("Comprobante inválido", "El archivo guardado no es una imagen válida.", "error");
+    return;
+  }
+
   const r = await Swal.fire({
     title: `${ETIQUETA_PAGO[pago.kind] || pago.kind} · ${usd(pago.amountUsd)}`,
     html: `
       <p style="margin-bottom:12px;font-size:.9rem;opacity:.8">
         ${escapeHtml(pago.projectName)} — ${escapeHtml(pago.clientName)}
       </p>
-      <img src="${escapeHtml(comprobante.imagen)}" alt="Comprobante de transferencia"
+      <img src="${escapeHtml(imagenSegura)}" alt="Comprobante de transferencia"
            style="width:100%;max-height:52vh;object-fit:contain;border-radius:12px;
                   border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.3)">
       ${comprobante.nota
