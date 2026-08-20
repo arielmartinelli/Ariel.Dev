@@ -9,6 +9,7 @@
  * Las otras secciones viven en sus propios módulos:
  *   js/admin-clients.js    -> Clientes
  *   js/admin-portfolio.js  -> Portfolio
+ *   js/admin-reviews.js    -> Reseñas
  *   (Cobros está acá abajo porque es una sola tabla)
  *
  * SOBRE LA SEGURIDAD: esconder el dashboard NO es un control de acceso. Todo
@@ -25,6 +26,7 @@ import { configurarDialogos, confirmar, avisar } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
 import { iniciarSeccionClientes, refrescarClientes } from "./admin-clients.js";
 import { iniciarSeccionPortfolio, refrescarPortfolio } from "./admin-portfolio.js";
+import { iniciarSeccionResenas, refrescarResenas } from "./admin-reviews.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -33,6 +35,7 @@ const TITULOS = {
   clientes: "Clientes",
   cobros: "Cobros",
   portfolio: "Portfolio",
+  resenas: "Reseñas",
 };
 
 let vistaActual = "resumen";
@@ -150,6 +153,7 @@ async function entrarAlPanel() {
   if (!seccionesIniciadas) {
     iniciarSeccionClientes();
     iniciarSeccionPortfolio();
+    iniciarSeccionResenas();
     seccionesIniciadas = true;
   }
 
@@ -235,6 +239,11 @@ export async function refrescarTodo() {
       adminListarClientes().catch(atrapar),
       adminTareasDeTodos().catch(atrapar),
       adminPagosDeTodos().catch(atrapar),
+
+      // Las reseñas se pintan solas y no alimentan ningún KPI, así que van en
+      // la misma tanda pero con su propio manejo de error: si fallan, el resto
+      // del panel tiene que cargar igual.
+      refrescarResenas().catch((e) => console.error("Reseñas:", e)),
     ]);
 
     cacheClientes = clientes;

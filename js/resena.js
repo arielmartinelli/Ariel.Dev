@@ -24,13 +24,21 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.textContent = "Guardando reseña…";
 
     try {
-      await guardarResena({
+      const res = await guardarResena({
         client_name: nombre,
         project_name: empresa || "Proyecto Web",
         company_url: "", // El link del sitio web lo asigna Ariel desde el panel de administración
         rating: estrellas,
         comment: comentario,
       });
+
+      // Antes esto no se miraba: guardarResena devolvía ok:true siempre, así
+      // que el cliente veía la pantalla de éxito con el confeti aunque su
+      // reseña no se hubiera guardado en ningún lado.
+      if (!res?.ok) {
+        avisar("No se pudo enviar", res?.error || "Probá de nuevo en un momento.", "error");
+        return;
+      }
 
       document.getElementById("card-form-resena").classList.add("hidden");
       document.getElementById("card-exito-resena").classList.remove("hidden");

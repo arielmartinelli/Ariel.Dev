@@ -765,3 +765,82 @@ que el cliente no puede ver sin enterarse.
 falla con *malformed array literal* — Postgres interpreta el literal como
 array. Corregido con `array_append()`. Si no hubiera corrido el SQL de verdad,
 esto llegaba a producción.
+
+---
+
+## 13. Las reseñas reales no se veían y en su lugar salían tres inventadas
+
+**Síntoma reportado:** «no me cargan las reseñas».
+
+**Causa raíz — F-40: `GRANT` vs RLS, otra vez.** `migracion-04-resenas.sql`
+creó la tabla `reviews` con la policy correcta…
+
+```sql
+CREATE POLICY "Reseñas publicas visibles" ON public.reviews
+  FOR SELECT USING (is_published = true);
+```
+
+…pero **nunca otorgó el `GRANT`**. Sin él, la consulta muere antes de que
+Postgres llegue a evaluar la policy: `permission denied for table reviews`.
+Es exactamente el mismo error que ya había pasado con `clients` (F-20).
+Reproducido en Postgres con la tabla creada igual y una reseña publicada
+adentro.
+
+**Por qué nadie se enteró — F-41.** `reviews.js` trataba ese error como «no
+hay reseñas» y caía a un respaldo de `localStorage` precargado con **tres
+testimonios falsos escritos a mano**, con nombre y apellido. O sea: la home
+mostraba testimonios inventados y escondía los reales, sin un solo error en
+consola. Un fallo silencioso que se disfraza de contenido es peor que una
+pantalla en blanco.
+
+**F-42 — `admin_notes` usado como buzón público.** Si la tabla fallaba, el
+segundo respaldo metía la reseña como JSON dentro de
+`clients.admin_notes` del **primer cliente que encontrara** (`.limit(1)`), y
+la lectura de vuelta exponía esas notas privadas al sitio público. Eliminado.
+
+**F-43 — éxito falso.** `guardarResena()` devolvía `{ ok: true }` siempre,
+incluso sin haber guardado nada. El cliente veía la pantalla de éxito con
+confeti y su texto se perdía. Ahora devuelve el error real y `resena.js` lo
+muestra.
+
+**Arreglo:** `supabase/migracion-06-resenas-permisos.sql` (6 ✅) agrega los
+GRANT que faltaban — `SELECT, INSERT` para anon, todo para `authenticated` —
+y redefine las policies: anon **no** puede editar ni borrar reseñas, las
+despublicadas quedan invisibles para el público, y la policy de admin deja de
+depender de `auth.role()` (deprecada en Supabase).
+
+`js/reviews.js` reescrito: la base es la única fuente de verdad, localStorage
+queda solo como caché de lectura y **nunca inventa nada**. Verificado en
+navegador en tres escenarios: con reseñas reales se ven las reales; sin
+permisos y sin reseñas se muestra «Próximamente más testimonios» — en ningún
+caso vuelve a aparecer una falsa.
+
+---
+
+## 14. El apilado 3D de proyectos nunca se aplicaba
+
+**Síntoma reportado:** «el primer y segundo scroll de proyecto tiene como un bug».
+
+**F-44.** `initStackingProjectsScroll()` leía las tarjetas **una sola vez**, al
+arrancar la página:
+
+```js
+let cachedCards = container.querySelectorAll('.sticky-stack-card, .stage-card');
+```
+
+Pero los proyectos vienen de Supabase y se pintan después, así que la lista
+quedaba vacía y `updateStacking()` salía en la primera línea, para siempre.
+Comprobado en el navegador: **ninguna** tarjeta recibía `transform`. El efecto
+de escala y oscurecido al apilarse era código muerto.
+
+**F-45 — lectura después de escritura.** Dentro del mismo bucle se escribía
+`card.style.top` y enseguida se leía `getBoundingClientRect()` de las tarjetas
+siguientes. Cada lectura después de una escritura fuerza al navegador a
+recalcular el layout a mitad del bucle, y en la primera pasada las tarjetas de
+más abajo **todavía no tenían su `top` puesto**: se medían mal y el apilado
+salía con la escala equivocada justo en los primeros scrolls.
+
+**Arreglo:** `renderPortfolio()` llama a `recachearApilado()` al terminar de
+pintar, y `updateStacking()` pasa a tres pasadas separadas — escribir todos los
+`top`, leer todos los rects de una, aplicar todos los transforms. Verificado en
+navegador: las tarjetas ahora escalan progresivamente (1 → 0.965 → 0.93 → 0.895).

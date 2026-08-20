@@ -1434,3 +1434,100 @@
 
     .res-proyecto-derecha { width: 100%; justify-content: space-between; }
 }
+
+/* ==========================================================================
+   RESEÑAS
+   --------------------------------------------------------------------------
+   Cada testimonio es una tarjeta. Las que no están publicadas se ven
+   atenuadas y con el borde punteado: se distingue de un vistazo qué está en
+   la web y qué no, sin tener que leer el chip.
+   ========================================================================== */
+.resena-admin {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+}
+
+.resena-admin.oculta {
+    border-style: dashed;
+    opacity: 0.62;
+}
+
+.resena-admin-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 11px;
+}
+
+.resena-admin-head strong { font-size: 0.97rem; }
+
+.resena-admin-proyecto {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.resena-admin-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.resena-admin-estrellas {
+    color: #fbbf24;
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+}
+
+.resena-admin-chip {
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(148, 163, 184, 0.16);
+    color: var(--text-secondary);
+}
+
+.resena-admin-chip.viva {
+    background: rgba(34, 197, 94, 0.16);
+    color: #4ade80;
+}
+
+.resena-admin-texto {
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    /* Los testimonios largos no deben empujar los botones fuera de la vista. */
+    max-width: 78ch;
+}
+
+.resena-admin-pie {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+    padding-top: 13px;
+    border-top: 1px solid var(--border);
+}
+
+.resena-admin-pie a { color: var(--primary-light); }
+
+.resena-admin-acciones {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .resena-admin-head { flex-direction: column; }
+    .resena-admin-pie { flex-direction: column; align-items: stretch; }
+    .resena-admin-acciones .btn { flex: 1; min-height: 42px; }
+}

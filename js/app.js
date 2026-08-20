@@ -351,6 +351,12 @@ document.addEventListener("DOMContentLoaded", () => {
             if (typeof init3DTilt === "function") {
                 init3DTilt();
             }
+
+            // Las tarjetas RECIÉN existen ahora. initStackingProjectsScroll()
+            // corrió al arrancar la página, cuando el contenedor todavía estaba
+            // vacío, así que su lista de tarjetas quedó en cero y el efecto de
+            // apilado no se aplicaba nunca. Hay que volver a leerla acá.
+            recachearApilado();
         }, 200);
     }
 
@@ -1608,7 +1614,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /**
-     * Apilamiento 3D interactivo en la sección de proyectos al hacer scroll
+     * Vuelve a leer las tarjetas del apilado y repinta.
+     *
+     * Arranca como función vacía y la reemplaza initStackingProjectsScroll().
+     * Existe porque renderPortfolio() pinta las tarjetas DESPUÉS de que el
+     * efecto se inicializó, y sin esto la lista de tarjetas quedaba vacía para
+     * siempre.
+     */
+    let recachearApilado = () => {};
+
+    /**
+     * Apilamiento 3D interactivo en la sección de proyectos al hacer scroll.
+     *
+     * DOS BUGS QUE TENÍA
+     * ------------------
+     * 1. Las tarjetas se leían UNA sola vez, al arrancar la página. Pero los
+     *    proyectos vienen de Supabase y se pintan después, así que la lista
+     *    quedaba en cero y el efecto no se aplicaba nunca. Comprobado en el
+     *    navegador: ninguna tarjeta recibía transform. Se arregla con
+     *    recachearApilado(), que llama renderPortfolio() al terminar de pintar.
+     *
+     * 2. Dentro del mismo bucle se ESCRIBÍA card.style.top y enseguida se LEÍA
+     *    getBoundingClientRect() de las tarjetas siguientes. Cada lectura
+     *    después de una escritura obliga al navegador a recalcular el layout a
+     *    mitad del bucle, y encima en la primera pasada las tarjetas de más
+     *    abajo todavía no tenían su top puesto: se medían mal y el apilado
+     *    salía con la escala equivocada justo en los primeros scrolls. Ahora
+     *    va en tres pasadas: escribir todo, leer todo, aplicar todo.
      */
     function initStackingProjectsScroll() {
         const container = document.getElementById('projects-stack-container');
@@ -1617,6 +1649,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // Cache de referencia a las tarjetas para evitar querySelectorAll en cada frame
         let cachedCards = container.querySelectorAll('.sticky-stack-card, .stage-card');
         let ticking = false;
+
+        recachearApilado = () => {
+            cachedCards = container.querySelectorAll('.sticky-stack-card, .stage-card');
+            updateStacking();
+        };
 
         const updateStacking = () => {
             if (cachedCards.length === 0) return;
@@ -1637,29 +1674,40 @@ document.addEventListener("DOMContentLoaded", () => {
             const stepOffset = isMobile ? 24 : 35;
             const startTop = isMobile ? 80 : 160;
 
+            const overlapThreshold = 220;
+            const isLightTheme = document.body.classList.contains('light-theme');
+
+            // PASADA 1 — escribir. Todos los `top` de una, sin leer nada en el
+            // medio.
+            const baseTops = new Array(totalCards);
+            for (let i = 0; i < totalCards; i++) {
+                baseTops[i] = startTop + (i * stepOffset);
+                cachedCards[i].style.top = `${baseTops[i]}px`;
+            }
+
+            // PASADA 2 — leer. Un solo recálculo de layout para todas, y ya con
+            // los `top` nuevos aplicados. Antes esto se leía a mitad del bucle
+            // de escritura y las mediciones salían de una posición vieja.
+            const topsReales = new Array(totalCards);
+            for (let i = 0; i < totalCards; i++) {
+                topsReales[i] = cachedCards[i].getBoundingClientRect().top;
+            }
+
+            // PASADA 3 — aplicar.
             for (let index = 0; index < totalCards; index++) {
                 const card = cachedCards[index];
-                const baseTop = startTop + (index * stepOffset);
-                card.style.top = `${baseTop}px`;
+                const baseTop = baseTops[index];
 
-                const overlapThreshold = 220;
                 let stackedAbove = 0;
-
                 for (let k = index + 1; k < totalCards; k++) {
-                    const nextCard = cachedCards[k];
-                    const nextBaseTop = startTop + (k * stepOffset);
-                    const nextTop = nextCard.getBoundingClientRect().top;
-                    const diff = nextTop - nextBaseTop;
-
+                    const diff = topsReales[k] - baseTops[k];
                     if (diff < overlapThreshold) {
-                        const progress = Math.max(0, Math.min(1, 1 - (diff / overlapThreshold)));
-                        stackedAbove += progress;
+                        stackedAbove += Math.max(0, Math.min(1, 1 - (diff / overlapThreshold)));
                     }
                 }
 
                 const innerCard = card.querySelector('.stage-card-inner') || card;
-                const currentTop = card.getBoundingClientRect().top;
-                const isLightTheme = document.body.classList.contains('light-theme');
+                const currentTop = topsReales[index];
 
                 if (currentTop <= baseTop + 20) {
                     const targetScale = Math.max(0.78, 1 - (stackedAbove * 0.035));

@@ -1,231 +1,201 @@
+/**
+ * reviews.js — Reseñas de clientes.
+ *
+ * LA BASE ES LA ÚNICA FUENTE DE VERDAD
+ * ------------------------------------
+ * La versión anterior tenía tres orígenes de datos compitiendo, y por eso el
+ * sitio mostraba testimonios inventados mientras escondía los reales:
+ *
+ *   1. La tabla `reviews` de Supabase — la buena.
+ *   2. localStorage, precargado con TRES reseñas falsas escritas a mano
+ *      («Mariano López», «Camila Fernández», «Gonzalo Peralta»).
+ *   3. Un respaldo que metía la reseña como JSON dentro de
+ *      `clients.admin_notes` del primer cliente que encontrara.
+ *
+ * Cuando la lectura de `reviews` fallaba —y fallaba siempre, porque a la
+ * tabla le faltaba el GRANT para el rol público— el código lo interpretaba
+ * como «no hay reseñas» y pasaba al respaldo. Resultado: la home mostraba las
+ * tres falsas, con nombre y apellido, y ninguna de las reales.
+ *
+ * Los respaldos 2 y 3 se eliminan por completo:
+ *
+ *   - Las reseñas falsas se van. Un testimonio inventado con nombre propio no
+ *     es un dato de relleno: es algo que hay que poder sostener si alguien
+ *     pregunta.
+ *   - Escribir en `admin_notes` era peor que inútil. Elegía UN cliente
+ *     cualquiera (`.limit(1)`), le ensuciaba sus notas privadas, y la lectura
+ *     de vuelta exponía esas notas al sitio público. Notas privadas usadas
+ *     como buzón público.
+ *
+ * localStorage queda solo como caché de lectura: si la red falla, se muestra
+ * lo último que YA se había traído de la base. Nunca inventa nada.
+ *
+ * Ver supabase/migracion-06-resenas-permisos.sql.
+ */
+
 import { supabase } from "./supabase.js";
 
-const LOCAL_STORAGE_KEY = "ariel_dev_reviews_v1";
+const CACHE_KEY = "arieldev_resenas_cache_v2";
 
-const INITIAL_REVIEWS = [
-  {
-    id: "rev-1",
-    client_name: "Mariano López",
-    project_name: "López Odontología",
-    company_url: "lopez-odontologia.com",
-    rating: 5,
-    comment: "Excelente trabajo de Ariel. La página quedó super rápida, moderna y mis pacientes ahora agendan turnos directamente desde el celular.",
-    is_published: true,
-    created_at: new Date(Date.now() - 86400000 * 15).toISOString(),
-  },
-  {
-    id: "rev-2",
-    client_name: "Camila Fernández",
-    project_name: "Aura Boutique Store",
-    company_url: "auraboutique.com.ar",
-    rating: 5,
-    comment: "El seguimiento en vivo fue lo mejor. Sabía exactamente qué paso venía y el diseño superó mis expectativas. 100% recomendable.",
-    is_published: true,
-    created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
-  },
-  {
-    id: "rev-3",
-    client_name: "Gonzalo Peralta",
-    project_name: "TaskFlow SaaS",
-    company_url: "taskflow-app.io",
-    rating: 5,
-    comment: "Atención personalizada impecable, desarrollo a medida rápido y entrega con dominio configurado sin vueltas.",
-    is_published: true,
-    created_at: new Date(Date.now() - 86400000 * 45).toISOString(),
-  }
-];
-
-function leerLocal() {
+/* ==========================================================================
+   Caché de lectura
+   ========================================================================== */
+function leerCache() {
   try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_REVIEWS));
-      return INITIAL_REVIEWS;
-    }
-    return JSON.parse(raw);
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    return INITIAL_REVIEWS;
+    return [];
   }
 }
 
-function guardarLocal(lista) {
+function guardarCache(lista) {
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(lista));
+    localStorage.setItem(CACHE_KEY, JSON.stringify(lista || []));
   } catch {
-    // Silencioso
+    // Modo incógnito o storage lleno: no es motivo para romper nada.
   }
 }
 
+/* ==========================================================================
+   Lectura
+   ========================================================================== */
+
+/**
+ * Todas las reseñas. Con sesión de Ariel trae también las despublicadas;
+ * sin sesión, las policies RLS devuelven solo las publicadas.
+ *
+ * Devuelve { ok, resenas, error, desdeCache } — el `ok` importa: sin él, un
+ * fallo de permisos era indistinguible de «todavía no hay reseñas», que es
+ * exactamente lo que escondió este problema durante semanas.
+ */
+export async function obtenerResenas() {
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("No se pudieron leer las reseñas:", error.message);
+    return {
+      ok: false,
+      resenas: leerCache(),
+      desdeCache: true,
+      error: mensajeReseña(error),
+    };
+  }
+
+  const resenas = data || [];
+  guardarCache(resenas);
+  return { ok: true, resenas, desdeCache: false, error: null };
+}
+
+/** Compatibilidad con el panel: devuelve el array pelado. */
+export async function obtenerResenasAdmin() {
+  const { resenas } = await obtenerResenas();
+  return resenas;
+}
+
+/** Las que van en la home. */
+export async function obtenerResenasPublicas() {
+  const { resenas } = await obtenerResenas();
+  return resenas.filter((r) => r.is_published);
+}
+
+/* ==========================================================================
+   Escritura
+   ========================================================================== */
+
+/**
+ * Guarda una reseña nueva.
+ *
+ * OJO: antes esta función devolvía `{ ok: true }` SIEMPRE, incluso cuando no
+ * había guardado nada en ningún lado. El cliente veía «¡gracias por tu
+ * reseña!» y su texto se perdía. Ahora, si la base rechaza, se devuelve el
+ * error y la pantalla lo dice.
+ */
 export async function guardarResena({ client_name, project_name, company_url, rating, comment }) {
-  const nuevaResena = {
-    id: `rev-${Date.now()}`,
-    client_name: (client_name || "Cliente").trim(),
-    project_name: (project_name || "").trim(),
-    company_url: (company_url || "").trim(),
+  const fila = {
+    client_name: String(client_name || "").trim(),
+    project_name: String(project_name || "").trim() || null,
+    company_url: String(company_url || "").trim() || null,
     rating: Math.max(1, Math.min(5, Number(rating) || 5)),
-    comment: (comment || "").trim(),
+    comment: String(comment || "").trim(),
     is_published: true,
-    created_at: new Date().toISOString(),
   };
 
-  // 1. Guardar localmente
-  const listaLocal = leerLocal();
-  listaLocal.unshift(nuevaResena);
-  guardarLocal(listaLocal);
-
-  // 2. Intentar guardar en Supabase tabla `reviews`
-  let guardadoEnTabla = false;
-  try {
-    const { error } = await supabase.from("reviews").insert([
-      {
-        client_name: nuevaResena.client_name,
-        project_name: nuevaResena.project_name,
-        company_url: nuevaResena.company_url,
-        rating: nuevaResena.rating,
-        comment: nuevaResena.comment,
-        is_published: true,
-      }
-    ]);
-    if (!error) guardadoEnTabla = true;
-  } catch (e) {
-    console.warn("Tabla reviews no disponible en Supabase:", e?.message);
+  if (!fila.client_name || fila.comment.length < 2) {
+    return { ok: false, error: "Falta tu nombre o el comentario." };
   }
 
-  // 3. Fallback inteligente: si tabla `reviews` no existe, guardar en admin_notes del cliente en Supabase
-  if (!guardadoEnTabla) {
-    try {
-      const { data: clientes } = await supabase.from("clients").select("id, admin_notes").limit(1);
-      if (clientes && clientes.length > 0) {
-        const target = clientes[0];
-        const resenaTag = `[RESEÑA_JSON:${JSON.stringify(nuevaResena)}]`;
-        const nuevasNotas = ((target.admin_notes || "") + " " + resenaTag).trim();
-        await supabase.from("clients").update({ admin_notes: nuevasNotas }).eq("id", target.id);
-      }
-    } catch (e) {
-      console.warn("Fallback clients en Supabase:", e?.message);
-    }
+  const { data, error } = await supabase.from("reviews").insert([fila]).select();
+
+  if (error) {
+    console.error("No se pudo guardar la reseña:", error.message);
+    return { ok: false, error: mensajeReseña(error) };
   }
 
-  return { ok: true, resena: nuevaResena };
+  return { ok: true, resena: data?.[0] || fila };
 }
 
-export async function obtenerResenasAdmin() {
-  // 1. Probar tabla nativa `reviews`
-  try {
-    const { data, error } = await supabase.from("reviews").select("*").order("created_at", { ascending: false });
-    if (!error && data && data.length > 0) {
-      return data;
-    }
-  } catch (e) {
-    console.warn("Tabla reviews no accesible:", e?.message);
-  }
-
-  // 2. Probar rescate desde `clients.admin_notes` en Supabase
-  try {
-    const { data: clientes, error: errC } = await supabase.from("clients").select("admin_notes");
-    if (!errC && clientes) {
-      const extraidas = [];
-      clientes.forEach((c) => {
-        const matches = (c.admin_notes || "").match(/\[RESEÑA_JSON:(.*?)\]/g);
-        if (matches) {
-          matches.forEach((m) => {
-            try {
-              const jsonStr = m.replace(/^\[RESEÑA_JSON:/, "").replace(/\]$/, "");
-              const rObj = JSON.parse(jsonStr);
-              if (rObj && rObj.id && !extraidas.some(item => item.id === rObj.id)) {
-                extraidas.push(rObj);
-              }
-            } catch {}
-          });
-        }
-      });
-
-      if (extraidas.length > 0) {
-        const combinadas = [...extraidas];
-        const local = leerLocal();
-        local.forEach((l) => {
-          if (!combinadas.some(item => item.id === l.id)) {
-            combinadas.push(l);
-          }
-        });
-        guardarLocal(combinadas);
-        return combinadas;
-      }
-    }
-  } catch (e) {
-    console.warn("Fallback lectura clientes en Supabase:", e?.message);
-  }
-
-  return leerLocal();
-}
-
-export async function obtenerResenasPublicas() {
-  const todas = await obtenerResenasAdmin();
-  return todas.filter(r => r.is_published);
-}
-
+/** Publicar o despublicar. Solo con sesión: lo exige la policy RLS. */
 export async function togglePublicarResena(id, publicar) {
-  const lista = leerLocal();
-  const res = lista.find(r => r.id === id);
-  if (res) {
-    res.is_published = publicar;
-    guardarLocal(lista);
-  }
+  const { error } = await supabase
+    .from("reviews")
+    .update({ is_published: Boolean(publicar) })
+    .eq("id", id);
 
-  try {
-    await supabase.from("reviews").update({ is_published: publicar }).eq("id", id);
-  } catch {}
+  if (error) {
+    console.error("togglePublicarResena:", error.message);
+    return { ok: false, error: mensajeReseña(error) };
+  }
   return { ok: true };
 }
 
 export async function eliminarResena(id) {
-  const lista = leerLocal().filter(r => r.id !== id);
-  guardarLocal(lista);
-
-  try {
-    await supabase.from("reviews").delete().eq("id", id);
-  } catch {}
+  const { error } = await supabase.from("reviews").delete().eq("id", id);
+  if (error) {
+    console.error("eliminarResena:", error.message);
+    return { ok: false, error: mensajeReseña(error) };
+  }
   return { ok: true };
 }
 
 export async function actualizarUrlResena(id, company_url) {
-  const urlLimpia = (company_url || "").trim();
-  const lista = leerLocal();
-  const res = lista.find(r => r.id === id);
-  if (res) {
-    res.company_url = urlLimpia;
-    guardarLocal(lista);
+  const url = String(company_url || "").trim();
+  const { error } = await supabase
+    .from("reviews")
+    .update({ company_url: url || null })
+    .eq("id", id);
+
+  if (error) {
+    console.error("actualizarUrlResena:", error.message);
+    return { ok: false, error: mensajeReseña(error) };
   }
-
-  try {
-    await supabase.from("reviews").update({ company_url: urlLimpia }).eq("id", id);
-  } catch {}
-
-  // Fallback en clients.admin_notes si aplica
-  try {
-    const { data: clientes } = await supabase.from("clients").select("id, admin_notes");
-    if (clientes) {
-      for (const c of clientes) {
-        if (c.admin_notes && c.admin_notes.includes(id)) {
-          const matches = c.admin_notes.match(/\[RESEÑA_JSON:(.*?)\]/g);
-          if (matches) {
-            let notas = c.admin_notes;
-            matches.forEach((m) => {
-              try {
-                const jsonStr = m.replace(/^\[RESEÑA_JSON:/, "").replace(/\]$/, "");
-                const rObj = JSON.parse(jsonStr);
-                if (rObj.id === id) {
-                  rObj.company_url = urlLimpia;
-                  notas = notas.replace(m, `[RESEÑA_JSON:${JSON.stringify(rObj)}]`);
-                }
-              } catch {}
-            });
-            await supabase.from("clients").update({ admin_notes: notas }).eq("id", c.id);
-          }
-        }
-      }
-    }
-  } catch {}
-
   return { ok: true };
+}
+
+/* ==========================================================================
+   Errores en castellano
+   ========================================================================== */
+function mensajeReseña(error) {
+  const msg = String(error?.message || "");
+  const code = String(error?.code || "");
+
+  // El error que causó todo esto. Merece un mensaje que diga qué hacer.
+  if (code === "42501" || /permission denied/i.test(msg)) {
+    return "La base no está dando permiso para leer o escribir las reseñas. " +
+           "Falta correr supabase/migracion-06-resenas-permisos.sql en Supabase.";
+  }
+  if (code === "PGRST205" || code === "42P01" || /schema cache|does not exist/i.test(msg)) {
+    return "La tabla de reseñas todavía no existe en Supabase. " +
+           "Corré supabase/migracion-06-resenas-permisos.sql.";
+  }
+  if (/violates row-level security/i.test(msg)) {
+    return "La base rechazó la reseña. Revisá que el nombre y el comentario no estén vacíos.";
+  }
+  if (/Failed to fetch|NetworkError/i.test(msg)) {
+    return "Sin conexión con el servidor. Probá de nuevo en un momento.";
+  }
+  return "No se pudo completar la operación con las reseñas.";
 }
