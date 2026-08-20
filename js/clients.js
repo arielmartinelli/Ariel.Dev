@@ -527,10 +527,47 @@ export async function adminPagosDeTodos() {
    Utilidades compartidas
    ========================================================================== */
 
-/** Arma el link privado que se le pasa al cliente por WhatsApp. */
-export function urlPortal(token, origen = window.location.origin) {
+/* --------------------------------------------------------------------------
+   EL LINK DEL CLIENTE SIEMPRE APUNTA AL DOMINIO DE PRODUCCIÓN
+   --------------------------------------------------------------------------
+   Antes se armaba con `window.location.origin`, o sea con la dirección desde
+   la que estuviera abierto el panel. Suena inofensivo y es un desastre: si
+   entrás al panel por una URL de preview de Vercel
+   (algo-xxxxx-tu-proyecto.vercel.app), TODOS los links que copies y les mandes
+   a tus clientes apuntan a ese preview. Y un preview:
+
+     - está protegido por Vercel: al cliente le pide iniciar sesión en Vercel,
+       una cuenta que obviamente no tiene;
+     - es una foto congelada de ese build, así que nunca muestra los cambios
+       que subas después;
+     - se da de baja con el tiempo y el link queda muerto para siempre.
+
+   Por eso el dominio sale de una constante, no de la barra de direcciones.
+   Se puede pisar con VITE_SITE_URL si algún día cambia el dominio.
+   -------------------------------------------------------------------------- */
+const SITIO_PUBLICO =
+  String(import.meta.env.VITE_SITE_URL || "https://arieldev.com").replace(/\/+$/, "");
+
+/** ¿Esta dirección es un preview de Vercel (o cualquier cosa que no sea el sitio real)? */
+export function esUrlDePreview(origen = window.location.origin) {
+  try {
+    const h = new URL(origen).hostname;
+    return h.endsWith(".vercel.app") || h.endsWith(".now.sh");
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Arma el link privado que se le pasa al cliente por WhatsApp.
+ * Sin `origen`, usa SIEMPRE el dominio público — nunca el del navegador.
+ */
+export function urlPortal(token, origen = SITIO_PUBLICO) {
   return `${origen}/cliente/${encodeURIComponent(token)}`;
 }
+
+/** El dominio público que se está usando para armar los links. */
+export const sitioPublico = SITIO_PUBLICO;
 
 /**
  * ¿El error dice que las tablas del portal todavía no existen?

@@ -900,6 +900,20 @@
    el color dice el estado sin depender del ícono (que además está marcado
    aria-hidden, porque el texto ya lo explica).
    ========================================================================== */
+/* Aviso de que el panel esta abierto desde un preview de Vercel. Es el error
+   que hacia que los links de los clientes pidieran login de Vercel. */
+.admin-aviso-preview {
+    margin-top: 10px;
+    padding: 11px 13px;
+    border-radius: 9px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    background: rgba(245, 158, 11, 0.09);
+    border: 1px solid rgba(245, 158, 11, 0.26);
+}
+.admin-aviso-preview strong { color: var(--text-primary); }
+
 .flujo-cab {
     display: flex;
     align-items: center;

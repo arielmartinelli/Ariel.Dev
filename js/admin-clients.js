@@ -17,7 +17,7 @@ import {
   adminCrearCliente, adminActualizarCliente, adminMoverFlujo, adminEliminarCliente, adminRevocarLink,
   adminListarTareas, adminAgregarTarea, adminMarcarTarea, adminEliminarTarea,
   adminListarPagos, adminMarcarPago, adminCrearSaldoFinal, adminCrearCobroManual,
-  urlPortal, ESTADOS, ORDEN_ETAPAS, SIGUIENTE_PASO, ETIQUETA_PAGO,
+  urlPortal, esUrlDePreview, sitioPublico, ESTADOS, ORDEN_ETAPAS, SIGUIENTE_PASO, ETIQUETA_PAGO,
 } from "./clients.js";
 import { escapeHtml, safeUrl, sanitizeText } from "./security.js";
 import { confirmar, avisar } from "./ui-dialogs.js";
@@ -440,6 +440,13 @@ function ficha(c) {
           : "⚠️ Link revocado: el cliente ya no puede entrar."}
       </p>
       <p class="admin-hint">${rastroDeAcceso(c)}</p>
+      ${esUrlDePreview() ? `
+        <p class="admin-aviso-preview">
+          <strong>Ojo:</strong> estás viendo el panel desde una URL de preview de Vercel.
+          El link de arriba igual apunta a ${escapeHtml(sitioPublico)}, que es el correcto —
+          pero para evitar confusiones conviene entrar al panel por
+          ${escapeHtml(sitioPublico)}/admin.
+        </p>` : ""}
     </div>
 
     ${bloqueFlujo(c)}
