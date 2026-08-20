@@ -4007,7 +4007,7 @@ body.light-theme .admin-step-item {
 
 .loader-logo {
   font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 2.5rem;
+  font-size: 1.85rem;
   font-weight: 800;
   color: #ffffff;
   letter-spacing: -0.5px;
@@ -4029,27 +4029,4 @@ body.light-theme .admin-step-item {
 @keyframes blinkCursor {
   from { opacity: 1; }
   to { opacity: 0; }
-}
-
-.loader-bar-container {
-  width: 220px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  overflow: hidden;
-  position: relative;
-}
-
-.loader-bar {
-  width: 0%;
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary, #6366f1), var(--accent, #d946ef), #06b6d4);
-  border-radius: 4px;
-  transition: width 0.4s ease;
-}
-
-.loader-status-text {
-  font-size: 0.84rem;
-  color: var(--text-secondary, #94a3b8);
-  letter-spacing: 0.5px;
 }

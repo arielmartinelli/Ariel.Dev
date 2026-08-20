@@ -1380,17 +1380,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ==========================================================================
-    // Preloader con Logo Tipeándose
+    // Preloader con Logo Tipeándose (Diseño elegante y velocidad adaptada)
     // ==========================================================================
     function initPreloader() {
         const loader = document.getElementById("page-loader");
         const typewriterEl = document.getElementById("loader-typewriter");
-        const progressBar = document.getElementById("loader-progress-bar");
-        const statusEl = document.getElementById("loader-status");
         if (!loader || !typewriterEl) return { finish: () => {} };
 
         const fullText = "Ariel.Dev";
         let charIdx = 0;
+        const startTime = Date.now();
+        const MIN_DISPLAY_TIME = 3200; // 3.2 segundos mínimos para dar tiempo a la carga de proyectos
 
         const typeInterval = setInterval(() => {
             if (charIdx <= fullText.length) {
@@ -1399,19 +1399,16 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 clearInterval(typeInterval);
             }
-        }, 110);
-
-        if (progressBar) {
-            setTimeout(() => { progressBar.style.width = "75%"; }, 100);
-        }
+        }, 220); // El doble de tiempo por carácter para una tipeada pausada y elegante
 
         return {
             finish: () => {
-                if (progressBar) progressBar.style.width = "100%";
-                if (statusEl) statusEl.textContent = "¡Listo!";
+                const elapsed = Date.now() - startTime;
+                const remaining = Math.max(0, MIN_DISPLAY_TIME - elapsed);
+
                 setTimeout(() => {
                     loader.classList.add("hidden-loader");
-                }, 400);
+                }, remaining);
             }
         };
     }
