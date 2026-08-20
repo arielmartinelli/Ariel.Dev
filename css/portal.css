@@ -1,22 +1,16 @@
 /* ==========================================================================
-   portal.css — Portal privado del cliente
-   --------------------------------------------------------------------------
-   Una sola pantalla, una sola tarjeta a la vez. El cliente entra casi siempre
-   desde el celular y desde un link de WhatsApp: por eso todo está pensado
-   móvil primero y no hay ninguna interacción que dependa del hover.
-
-   Hereda las variables de styles.css (--primary, --text-primary, --border…).
+   portal.css — Portal privado del cliente (Diseño Rediseñado & Premium)
    ========================================================================== */
 
 .portal-body {
-  background: var(--bg-dark);
-  color: var(--text-primary);
-  font-family: var(--font-body);
+  background: #070913;
+  background-image: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.14) 0%, transparent 65%);
+  color: var(--text-primary, #ffffff);
+  font-family: var(--font-body, "Inter", sans-serif);
   min-height: 100vh;
-  padding-bottom: 40px;
+  padding-bottom: 50px;
 }
 
-/* styles.css le pone 100px de padding a todo <section>. Acá estorba. */
 .portal-body section { padding: 0; }
 
 .hidden { display: none !important; }
@@ -25,15 +19,14 @@
   position: absolute;
   left: -9999px;
   top: 0;
-  z-index: var(--z-toast);
+  z-index: var(--z-toast, 9999);
   padding: 10px 16px;
-  background: var(--primary);
+  background: var(--primary, #6366f1);
   color: #fff;
   border-radius: 0 0 8px 0;
 }
 .skip-link:focus { left: 0; }
 
-/* Iconos: SVG dibujados, mismo grosor de trazo en todo el portal. */
 .pico {
   width: 20px; height: 20px;
   display: block;
@@ -51,45 +44,53 @@
 .portal-top {
   position: sticky;
   top: 0;
-  z-index: var(--z-header);
+  z-index: var(--z-header, 1000);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 20px;
-  background: rgba(7, 9, 19, 0.86);
-  backdrop-filter: var(--glass-blur);
-  border-bottom: 1px solid var(--border);
+  padding: 16px 28px;
+  background: rgba(7, 9, 19, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .portal-marca {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-family: var(--font-heading);
-  font-weight: 700;
+  font-family: var(--font-heading, "Outfit", sans-serif);
+  font-weight: 800;
+  font-size: 1.25rem;
   letter-spacing: -0.02em;
+  color: #ffffff;
 }
 
 .portal-marca-punto {
-  width: 8px; height: 8px;
+  width: 9px; height: 9px;
   border-radius: 50%;
-  background: var(--primary);
-  box-shadow: 0 0 0 4px var(--primary-glow);
+  background: var(--primary, #6366f1);
+  box-shadow: 0 0 10px var(--primary, #6366f1);
 }
 
 .portal-privado {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
-  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .portal-main {
-  max-width: 940px;
+  max-width: 1040px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
 }
 
 /* ==========================================================================
@@ -103,22 +104,46 @@
   min-height: 62vh;
   padding: 40px 0;
 }
-.portal-centro h1 { font-size: 1.5rem; font-weight: 700; }
-.portal-centro p { color: var(--text-secondary); max-width: 46ch; }
+.portal-centro h1 { font-size: 1.6rem; font-weight: 700; color: #ffffff; }
+.portal-centro p { color: var(--text-secondary, #94a3b8); max-width: 46ch; }
 
 .portal-spinner {
-  width: 34px; height: 34px;
+  width: 38px; height: 38px;
   border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.12);
-  border-top-color: var(--primary);
+  border-top-color: var(--primary, #6366f1);
   animation: portal-girar 0.8s linear infinite;
 }
 @keyframes portal-girar { to { transform: rotate(360deg); } }
 
 /* ==========================================================================
-   Saludo + avance + riel de pasos
+   Saludo + avance + riel de pasos (Hero Card de Lujo)
    ========================================================================== */
-.portal-hero { padding: 34px 0 26px; }
+.portal-hero {
+  padding: 32px 36px;
+  margin: 28px 0 32px;
+  background: linear-gradient(145deg, rgba(20, 26, 45, 0.85), rgba(12, 16, 30, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  position: relative;
+}
+
+.portal-badge-estado {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--primary-light, #818cf8);
+  background: rgba(99, 102, 241, 0.12);
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  margin-bottom: 12px;
+}
 
 .portal-hero-fila {
   display: flex;
@@ -128,82 +153,95 @@
   flex-wrap: wrap;
 }
 
+.portal-hero-txt {
+  flex: 1;
+  min-width: 240px;
+}
+
 .portal-hero h1 {
-  font-family: var(--font-heading);
-  font-size: 2rem;
-  font-weight: 700;
+  font-family: var(--font-heading, "Outfit", sans-serif);
+  font-size: 2.2rem;
+  font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.15;
+  color: #ffffff;
 }
 
 .portal-hero-proyecto {
-  margin-top: 5px;
-  color: var(--text-secondary);
-  font-size: 1.0625rem;
+  margin-top: 6px;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 1.05rem;
+  font-weight: 500;
 }
 
-/* El numero y su simbolo van en la MISMA linea de base. Antes el % no
-   existia y quedaba un numero suelto que no se leia como porcentaje. El
-   simbolo va mas chico y en gris: acompana, no compite. */
+.portal-hero-num-box {
+  text-align: right;
+}
+
 .portal-hero-num {
-  /* Bloque con alineacion a la derecha, NO grid: el numero y el % son
-     elementos en linea y tienen que compartir renglon. Con grid cada uno
-     tomaba su propia fila y el % caia debajo del numero. */
   text-align: right;
   line-height: 1;
 }
 .portal-hero-num b {
-  font-family: var(--font-heading);
-  font-size: 3.4rem;
-  font-weight: 700;
+  font-family: var(--font-heading, "Outfit", sans-serif);
+  font-size: 3.6rem;
+  font-weight: 800;
   letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 .portal-hero-pct {
-  font-family: var(--font-heading);
-  font-size: 1.6rem;
-  font-weight: 700;
+  font-family: var(--font-heading, "Outfit", sans-serif);
+  font-size: 1.8rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--text-secondary);
+  color: var(--primary-light, #818cf8);
   margin-left: 2px;
 }
 .portal-hero-etq {
   display: block;
-  margin-top: 8px;
-  font-size: 0.72rem;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--text-muted);
+  color: var(--text-muted, #64748b);
 }
 
-/* Barra lineal. Se anima con transform, no con width: animar width obliga al
-   navegador a recalcular el layout en cada cuadro. */
 .portal-barra {
-  height: 6px;
+  height: 8px;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.07);
-  margin: 22px 0 26px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 24px 0 28px;
   overflow: hidden;
 }
 .portal-barra i {
   display: block;
   width: 100%; height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  background: linear-gradient(90deg, var(--primary, #6366f1), #06b6d4);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
   transform-origin: left center;
   transform: scaleX(0);
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Riel de pasos.
-   Cada paso centra su circulo y su etiqueta, y la linea que los une sale del
-   circulo hacia el siguiente. Antes el circulo iba pegado a la izquierda y la
-   raya arriba ocupaba toda la columna: no se leia como una secuencia unida,
-   se leia como cinco cosas sueltas mal alineadas. */
+/* Contenedor responsivo del riel de pasos */
+.portal-pasos-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 0 8px 0;
+  scrollbar-width: none;
+}
+.portal-pasos-wrapper::-webkit-scrollbar { display: none; }
+
 .portal-pasos {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(110px, 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
@@ -213,15 +251,14 @@
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 9px;
+  gap: 10px;
   text-align: center;
 }
 
-/* El conector: nace en el centro de este circulo y llega al del siguiente. */
 .portal-paso::before {
   content: "";
   position: absolute;
-  top: 13px;
+  top: 14px;
   left: 50%;
   width: 100%;
   height: 2px;
@@ -232,103 +269,105 @@
 .portal-paso.hecho::before { background: #22c55e; }
 
 .portal-paso-n {
-  position: relative;   /* por encima del conector */
+  position: relative;
   z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px; height: 26px;
+  width: 28px; height: 28px;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.14);
-  background: var(--bg-dark);
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  font-weight: 600;
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  background: #090d16;
+  color: var(--text-muted, #64748b);
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
 }
 
 .portal-paso-t {
   font-size: 0.8rem;
   font-weight: 500;
-  line-height: 1.25;
-  color: var(--text-muted);
+  line-height: 1.3;
+  color: var(--text-muted, #64748b);
+  transition: color 0.3s ease;
 }
 
-.portal-paso.hecho .portal-paso-n { background: rgba(34, 197, 94, 0.18); border-color: transparent; color: #4ade80; }
-.portal-paso.hecho .portal-paso-t { color: var(--text-secondary); }
+.portal-paso.hecho .portal-paso-n {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: #22c55e;
+  color: #4ade80;
+}
+.portal-paso.hecho .portal-paso-t { color: var(--text-secondary, #94a3b8); }
 
 .portal-paso.activo .portal-paso-n {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary, #6366f1), #06b6d4);
   border-color: transparent;
-  color: #fff;
-  /* Halo suave: marca donde esta parado sin agrandar el circulo y romper la
-     alineacion con el conector. */
-  box-shadow: 0 0 0 5px var(--primary-glow);
+  color: #ffffff;
+  box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.25);
 }
-.portal-paso.activo .portal-paso-t { color: var(--text-primary); font-weight: 600; }
+.portal-paso.activo .portal-paso-t { color: #ffffff; font-weight: 700; }
 
 /* ==========================================================================
    Dos columnas en pantalla ancha
-   --------------------------------------------------------------------------
-   Hasta 1000px va todo en una columna (celular y tablet). Arriba de eso, la
-   etapa a la izquierda y el resumen del proyecto a la derecha: antes la
-   tarjeta quedaba como una tira angosta en el medio de una pantalla de 1440
-   con medio metro de vacio a los costados.
    ========================================================================== */
 .portal-columnas { display: block; }
 
 .portal-resumen:empty { display: none; }
 
-@media (min-width: 1000px) {
-  .portal-main { max-width: 1160px; }
+@media (min-width: 992px) {
+  .portal-main { max-width: 1140px; }
 
   .portal-columnas {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 26px;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 28px;
     align-items: start;
   }
 
-  /* Acompana el scroll de la tarjeta, que es mas larga. */
-  .portal-resumen { position: sticky; top: 88px; }
+  .portal-resumen { position: sticky; top: 92px; }
   .portal-columnas > #pc-etapa > .portal-etapa { margin-top: 0; }
 }
 
 .portal-resumen-caja {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 22px;
+  background: linear-gradient(145deg, rgba(20, 26, 45, 0.8), rgba(12, 16, 30, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 24px;
   margin: 0 0 30px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
-@media (min-width: 1000px) {
+@media (min-width: 992px) {
   .portal-resumen-caja { margin: 0; }
 }
 
 .portal-resumen-caja h3 {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--text-muted);
+  color: var(--text-muted, #64748b);
   font-weight: 700;
 }
 
 .portal-resumen-nombre {
-  margin-top: 7px;
-  font-family: var(--font-heading);
-  font-size: 1.1rem;
+  margin-top: 6px;
+  font-family: var(--font-heading, "Outfit", sans-serif);
+  font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.3;
+  color: #ffffff;
 }
 
 .portal-resumen-datos {
   margin: 18px 0 0;
   display: grid;
   gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
   overflow: hidden;
 }
 .portal-resumen-datos > div {
@@ -336,19 +375,20 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  padding: 11px 13px;
-  background: var(--bg-surface-opaque);
+  padding: 12px 14px;
+  background: rgba(15, 20, 35, 0.85);
 }
-.portal-resumen-datos dt { font-size: 0.8rem; color: var(--text-secondary); }
+.portal-resumen-datos dt { font-size: 0.82rem; color: var(--text-secondary, #94a3b8); }
 .portal-resumen-datos dd {
   margin: 0;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
+  color: #ffffff;
   font-variant-numeric: tabular-nums;
 }
 .portal-resumen-datos dd.corta {
-  font-size: 0.82rem;
-  font-weight: 500;
+  font-size: 0.84rem;
+  font-weight: 600;
   text-align: right;
   word-break: break-all;
 }
@@ -358,26 +398,25 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 42px;
-  margin-top: 10px;
-  padding: 0 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border-hover);
-  color: var(--text-primary);
-  font-size: 0.85rem;
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  font-size: 0.88rem;
   font-weight: 600;
   text-decoration: none;
-  transition: border-color 0.18s, background 0.18s;
+  transition: all 0.2s ease;
 }
 .portal-resumen-link:hover {
-  border-color: rgba(255, 255, 255, 0.32);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--primary, #6366f1);
+  background: rgba(99, 102, 241, 0.12);
 }
 
-/* En celular el resumen queda justo arriba del pie, que ya tiene su propio
-   "Escribirme". Dos botones identicos separados por 3cm es ruido. */
 .portal-resumen-link.solo-ancho { display: none; }
-@media (min-width: 1000px) {
+@media (min-width: 992px) {
   .portal-resumen-link.solo-ancho { display: flex; }
 }
 
@@ -385,51 +424,52 @@
    Tarjeta de etapa
    ========================================================================== */
 .portal-etapa {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 30px;
+  background: linear-gradient(145deg, rgba(20, 26, 45, 0.8), rgba(12, 16, 30, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 32px;
   margin: 30px 0;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
-/* El icono va ARRIBA del titulo, en su propia linea. Al costado creaba dos
-   margenes izquierdos distintos dentro de la misma tarjeta y todo se veia
-   torcido. Ahora titulo, texto, montos y botones arrancan todos del mismo
-   borde. */
 .portal-etapa-ico {
   display: grid;
   place-items: center;
-  width: 44px; height: 44px;
-  margin-bottom: 16px;
-  border-radius: 12px;
-  background: var(--primary-glow);
-  color: var(--primary-light);
+  width: 48px; height: 48px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary-light, #818cf8);
+  border: 1px solid rgba(99, 102, 241, 0.25);
 }
-.portal-etapa-ico.espera { background: rgba(245, 158, 11, 0.13); color: #fbbf24; }
-.portal-etapa-ico.listo  { background: rgba(34, 197, 94, 0.14);  color: #4ade80; }
+.portal-etapa-ico.espera { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.25); }
+.portal-etapa-ico.listo  { background: rgba(34, 197, 94, 0.15);  color: #4ade80; border-color: rgba(34, 197, 94, 0.25); }
 
 .portal-etapa h2 {
-  font-family: var(--font-heading);
-  font-size: 1.45rem;
-  font-weight: 700;
+  font-family: var(--font-heading, "Outfit", sans-serif);
+  font-size: 1.55rem;
+  font-weight: 800;
   letter-spacing: -0.025em;
   line-height: 1.25;
+  color: #ffffff;
 }
 
 .portal-etapa-sub {
-  margin-top: 8px;
-  color: var(--text-secondary);
-  /* Medida de lectura: mas de ~68 caracteres por linea cansa y el ojo pierde
-     el renglon al volver. */
+  margin-top: 10px;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.95rem;
+  line-height: 1.55;
   max-width: 64ch;
 }
 
-.portal-etapa-cuerpo { margin-top: 22px; }
+.portal-etapa-cuerpo { margin-top: 24px; }
 
 .portal-url {
-  margin-top: 10px;
-  color: var(--text-muted);
-  font-size: 0.85rem;
+  margin-top: 12px;
+  color: var(--text-muted, #64748b);
+  font-size: 0.88rem;
   word-break: break-all;
 }
 
@@ -438,9 +478,9 @@
    ========================================================================== */
 .portal-acciones {
   display: flex;
-  gap: 11px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-top: 22px;
+  margin-top: 24px;
 }
 
 .portal-body .btn {
@@ -448,74 +488,93 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 46px;
-  padding: 0 20px;
-  border-radius: 10px;
+  min-height: 48px;
+  padding: 0 24px;
+  border-radius: 14px;
   border: 1px solid transparent;
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-family: var(--font-body, "Inter", sans-serif);
+  font-size: 0.92rem;
+  font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.18s;
+  transition: all 0.2s ease;
 }
 .portal-body .btn:active { transform: translateY(1px); }
 .portal-body .btn:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; }
 .portal-body .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
 
-.portal-body .btn-primary { background: var(--primary); color: #fff; }
-.portal-body .btn-primary:hover { background: #5457e5; }
+.portal-body .btn-primary {
+  background: linear-gradient(135deg, var(--primary, #6366f1) 0%, #06b6d4 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+  border: none;
+}
+.portal-body .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
 
-.portal-body .btn-outline { background: transparent; border-color: var(--border-hover); color: var(--text-primary); }
-.portal-body .btn-outline:hover { border-color: rgba(255, 255, 255, 0.32); background: rgba(255, 255, 255, 0.04); }
+.portal-body .btn-outline {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+.portal-body .btn-outline:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+}
 
-.portal-body .btn-exito { background: #22c55e; color: #062b13; }
-.portal-body .btn-exito:hover { background: #1eb355; }
+.portal-body .btn-exito {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35);
+}
+.portal-body .btn-exito:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
+}
 
 .portal-body .btn-suave { background: transparent; color: var(--text-secondary); padding: 0 12px; }
-.portal-body .btn-suave:hover { color: var(--text-primary); }
+.portal-body .btn-suave:hover { color: #ffffff; }
 
-.portal-body .btn-sm { min-height: 40px; padding: 0 15px; font-size: 0.85rem; }
+.portal-body .btn-sm { min-height: 42px; padding: 0 18px; font-size: 0.86rem; }
 
 /* ==========================================================================
    Notas y avisos
    ========================================================================== */
 .portal-nota {
   display: flex;
-  gap: 11px;
+  gap: 12px;
   align-items: flex-start;
-  margin-top: 20px;
-  padding: 13px 15px;
-  border-radius: 10px;
-  font-size: 0.875rem;
+  margin-top: 22px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 0.88rem;
   line-height: 1.55;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #94a3b8);
   background: rgba(99, 102, 241, 0.08);
   border: 1px solid rgba(99, 102, 241, 0.2);
 }
-.portal-nota.warn { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.22); }
-.portal-nota.ok   { background: rgba(34, 197, 94, 0.08);  border-color: rgba(34, 197, 94, 0.22); }
+.portal-nota.warn { background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.25); }
+.portal-nota.ok   { background: rgba(34, 197, 94, 0.08);  border-color: rgba(34, 197, 94, 0.25); }
 .portal-nota .pico { flex: 0 0 auto; margin-top: 2px; }
-.portal-nota strong { color: var(--text-primary); }
+.portal-nota strong { color: #ffffff; }
 
 /* ==========================================================================
    Cartel de espera
-   --------------------------------------------------------------------------
-   Estado vacío que enseña: dice qué está pasando y qué NO hay que hacer.
-   El borde punteado lo separa de las tarjetas con contenido real.
    ========================================================================== */
 .portal-espera {
   display: grid;
   place-items: center;
-  gap: 5px;
+  gap: 6px;
   text-align: center;
-  padding: 34px 20px;
-  border-radius: 10px;
-  border: 1px dashed rgba(245, 158, 11, 0.32);
+  padding: 36px 24px;
+  border-radius: 14px;
+  border: 1px dashed rgba(245, 158, 11, 0.35);
   background: rgba(245, 158, 11, 0.05);
 }
-.portal-espera strong { margin-top: 6px; font-size: 0.98rem; font-weight: 600; }
-.portal-espera small { color: var(--text-muted); font-size: 0.85rem; }
+.portal-espera strong { margin-top: 6px; font-size: 1rem; font-weight: 700; color: #ffffff; }
+.portal-espera small { color: var(--text-muted, #64748b); font-size: 0.86rem; }
 
 .portal-pulso { display: flex; gap: 6px; }
 .portal-pulso i {
@@ -532,102 +591,103 @@
   35%           { opacity: 1;   transform: scale(1); }
 }
 
-/* Ruta de lo que viene después */
 .portal-ruta-tit {
-  margin: 24px 0 12px;
-  font-size: 0.72rem;
+  margin: 26px 0 12px;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--text-muted);
+  color: var(--text-muted, #64748b);
   font-weight: 700;
 }
-.portal-ruta { list-style: none; display: grid; gap: 3px; margin: 0; padding: 0; }
+.portal-ruta { list-style: none; display: grid; gap: 6px; margin: 0; padding: 0; }
 .portal-ruta li {
   display: flex;
-  gap: 13px;
+  gap: 14px;
   align-items: flex-start;
-  padding: 11px 14px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.025);
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 .portal-ruta li > span {
   flex: 0 0 auto;
-  width: 23px; height: 23px;
+  width: 24px; height: 24px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.07);
-  color: var(--text-secondary);
-  font-size: 0.76rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.78rem;
   font-weight: 700;
 }
-.portal-ruta li b { display: block; font-size: 0.92rem; font-weight: 600; }
-.portal-ruta li small { display: block; margin-top: 2px; color: var(--text-muted); font-size: 0.82rem; }
+.portal-ruta li b { display: block; font-size: 0.94rem; font-weight: 600; color: #ffffff; }
+.portal-ruta li small { display: block; margin-top: 2px; color: var(--text-muted, #64748b); font-size: 0.84rem; }
 
 /* ==========================================================================
    Montos y desglose
    ========================================================================== */
-.portal-monto { display: flex; align-items: baseline; gap: 10px; margin: 4px 0 6px; flex-wrap: wrap; }
+.portal-monto { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 10px; flex-wrap: wrap; }
 .portal-monto b {
-  font-family: var(--font-heading);
-  font-size: 2.5rem;
-  font-weight: 700;
+  font-family: var(--font-heading, "Outfit", sans-serif);
+  font-size: 2.6rem;
+  font-weight: 800;
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
+  color: #ffffff;
 }
-.portal-monto span { color: var(--text-muted); font-size: 0.9rem; }
+.portal-monto span { color: var(--text-muted, #64748b); font-size: 0.9rem; }
 
 .portal-desglose {
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   overflow: hidden;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 .portal-desglose div {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 16px;
+  padding: 13px 18px;
   font-size: 0.9rem;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #94a3b8);
 }
 .portal-desglose div:last-child {
   border-bottom: none;
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.05rem;
 }
 .portal-desglose span:last-child { font-variant-numeric: tabular-nums; }
 
 /* ==========================================================================
    Opciones (método de pago, dominio)
    ========================================================================== */
-.portal-ops { display: grid; gap: 11px; }
+.portal-ops { display: grid; gap: 12px; }
 
 .portal-op {
   display: flex;
   gap: 14px;
   align-items: flex-start;
-  padding: 16px;
+  padding: 18px;
   cursor: pointer;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
-  transition: border-color 0.18s, background 0.18s;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  transition: all 0.2s ease;
 }
-.portal-op:hover { border-color: var(--border-hover); background: rgba(255, 255, 255, 0.04); }
-.portal-op:has(input:checked) { border-color: rgba(99, 102, 241, 0.5); background: rgba(99, 102, 241, 0.07); }
+.portal-op:hover { border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.05); }
+.portal-op:has(input:checked) { border-color: var(--primary, #6366f1); background: rgba(99, 102, 241, 0.1); box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2); }
 
 .portal-op input { position: absolute; opacity: 0; pointer-events: none; }
 
 .portal-op-marca {
   flex: 0 0 auto;
-  width: 20px; height: 20px;
+  width: 22px; height: 22px;
   margin-top: 2px;
   border-radius: 50%;
-  border: 1.5px solid var(--border-hover);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
   display: grid;
   place-items: center;
   transition: border-color 0.18s;
@@ -636,28 +696,27 @@
   content: "";
   width: 10px; height: 10px;
   border-radius: 50%;
-  background: var(--primary);
+  background: var(--primary, #6366f1);
   transform: scale(0);
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.portal-op input:checked ~ .portal-op-marca { border-color: var(--primary); }
+.portal-op input:checked ~ .portal-op-marca { border-color: var(--primary, #6366f1); }
 .portal-op input:checked ~ .portal-op-marca::after { transform: scale(1); }
-.portal-op input:focus-visible ~ .portal-op-marca { outline: 2px solid var(--primary-light); outline-offset: 2px; }
 
 .portal-op-txt { flex: 1; min-width: 0; }
-.portal-op-txt b { display: block; font-size: 0.95rem; font-weight: 600; }
-.portal-op-txt small { display: block; margin-top: 3px; color: var(--text-secondary); font-size: 0.84rem; word-break: break-word; }
+.portal-op-txt b { display: block; font-size: 0.98rem; font-weight: 700; color: #ffffff; }
+.portal-op-txt small { display: block; margin-top: 4px; color: var(--text-secondary, #94a3b8); font-size: 0.85rem; word-break: break-word; }
 
 .portal-op-precio {
   flex: 0 0 auto;
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: 99px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #94a3b8);
 }
-.portal-op-precio.libre { background: rgba(34, 197, 94, 0.14); color: #4ade80; }
+.portal-op-precio.libre { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
 
 /* ==========================================================================
    Datos de transferencia y comprobante
@@ -665,10 +724,10 @@
 .portal-datos {
   display: grid;
   gap: 1px;
-  margin-top: 16px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  margin-top: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   overflow: hidden;
 }
 .portal-dato {
@@ -676,179 +735,70 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 15px;
-  background: var(--bg-surface-opaque);
+  padding: 13px 16px;
+  background: rgba(15, 20, 35, 0.85);
 }
 .portal-dato small {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--text-muted);
+  color: var(--text-muted, #64748b);
 }
-.portal-dato b { font-size: 0.95rem; font-weight: 600; }
+.portal-dato b { font-size: 0.98rem; font-weight: 700; color: #ffffff; }
 
 .portal-copiar {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
-  padding: 0 11px;
+  min-height: 38px;
+  padding: 0 14px;
   border-radius: 8px;
-  border: 1px solid var(--border-hover);
-  background: transparent;
-  color: var(--text-secondary);
-  font-family: var(--font-body);
-  font-size: 0.78rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary, #94a3b8);
+  font-family: var(--font-body, "Inter", sans-serif);
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.2s ease;
 }
-.portal-copiar:hover { color: var(--text-primary); border-color: rgba(255, 255, 255, 0.3); }
-
-.portal-oculto { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.portal-copiar:hover { color: #ffffff; border-color: var(--primary, #6366f1); background: rgba(99, 102, 241, 0.1); }
 
 .portal-subir {
   display: grid;
   place-items: center;
-  gap: 9px;
-  margin-top: 14px;
-  padding: 26px 20px;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 28px 20px;
   text-align: center;
   cursor: pointer;
-  border: 1px dashed var(--border-hover);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
-  color: var(--text-secondary);
-  font-size: 0.88rem;
-  transition: border-color 0.18s, background 0.18s;
+  border: 1.5px dashed rgba(99, 102, 241, 0.35);
+  border-radius: 14px;
+  background: rgba(99, 102, 241, 0.04);
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
 }
-.portal-subir:hover { border-color: var(--primary); background: rgba(99, 102, 241, 0.05); }
-.portal-subir .pico { color: var(--primary-light); }
-.portal-subir img { max-width: 100%; max-height: 220px; border-radius: 8px; margin-top: 4px; }
+.portal-subir:hover { border-color: var(--primary, #6366f1); background: rgba(99, 102, 241, 0.08); color: #ffffff; }
+.portal-subir img { max-width: 100%; max-height: 240px; border-radius: 10px; margin-top: 6px; }
 
-/* ==========================================================================
-   Campos
-   ========================================================================== */
-.portal-campo { display: block; margin-top: 14px; }
-.portal-campo > span {
-  display: block;
-  margin-bottom: 7px;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
 .portal-campo input {
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border-hover);
-  background: rgba(0, 0, 0, 0.28);
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  /* 16px exactos: por debajo de eso iOS hace zoom solo al enfocar. */
+  padding: 13px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffffff;
+  font-family: var(--font-body, "Inter", sans-serif);
   font-size: 16px;
   transition: border-color 0.18s;
 }
-.portal-campo input:focus { outline: none; border-color: var(--primary); }
-.portal-campo input::placeholder { color: var(--text-muted); }
-
-.portal-fila-campo { display: flex; gap: 10px; align-items: flex-end; }
-.portal-fila-campo .portal-campo { flex: 1; margin-top: 0; }
+.portal-campo input:focus { outline: none; border-color: var(--primary, #6366f1); }
 
 /* ==========================================================================
-   Lista de cambios
-   ========================================================================== */
-.portal-cambios { list-style: none; display: grid; gap: 8px; margin: 18px 0 0; padding: 0; }
-
-.portal-cambio {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 13px 15px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid var(--border);
-}
-.portal-cambio-est {
-  flex: 0 0 auto;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-muted);
-}
-.portal-cambio p { font-size: 0.92rem; line-height: 1.45; }
-.portal-cambio small { display: block; margin-top: 3px; color: var(--text-muted); font-size: 0.75rem; }
-
-.portal-cambio.ok .portal-cambio-est { background: rgba(34, 197, 94, 0.16); color: #4ade80; }
-.portal-cambio.ok p {
-  color: var(--text-muted);
-  text-decoration: line-through;
-  text-decoration-color: rgba(107, 114, 128, 0.5);
-}
-
-.portal-vacio {
-  margin-top: 18px;
-  padding: 22px 16px;
-  text-align: center;
-  border-radius: 10px;
-  border: 1px dashed var(--border-hover);
-  color: var(--text-muted);
-  font-size: 0.88rem;
-}
-
-.portal-avance {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  margin-top: 20px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
-}
-.portal-avance b { font-size: 0.85rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-.portal-avance-barra {
-  flex: 1;
-  height: 6px;
-  border-radius: 99px;
-  background: rgba(255, 255, 255, 0.07);
-  overflow: hidden;
-}
-.portal-avance-barra i {
-  display: block;
-  width: 100%; height: 100%;
-  border-radius: 99px;
-  background: #22c55e;
-  transform-origin: left center;
-  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* ==========================================================================
-   Entrega final
-   ========================================================================== */
-.portal-final {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 20px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.13), rgba(6, 182, 212, 0.09));
-  border: 1px solid rgba(34, 197, 94, 0.28);
-}
-.portal-final b {
-  font-family: var(--font-heading);
-  font-size: 1.3rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  word-break: break-all;
-}
-.portal-final small { display: block; margin-top: 3px; color: var(--text-secondary); font-size: 0.8rem; }
-
-/* ==========================================================================
-   Pie
+   Pie de página
    ========================================================================== */
 .portal-pie {
   display: flex;
@@ -856,44 +806,68 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 26px 0 40px;
-  border-top: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 0.85rem;
+  padding: 24px 28px;
+  margin-top: 40px;
+  border-radius: 18px;
+  background: rgba(20, 26, 45, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
 }
+.portal-pie-info strong { display: block; font-size: 0.95rem; color: #ffffff; }
+.portal-pie-info span { font-size: 0.85rem; color: var(--text-secondary, #94a3b8); }
 
 /* ==========================================================================
-   Celular
+   Diseño Móvil Responsive (< 768px)
    ========================================================================== */
-@media (max-width: 760px) {
-  .portal-hero { padding: 26px 0 20px; }
-  .portal-hero h1 { font-size: 1.6rem; }
-  .portal-hero-fila { align-items: flex-start; }
-  .portal-hero-num b { font-size: 2.5rem; }
-
-  .portal-pasos { gap: 5px; }
-  .portal-paso-t { font-size: 0.68rem; }
-  .portal-paso-n { width: 23px; height: 23px; font-size: 0.72rem; }
-
-  .portal-etapa { padding: 22px 18px; border-radius: 12px; }
-  .portal-etapa h2 { font-size: 1.18rem; }
-  .portal-etapa-ico { width: 38px; height: 38px; }
-
-  /* Un botón por fila: en un pulgar, dos botones pegados se tocan mal. */
-  .portal-acciones .btn { flex: 1 1 100%; }
-
-  .portal-monto b { font-size: 2rem; }
-
-  .portal-fila-campo { flex-direction: column; align-items: stretch; }
-  .portal-fila-campo .btn { width: 100%; }
-
-  .portal-dato { flex-wrap: wrap; }
+@media (max-width: 768px) {
+  .portal-top { padding: 14px 18px; }
+  .portal-main { padding: 0 16px; }
+  
+  .portal-hero {
+    padding: 22px 20px;
+    margin: 20px 0 24px;
+    border-radius: 20px;
+  }
+  
+  .portal-hero-fila {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .portal-hero-num-box {
+    align-self: flex-start;
+    text-align: left;
+  }
+  .portal-hero-num { text-align: left; }
+  .portal-hero h1 { font-size: 1.65rem; }
+  .portal-hero-num b { font-size: 2.8rem; }
+  
+  .portal-pasos {
+    grid-template-columns: repeat(5, minmax(105px, 1fr));
+  }
+  .portal-paso-t { font-size: 0.72rem; }
+  
+  .portal-etapa { padding: 22px 18px; border-radius: 18px; margin: 20px 0; }
+  .portal-etapa h2 { font-size: 1.25rem; }
+  .portal-etapa-ico { width: 42px; height: 42px; }
+  
+  .portal-acciones .btn { flex: 1 1 100%; width: 100%; justify-content: center; }
+  .portal-monto b { font-size: 2.2rem; }
+  
+  .portal-pie { padding: 20px; flex-direction: column; align-items: stretch; text-align: center; }
+  .portal-pie .btn { width: 100%; justify-content: center; }
 }
 
-@media (max-width: 380px) {
-  .portal-paso-t { font-size: 0.62rem; }
-  .portal-op { padding: 13px; }
-  .portal-op-precio { font-size: 0.72rem; padding: 3px 8px; }
+@media (max-width: 480px) {
+  .portal-pasos-wrapper {
+    margin: 0 -20px;
+    padding: 4px 20px 12px 20px;
+    width: calc(100% + 40px);
+  }
+  .portal-op { padding: 14px; flex-direction: row; }
+  .portal-dato { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .portal-copiar { width: 100%; justify-content: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {

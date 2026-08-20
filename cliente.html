@@ -53,17 +53,20 @@
     <!-- Portal -->
     <section id="portal-contenido" class="hidden">
 
-      <!-- Saludo + avance + los 5 pasos, todo en un bloque -->
+      <!-- Hero Card con Saludo + Avance + Riel de Pasos -->
       <div class="portal-hero">
         <div class="portal-hero-fila">
           <div class="portal-hero-txt">
+            <span class="portal-badge-estado">⚡ Portal Privado de Cliente</span>
             <h1 id="pc-saludo">Hola</h1>
             <p class="portal-hero-proyecto" id="pc-proyecto"></p>
           </div>
-          <p class="portal-hero-num">
-            <b id="pc-progreso-num">0</b><span class="portal-hero-pct" aria-hidden="true">%</span>
-            <span class="portal-hero-etq">Avance</span>
-          </p>
+          <div class="portal-hero-num-box">
+            <p class="portal-hero-num">
+              <b id="pc-progreso-num">0</b><span class="portal-hero-pct" aria-hidden="true">%</span>
+            </p>
+            <span class="portal-hero-etq">Avance del proyecto</span>
+          </div>
         </div>
 
         <div class="portal-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100"
@@ -71,11 +74,12 @@
           <i id="pc-barra"></i>
         </div>
 
-        <ol class="portal-pasos" id="pc-pasos"></ol>
+        <div class="portal-pasos-wrapper">
+          <ol class="portal-pasos" id="pc-pasos"></ol>
+        </div>
       </div>
 
-      <!-- En pantalla ancha: la etapa a la izquierda y el resumen del proyecto
-           a la derecha. En celular, uno debajo del otro. -->
+      <!-- Columnas: Etapa actual + Resumen de proyecto -->
       <div class="portal-columnas">
         <!-- La tarjeta de la etapa actual. La arma cliente.js -->
         <div id="pc-etapa"></div>
@@ -85,9 +89,12 @@
       </div>
 
       <footer class="portal-pie">
-        <span>Cualquier duda me escribís por WhatsApp.</span>
+        <div class="portal-pie-info">
+          <strong>¿Tenés alguna duda sobre tu proyecto?</strong>
+          <span>Te respondo directo por WhatsApp.</span>
+        </div>
         <a class="btn btn-outline btn-sm" id="pc-wa-footer" href="#" target="_blank" rel="noopener noreferrer">
-          Escribirme
+          💬 Escribirme por WhatsApp
         </a>
       </footer>
     </section>
