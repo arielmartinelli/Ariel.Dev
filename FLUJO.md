@@ -1,4 +1,11 @@
-# Flujo del proyecto — diseño
+# Flujo del proyecto
+
+> **Estado: implementado.** Correr `supabase/migracion-05-flujo-9-etapas.sql`
+> en el SQL Editor de Supabase. Tiene que devolver **11 ✅**.
+>
+> No hace falta haber corrido las migraciones 02, 03 ni 04: si falta algo de
+> ellas, el PASO 0 se lo trae solo. Lo único que sí tiene que estar es
+> `portal-clientes.sql`, que es el que crea las tablas.
 
 Cómo avanza un proyecto desde que le mando la demo al cliente hasta que su
 página queda publicada. Un solo camino, sin atajos y sin pasos que dependan de
@@ -141,3 +148,78 @@ una línea.
 
 Las filas que ya existen no se tocan: `demo_pendiente`, `demo_lista`,
 `rechazado`, `en_produccion` y `finalizado` siguen significando lo mismo.
+
+---
+
+## Cómo quedó implementado
+
+### En la base — `supabase/migracion-05-flujo-9-etapas.sql`
+
+| Pieza | Qué hace |
+|---|---|
+| `clients.status` | Pasa de `ENUM` a `text` + `CHECK` con las 9 etapas |
+| `orden_etapa(text)` | El orden del flujo en un solo lugar; `rechazado` = -1 |
+| `calcular_progreso()` | Cada etapa aporta su porcentaje; en producción las tareas mueven el tramo 40–75 |
+| `asegurar_cobro()` | Crea el anticipo o el saldo con el monto correcto, sin duplicar |
+| **trigger `payments_avanzan_flujo`** | Anticipo pagado → producción · Saldo pagado → finalizado |
+| `portal_decidir()` | Aceptar ya no manda a producción: manda al anticipo y lo genera |
+| `portal_pedir_cambio()` | Solo en producción, o sea solo con el anticipo acreditado |
+| `portal_elegir_dominio()` | Solo en la etapa «dominio»; al confirmar pasa a «publicando» |
+| `admin_mover_flujo()` | Mueve la etapa desde el panel; **rechaza** pasar a demo lista sin link |
+| `portal_obtener()` | Si la etapa es demo lista pero falta el link, le informa `demo_pendiente` al portal |
+
+Dos decisiones que conviene no deshacer sin leer el motivo:
+
+- **El trigger, y no el JavaScript.** Si las transiciones por pago vivieran en
+  el panel, el webhook de Mercado Pago no las ejecutaría nunca y un cliente que
+  paga un domingo a la noche quedaría trabado hasta que alguien entre a mirar.
+  Además cubre gratis el cobro manual en efectivo.
+- **`asegurar_cobro` es `SECURITY INVOKER`.** Con `DEFINER` habría que darle
+  `EXECUTE` a `authenticated`, y entonces cualquier cuenta logueada podría
+  crear filas de cobro para clientes ajenos. Con `INVOKER` las policies RLS
+  siguen decidiendo, y `portal_decidir` (que sí es `DEFINER`) igual la puede
+  llamar porque para ese momento el usuario efectivo ya es el dueño.
+
+### En el portal del cliente — `cliente.html`, `js/cliente.js`, `css/portal.css`
+
+Reescritos. Antes todos los bloques vivían en el HTML y se mostraban u
+ocultaban con `hidden`; con 9 etapas eso no se sostiene, porque cada bloque
+nuevo hay que acordarse de esconderlo en las otras 8 situaciones y basta
+olvidarse una vez para que el cliente vea dos cosas contradictorias. Ahora hay
+un objeto `ETAPAS` donde **cada etapa devuelve su propia tarjeta**, y lo que no
+devuelve, no existe en pantalla.
+
+### En tu panel — `js/admin-clients.js`, `css/admin.css`
+
+El bloque «Flujo del proyecto» contesta tres cosas de un vistazo:
+
+1. **De quién es el turno** — un chip arriba a la derecha: ámbar «te toca a
+   vos», azul «le toca al cliente», verde «sin acciones pendientes». Es
+   dinámico: en «esperando el anticipo» la pelota es del cliente, salvo que ya
+   haya subido el comprobante, y ahí pasa a ser tuya.
+2. **La única acción que te toca** — un botón ancho que dice exactamente qué va
+   a pasar («Cambios terminados → elegir dominio»). En las etapas donde la
+   pelota es del cliente no hay botón, porque no hay nada que apretar. Y si
+   falta un dato, el botón viene deshabilitado explicando cuál.
+3. **Qué está frenando el proyecto** — el cartel de color, con el mismo código
+   ámbar/azul/verde.
+
+El selector de etapa sigue estando, pero plegado dentro de «Mover el flujo a
+mano»: es la salida de emergencia para volver atrás o reflejar algo que
+arreglaste por WhatsApp, no el camino normal.
+
+### Qué se verificó
+
+Contra un PostgreSQL real, no sobre el papel: las 9 etapas de punta a punta,
+que el saldo salga 210 (200 + 10 del dominio) y no 200, que el link final siga
+oculto hasta que el saldo esté pagado, que un comprobante en revisión **no**
+haga avanzar el flujo y que aprobarlo sí, que `anon` no pueda ejecutar ninguna
+función del panel y que otro usuario autenticado no vea ni una fila.
+
+En navegador real, escritorio y celular: las 9 etapas del portal y los 13 casos
+del bloque de flujo del panel, sin errores de consola, sin desborde horizontal
+y sin controles por debajo del mínimo táctil.
+
+Dos bugs los encontró el propio test y no habrían aparecido leyendo el código:
+`ALTER COLUMN ... TYPE` falla si una vista depende de la columna, y
+`admin_mover_flujo` no podía ejecutar `asegurar_cobro` por permisos.

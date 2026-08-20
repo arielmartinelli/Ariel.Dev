@@ -307,10 +307,20 @@ function pintarAvisoEsquema() {
   document.getElementById("vista-clientes")?.prepend(aviso.cloneNode(true));
 }
 
+/**
+ * Un proyecto está "activo" si no terminó ni se rechazó.
+ *
+ * Se define por descarte a propósito. Antes era una lista blanca de tres
+ * etapas, y al pasar el flujo a 9 los proyectos que estaban esperando el
+ * anticipo, eligiendo dominio o esperando el saldo desaparecían de los KPIs:
+ * el panel decía "0 clientes activos" con medio trabajo en curso. Con la
+ * lista negra, cualquier etapa nueva entra sola.
+ */
+const estaActivo = (c) => !["finalizado", "rechazado"].includes(c.status);
+
 function pintarBadges() {
   const pendientes = cacheTareas.filter((t) => !t.done).length;
-  const activos = cacheClientes.filter((c) =>
-    ["demo_pendiente", "demo_lista", "en_produccion"].includes(c.status)).length;
+  const activos = cacheClientes.filter(estaActivo).length;
   const cobrosPendientes = cachePagos.filter((p) => p.status !== "pagado").length;
 
   // Son puntos, no números: en una barra de 4 pestañas un número compite con
@@ -342,8 +352,7 @@ function pintarResumen() {
     .filter((p) => p.status !== "pagado" && idsVivos.has(p.clientId))
     .reduce((a, p) => a + p.amountUsd, 0);
 
-  const activos = cacheClientes.filter((c) =>
-    ["demo_pendiente", "demo_lista", "en_produccion"].includes(c.status));
+  const activos = cacheClientes.filter(estaActivo);
   const finalizados = cacheClientes.filter((c) => c.status === "finalizado").length;
 
   const tareasPendientes = cacheTareas.filter((t) => !t.done);
@@ -722,7 +731,18 @@ async function revisarComprobante(pago) {
       return;
     }
     await refrescarTodo();
-    avisar("Cobro aprobado", "Ya se sumó a tu dashboard y el cliente lo ve acreditado.", "success");
+
+    // Aprobar un comprobante no solo suma plata: el trigger de la base mueve
+    // el proyecto a la etapa siguiente (anticipo → cambios, saldo → en línea).
+    // Conviene decirlo, si no parece que aprobar y avanzar fueran dos cosas
+    // distintas que hay que hacer por separado.
+    const efecto = {
+      anticipo: " El proyecto pasó a «Aplicando los cambios» y el cliente ya puede cargarlos.",
+      saldo: " El proyecto quedó finalizado y el cliente ya ve su link.",
+    }[pago.kind] || "";
+
+    avisar("Cobro aprobado",
+           `Ya se sumó a tu dashboard y el cliente lo ve acreditado.${efecto}`, "success");
   } else if (r.isDenied) {
     const res = await adminMarcarPago(pago.id, { status: "pendiente", method: "transferencia" });
     if (!res.ok) {

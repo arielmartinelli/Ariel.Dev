@@ -21,12 +21,51 @@ import { supabase } from "./supabase.js";
 /* ==========================================================================
    Estados y etiquetas
    ========================================================================== */
+/**
+ * Las 9 etapas del flujo. `pelota` dice de quién es el turno: es lo que hace
+ * que el panel pueda mostrar de un vistazo qué proyectos te están esperando
+ * a vos y cuáles están esperando al cliente. Ver FLUJO.md.
+ */
 export const ESTADOS = {
-  demo_pendiente: { label: "Armando la demo", color: "#64748b" },
-  demo_lista: { label: "Demo lista para revisar", color: "#06b6d4" },
-  rechazado: { label: "No continúa", color: "#ef4444" },
-  en_produccion: { label: "En producción", color: "#6366f1" },
-  finalizado: { label: "Finalizado", color: "#22c55e" },
+  demo_pendiente:     { label: "Armando la demo",        color: "#64748b", pelota: "ariel",   orden: 0 },
+  demo_lista:         { label: "Demo enviada",           color: "#06b6d4", pelota: "cliente", orden: 1 },
+  rechazado:          { label: "No continúa",            color: "#ef4444", pelota: "nadie",   orden: -1 },
+  anticipo_pendiente: { label: "Esperando el anticipo",  color: "#f59e0b", pelota: "cliente", orden: 2 },
+  en_produccion:      { label: "Aplicando los cambios",  color: "#6366f1", pelota: "ariel",   orden: 3 },
+  dominio:            { label: "Eligiendo el dominio",   color: "#8b5cf6", pelota: "cliente", orden: 4 },
+  publicando:         { label: "Publicando",             color: "#0ea5e9", pelota: "ariel",   orden: 5 },
+  saldo_pendiente:    { label: "Esperando el saldo",     color: "#f59e0b", pelota: "cliente", orden: 6 },
+  finalizado:         { label: "En línea",               color: "#22c55e", pelota: "nadie",   orden: 7 },
+};
+
+/** Orden de las etapas dentro del flujo, sin contar el rechazo. */
+export const ORDEN_ETAPAS = Object.keys(ESTADOS)
+  .filter((k) => ESTADOS[k].orden >= 0)
+  .sort((a, b) => ESTADOS[a].orden - ESTADOS[b].orden);
+
+/**
+ * Qué etapa sigue, y con qué texto se le ofrece a Ariel el botón.
+ * Solo están las transiciones que le tocan a él: las del cliente (aceptar,
+ * pagar, elegir dominio) no aparecen acá porque no las dispara el panel.
+ */
+export const SIGUIENTE_PASO = {
+  demo_pendiente: {
+    a: "demo_lista",
+    boton: "Enviar la demo al cliente",
+    ayuda: "Le habilita el link y la decisión de continuar.",
+    requiere: "demo_url",
+  },
+  en_produccion: {
+    a: "dominio",
+    boton: "Cambios terminados → elegir dominio",
+    ayuda: "Le habilita al cliente el paso de elegir la dirección de su página.",
+  },
+  publicando: {
+    a: "saldo_pendiente",
+    boton: "Ya está publicada → pedir el saldo",
+    ayuda: "Le genera el saldo final (50% + dominio si eligió propio).",
+    requiere: "production_url",
+  },
 };
 
 export const ETIQUETA_PAGO = {
@@ -81,11 +120,19 @@ export async function portalObtener(token) {
 }
 
 /** El cliente acepta (con su lista de cambios) o rechaza seguir a producción. */
-export async function portalDecidir(token, decision, cambios = []) {
+/**
+ * El cliente acepta o rechaza después de ver la demo.
+ *
+ * Ya NO recibe la lista de cambios: aceptar solo genera el anticipo del 50%.
+ * Los cambios se cargan después, con portalPedirCambio, y recién cuando el
+ * anticipo está acreditado. El parámetro queda por compatibilidad con la
+ * firma de la función en Postgres.
+ */
+export async function portalDecidir(token, decision) {
   const { data, error } = await supabase.rpc("portal_decidir", {
     p_token: token,
     p_decision: decision,
-    p_cambios: cambios,
+    p_cambios: null,
   });
   if (error) {
     console.error("portal_decidir:", error.message);
@@ -374,11 +421,31 @@ export async function adminCrearCobroManual(clientId, { concepto, montoUsd, yaCo
 }
 
 /** Crea el pago del saldo final (50%) cuando el proyecto llega al 100%. */
-export async function adminCrearSaldoFinal(clientId, priceUsd) {
-  const { error } = await supabase.from("payments").insert([
-    { client_id: clientId, kind: "saldo", amount_usd: Number((priceUsd * 0.5).toFixed(2)) },
-  ]);
-  if (error && !/duplicate|unique/i.test(error.message)) {
+/**
+ * Genera el saldo final a mano, sin esperar a la etapa «esperando el saldo».
+ *
+ * OJO CON EL MONTO: antes esto insertaba `price_usd * 0.5` directo. Con el
+ * flujo nuevo el saldo también incluye los USD 10 del dominio propio, así que
+ * ese cálculo dejaba el cobro USD 10 corto y no había forma de darse cuenta
+ * hasta el momento de cobrar.
+ *
+ * Ahora lo calcula `asegurar_cobro()` en la base — el mismo lugar que lo hace
+ * cuando el flujo llega solo a esa etapa. Una única fuente de verdad: si algún
+ * día cambia el precio del dominio, cambia en un lado y vale para los dos
+ * caminos.
+ */
+export async function adminCrearSaldoFinal(clientId) {
+  const { error } = await supabase.rpc("asegurar_cobro", {
+    p_client_id: clientId,
+    p_kind: "saldo",
+  });
+
+  if (error) {
+    console.error("asegurar_cobro(saldo):", error.message);
+    if (faltaEsquema(error)) {
+      return { ok: false, faltaEsquema: true,
+        error: "Falta correr supabase/migracion-05-flujo-9-etapas.sql en Supabase." };
+    }
     return { ok: false, error: traducirError(error) };
   }
   return { ok: true };

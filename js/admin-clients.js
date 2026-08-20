@@ -17,7 +17,7 @@ import {
   adminCrearCliente, adminActualizarCliente, adminMoverFlujo, adminEliminarCliente, adminRevocarLink,
   adminListarTareas, adminAgregarTarea, adminMarcarTarea, adminEliminarTarea,
   adminListarPagos, adminMarcarPago, adminCrearSaldoFinal, adminCrearCobroManual,
-  urlPortal, ESTADOS, ETIQUETA_PAGO,
+  urlPortal, ESTADOS, ORDEN_ETAPAS, SIGUIENTE_PASO, ETIQUETA_PAGO,
 } from "./clients.js";
 import { escapeHtml, safeUrl, sanitizeText } from "./security.js";
 import { confirmar, avisar } from "./ui-dialogs.js";
@@ -60,8 +60,11 @@ function conectarFiltros() {
 }
 
 function visibles() {
+  // "Activos" = todo lo que está en curso. Se define por descarte (lo que no
+  // terminó ni se rechazó) para que agregar una etapa nueva no obligue a
+  // acordarse de sumarla también acá.
   if (filtro === "activos") {
-    return clientes.filter((c) => ["demo_pendiente", "demo_lista", "en_produccion"].includes(c.status));
+    return clientes.filter((c) => !["finalizado", "rechazado"].includes(c.status));
   }
   if (filtro === "finalizados") {
     return clientes.filter((c) => ["finalizado", "rechazado"].includes(c.status));
@@ -156,136 +159,198 @@ function rastroDeAcceso(c) {
 /* ==========================================================================
    Flujo del proyecto
    --------------------------------------------------------------------------
-   Este bloque existe porque el flujo estaba escrito como si siempre lo
-   manejara el cliente desde su portal. En la práctica la mitad de los pasos
-   se arreglan por WhatsApp, así que el panel tiene que poder moverlos todos:
+   Nueve etapas, y en cada una hay UNA sola persona con la pelota. Este bloque
+   contesta tres preguntas de un vistazo:
 
-     - el estado (incluso volver atrás),
-     - el dominio, que era el paso que trababa el 100% para siempre si el
-       cliente no lo elegía desde su panel,
-     - la decisión del cliente, que era una traba de una sola dirección.
+     1. ¿De quién es el turno ahora? (vos / el cliente / de nadie)
+     2. ¿Cuál es la única acción que te toca? -> el botón grande
+     3. ¿Qué está frenando el proyecto?      -> el cartel de color
 
-   Además muestra QUÉ está frenando cada paso. Antes el panel no lo decía en
-   ningún lado y parecía que los botones no hacían nada.
+   El selector de etapa sigue existiendo abajo, pero como salida de emergencia:
+   el camino normal es el botón. Antes el panel era solo el selector, y había
+   que acordarse de memoria de qué etapa seguía y qué efectos tenía.
+
+   Ver FLUJO.md.
    ========================================================================== */
 
-const ORDEN_ESTADOS = ["demo_pendiente", "demo_lista", "en_produccion", "finalizado"];
+/** Los 5 pasos que ve el cliente, y en cuál cae cada una de las 9 etapas. */
+const PASOS_CLIENTE = ["Demo", "Anticipo", "Cambios", "Dominio", "Entrega"];
+const PASO_DE = {
+  demo_pendiente: 0, demo_lista: 0, anticipo_pendiente: 1, en_produccion: 2,
+  dominio: 3, publicando: 4, saldo_pendiente: 4, finalizado: 4, rechazado: -1,
+};
 
-/** Los 5 pasos, con su estado calculado a partir de los datos reales. */
+/**
+ * ¿Hay un comprobante esperando tu aprobación?
+ *
+ * Se usa comprobantes_a_revisar de la vista en vez de mirar el pago puntual:
+ * en las dos etapas donde importa (anticipo_pendiente y saldo_pendiente) hay
+ * un solo cobro abierto, así que no hay ambigüedad posible.
+ */
+const hayComprobante = (c) => Number(c.comprobantes_a_revisar || 0) > 0;
+
+/**
+ * De quién es el turno AHORA.
+ *
+ * No alcanza con el valor fijo de ESTADOS: en «esperando el anticipo» la
+ * pelota es del cliente… salvo que ya haya subido el comprobante, y entonces
+ * pasa a ser tuya. Sin esta corrección el chip decía «Le toca al cliente» a
+ * dos centímetros de un cartel que decía «te toca aprobarlo»: dos fuentes de
+ * verdad contradiciéndose en la misma pantalla.
+ */
+function deQuienEsElTurno(c) {
+  if (hayComprobante(c) && ["anticipo_pendiente", "saldo_pendiente"].includes(c.status)) {
+    return "ariel";
+  }
+  return ESTADOS[c.status]?.pelota || "nadie";
+}
+
+/** Los 5 pasos con su estado real, calculado de los datos, no del status. */
 function pasosDelFlujo(c) {
-  const i = ORDEN_ESTADOS.indexOf(c.status);
+  const orden = ESTADOS[c.status]?.orden ?? -1;
   const rechazado = c.status === "rechazado";
-  const hecho = (n) => !rechazado && i >= n;
+  const activo = PASO_DE[c.status] ?? -1;
+  const finalizado = c.status === "finalizado";
+
+  const est = (i) => {
+    if (finalizado) return "ok";
+    if (rechazado) return i === 0 && c.demo_url ? "ok" : "pendiente";
+    if (i < activo) return "ok";
+    if (i === activo) return "curso";
+    return "pendiente";
+  };
 
   return [
     {
       titulo: "Demo",
-      // Si el link está cargado, la demo está hecha — aunque después el
-      // cliente haya dicho que no. Marcarla "en curso" en un proyecto
-      // rechazado daba a entender que faltaba algo que en realidad ya existe.
-      estado: c.demo_url ? "ok" : "pendiente",
-      detalle: c.demo_url ? "Link cargado." : "Falta cargar el link de la demo.",
+      estado: c.demo_url ? (orden >= 1 || rechazado ? "ok" : "curso") : "pendiente",
+      detalle: c.demo_url
+        ? (orden >= 1 ? "Enviada al cliente." : "Link cargado, todavía sin enviar.")
+        : "Falta cargar el link de la demo.",
     },
     {
-      titulo: "Decisión",
-      estado: rechazado ? "no" : c.client_decision === "continuar" ? "ok" : hecho(1) ? "curso" : "pendiente",
+      titulo: "Anticipo",
+      estado: rechazado ? "no" : est(1),
       detalle: rechazado
-        ? "Dijo que no continúa."
-        : c.client_decision === "continuar"
-          ? "Aceptó continuar."
-          : "Todavía no respondió. Si te confirmó por WhatsApp, pasalo a «En producción» acá abajo.",
+        ? "El cliente no continúa."
+        : orden > 2 ? "Cobrado."
+        : orden === 2 ? (hayComprobante(c)
+            ? "Subió el comprobante: te toca aprobarlo en Cobros."
+            : "Esperando que pague.")
+        : "Se genera cuando el cliente acepta la demo.",
     },
     {
-      titulo: "Producción",
-      estado: hecho(3) ? "ok" : hecho(2) ? "curso" : "pendiente",
-      detalle: `${c.tareas_hechas}/${c.tareas_total} tareas completadas.`,
+      titulo: "Cambios",
+      estado: rechazado ? "pendiente" : est(2),
+      detalle: c.tareas_total > 0
+        ? `${c.tareas_hechas} de ${c.tareas_total} completados.`
+        : "Todavía no cargó ningún cambio.",
     },
     {
       titulo: "Dominio",
-      estado: c.domain_choice ? "ok" : hecho(2) ? "curso" : "pendiente",
+      estado: c.domain_choice ? "ok" : rechazado ? "pendiente" : est(3),
       detalle: c.domain_choice === "propio"
-        ? `Dominio propio${c.domain_name ? `: ${c.domain_name}` : ""} (+USD 10).`
+        ? `Propio${c.domain_name ? `: ${c.domain_name}` : ""} (+${usd(c.domain_extra_usd ?? 10)} en el saldo).`
         : c.domain_choice === "vercel"
-          ? "Se queda con el dominio de Vercel."
-          : "Sin definir. Mientras siga así, el progreso no pasa de 99%.",
+          ? "Se queda con la dirección de la demo."
+          : "Sin definir.",
     },
     {
       titulo: "Entrega",
-      estado: c.progreso === 100 && c.status === "finalizado" && c.production_url ? "ok" : "pendiente",
-      detalle: c.progreso === 100 && c.status === "finalizado" && c.production_url
-        ? "El cliente ya ve el link final."
-        : "El cliente ve el link final recién con el estado en «Finalizado», el dominio definido y el link de producción cargado.",
+      estado: finalizado ? "ok" : rechazado ? "pendiente" : est(4),
+      detalle: finalizado
+        ? "Saldo cobrado y link final a la vista del cliente."
+        : c.status === "saldo_pendiente" ? "Esperando el pago del saldo."
+        : c.status === "publicando" ? "Te toca subir la página y conectar el dominio."
+        : "El link final aparece cuando se cobra el saldo.",
     },
   ];
 }
 
 /**
- * Qué está frenando el proyecto ahora mismo.
+ * Qué está pasando ahora mismo, en una frase.
  *
- * Devuelve { texto, tono }. `tono` es 'falta' | 'espera' | 'ok', porque no es
- * lo mismo "falta que hagas algo" que "está bien, esperando al cliente".
- * Antes esto devolvía "Todo al día" para un proyecto rechazado y para uno que
- * llevaba semanas sin respuesta: los dos casos donde más hace falta decir algo.
+ * `tono` es 'falta' (te toca a vos), 'espera' (está bien, es del cliente) u
+ * 'ok'. Que sean tres y no dos importa: "esperando al cliente hace 3 semanas"
+ * y "te falta hacer algo" se ven distinto y se actúa distinto.
  */
 function queTraba(c) {
-  if (c.status === "rechazado") {
-    return {
-      tono: "espera",
-      texto: "El cliente dijo que no continúa. Si se arrepintió, reabrí la decisión acá abajo y volvé a poner el proyecto en «Demo lista».",
-    };
-  }
+  const T = {
+    rechazado: ["espera", "El cliente dijo que no continúa. Si se arrepintió, reabrí la decisión acá abajo y volvé a enviarle la demo."],
+    demo_pendiente: ["falta", c.demo_url
+      ? "El link ya está cargado: mandale la demo con el botón de arriba."
+      : "Cargá el link de la demo más abajo y después mandásela."],
+    demo_lista: ["espera", "Esperando que mire la demo y decida. Si ya te confirmó por WhatsApp, movelo a «Esperando el anticipo» con el selector."],
+    anticipo_pendiente: hayComprobante(c)
+      ? ["falta", "Subió el comprobante del anticipo. Aprobalo en el bloque de Cobros y el proyecto avanza solo."]
+      : ["espera", "Esperando que pague el anticipo. Cuando se acredite pasa solo a «Aplicando los cambios»."],
+    dominio: ["espera", "Esperando que elija la dirección de su página."],
+    publicando: ["falta", "Te toca a vos: subí la página, conectá el dominio y después pedile el saldo con el botón de arriba."],
+    saldo_pendiente: hayComprobante(c)
+      ? ["falta", "Subió el comprobante del saldo. Aprobalo en Cobros y el proyecto se cierra solo."]
+      : ["espera", "Esperando el pago del saldo. Cuando se acredite queda finalizado y se le muestra el link."],
+    finalizado: ["ok", "Proyecto cerrado: cobrado, publicado y con el link a la vista del cliente."],
+  };
 
-  if (c.status === "demo_pendiente") {
-    return {
-      tono: "falta",
-      texto: c.demo_url
-        ? "La demo ya tiene link: pasá el proyecto a «Demo lista» para que el cliente la pueda revisar."
-        : "Cargá el link de la demo y pasá el proyecto a «Demo lista».",
-    };
-  }
-
-  if (c.status === "demo_lista") {
-    if (!c.demo_url) {
-      return { tono: "falta", texto: "Falta el link de la demo: el cliente entra y no ve nada que revisar." };
+  if (c.status === "en_produccion") {
+    const faltan = Number(c.tareas_total) - Number(c.tareas_hechas);
+    if (c.tareas_total === 0) {
+      return { tono: "espera", texto: "Esperando que cargue sus cambios. También podés agregarlos vos acá abajo." };
     }
-    return {
-      tono: "espera",
-      texto: "Esperando la respuesta del cliente. Si ya te confirmó por WhatsApp, pasalo vos a «En producción»: se le crea solo el anticipo del 50%.",
-    };
+    if (faltan > 0) {
+      return { tono: "falta", texto: `Te faltan ${faltan} cambio(s) por completar. Cuando estén todos, tocá el botón de arriba para pasar al dominio.` };
+    }
+    return { tono: "falta", texto: "Están todos los cambios hechos. Tocá el botón de arriba para que elija el dominio." };
   }
 
-  const faltas = [];
-  if (c.tareas_total > 0 && c.tareas_hechas < c.tareas_total) {
-    faltas.push(`completar ${c.tareas_total - c.tareas_hechas} tarea(s)`);
-  }
-  if (c.tareas_total === 0) faltas.push("cargar las tareas del proyecto");
-  if (!c.domain_choice) faltas.push("definir el dominio");
-  if (!c.production_url) faltas.push("cargar el link de producción");
-  if (c.status !== "finalizado") faltas.push("pasar la etapa a «Finalizado»");
+  const [tono, texto] = T[c.status] || ["espera", "Etapa sin descripción."];
+  return { tono, texto };
+}
 
-  if (faltas.length === 0) {
-    return { tono: "ok", texto: "Todo listo: el cliente ya ve el 100% y el link final." };
-  }
-  return { tono: "falta", texto: `Para que el cliente vea el proyecto terminado falta: ${faltas.join(" · ")}.` };
+/**
+ * La acción principal de la etapa, si es que te toca a vos.
+ * Devuelve null cuando la pelota es del cliente: en esas etapas no hay botón,
+ * porque no hay nada que apretar.
+ */
+function accionPrincipal(c) {
+  const paso = SIGUIENTE_PASO[c.status];
+  if (!paso) return null;
+
+  const falta =
+    paso.requiere === "demo_url" && !c.demo_url ? "Cargá primero el link de la demo, más abajo." :
+    paso.requiere === "production_url" && !c.production_url ? "Cargá primero el link de producción, más abajo." :
+    null;
+
+  return { ...paso, bloqueado: Boolean(falta), motivo: falta };
 }
 
 function bloqueFlujo(c) {
   const pasos = pasosDelFlujo(c);
   const traba = queTraba(c);
   const dominio = c.domain_choice || "ninguno";
+  const turno = deQuienEsElTurno(c);
+  const accion = accionPrincipal(c);
 
   const iconos = { ok: "✓", curso: "●", pendiente: "○", no: "✕" };
+  const dePelota = {
+    ariel: "Te toca a vos",
+    cliente: "Le toca al cliente",
+    nadie: "Sin acciones pendientes",
+  };
 
   return `
     <div class="admin-bloque admin-flujo">
-      <label class="admin-bloque-label">Flujo del proyecto · ${c.progreso}%</label>
+      <div class="flujo-cab">
+        <label class="admin-bloque-label" style="margin:0">Flujo del proyecto · ${c.progreso}%</label>
+        <span class="flujo-turno flujo-turno-${turno}">${dePelota[turno]}</span>
+      </div>
 
       <ol class="flujo-pasos">
-        ${pasos.map((p) => `
+        ${pasos.map((p, i) => `
           <li class="flujo-paso flujo-${p.estado}">
             <span class="flujo-icono" aria-hidden="true">${iconos[p.estado]}</span>
             <div>
-              <strong>${escapeHtml(p.titulo)}</strong>
+              <strong>${escapeHtml(PASOS_CLIENTE[i])}</strong>
               <span class="flujo-detalle">${escapeHtml(p.detalle)}</span>
             </div>
           </li>`).join("")}
@@ -293,52 +358,64 @@ function bloqueFlujo(c) {
 
       <p class="flujo-traba flujo-traba-${traba.tono}" role="status">${escapeHtml(traba.texto)}</p>
 
-      <div class="admin-form-grid">
-        <div class="form-group">
-          <label for="ed-estado-${c.id}">Etapa</label>
-          <select id="ed-estado-${c.id}" data-campo="status">
-            ${Object.entries(ESTADOS).map(([k, v]) =>
-              `<option value="${k}" ${c.status === k ? "selected" : ""}>${escapeHtml(v.label)}</option>`
-            ).join("")}
-          </select>
-          <p class="admin-hint">Podés adelantar o volver atrás. Al pasar a «En producción» se crea solo el anticipo del 50%.</p>
-        </div>
-
-        <div class="form-group">
-          <label for="ed-dominio-${c.id}">Dominio</label>
-          <select id="ed-dominio-${c.id}" data-campo="dominio">
-            <option value="ninguno" ${dominio === "ninguno" ? "selected" : ""}>Sin definir (lo elige el cliente)</option>
-            <option value="vercel"  ${dominio === "vercel"  ? "selected" : ""}>Dominio de Vercel (incluido)</option>
-            <option value="propio"  ${dominio === "propio"  ? "selected" : ""}>Dominio propio (+USD 10)</option>
-          </select>
-          <p class="admin-hint">Este es el paso que destraba el último 1%.</p>
-        </div>
-      </div>
-
-      <div class="form-group" data-zona="dominio-nombre" ${dominio === "propio" ? "" : "hidden"}>
-        <label for="ed-dominio-nombre-${c.id}">Nombre del dominio</label>
-        <input type="text" id="ed-dominio-nombre-${c.id}" maxlength="253"
-               value="${escapeHtml(c.domain_name || "")}"
-               placeholder="elcliente.com" data-campo="domain_name">
-      </div>
-
-      <p class="admin-hint flujo-recordatorio">
-        La etapa y el dominio se aplican con «Guardar cambios», acá abajo.
-      </p>
-
-      ${c.client_decision ? `
-        <div class="flujo-decision">
-          <p class="admin-hint">
-            El cliente ya respondió: <strong>${c.client_decision === "continuar" ? "continúa" : "no continúa"}</strong>.
-            Mientras esa respuesta esté guardada no puede volver a elegir desde su link.
-          </p>
-          <button type="button" class="btn btn-sm btn-outline" data-accion="reabrir">
-            Reabrir la decisión del cliente
+      ${accion ? `
+        <div class="flujo-accion">
+          <button type="button" class="btn btn-primary" data-accion="avanzar"
+                  data-a="${escapeHtml(accion.a)}" ${accion.bloqueado ? "disabled" : ""}>
+            ${escapeHtml(accion.boton)}
           </button>
+          <p class="admin-hint">${escapeHtml(accion.bloqueado ? accion.motivo : accion.ayuda)}</p>
         </div>` : ""}
+
+      <details class="flujo-manual">
+        <summary>Mover el flujo a mano</summary>
+        <p class="admin-hint">
+          Salida de emergencia: sirve para volver atrás, o para reflejar algo que
+          arreglaste por WhatsApp. El camino normal es el botón de arriba.
+        </p>
+
+        <div class="admin-form-grid">
+          <div class="form-group">
+            <label for="ed-estado-${c.id}">Etapa</label>
+            <select id="ed-estado-${c.id}" data-campo="status">
+              ${ORDEN_ETAPAS.concat("rechazado").map((k) =>
+                `<option value="${k}" ${c.status === k ? "selected" : ""}>${escapeHtml(ESTADOS[k].label)}</option>`
+              ).join("")}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="ed-dominio-${c.id}">Dominio</label>
+            <select id="ed-dominio-${c.id}" data-campo="dominio">
+              <option value="ninguno" ${dominio === "ninguno" ? "selected" : ""}>Sin definir (lo elige el cliente)</option>
+              <option value="vercel"  ${dominio === "vercel"  ? "selected" : ""}>El de la demo (incluido)</option>
+              <option value="propio"  ${dominio === "propio"  ? "selected" : ""}>Dominio propio (+${escapeHtml(usd(c.domain_extra_usd ?? 10))})</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" data-zona="dominio-nombre" ${dominio === "propio" ? "" : "hidden"}>
+          <label for="ed-dominio-nombre-${c.id}">Nombre del dominio</label>
+          <input type="text" id="ed-dominio-nombre-${c.id}" maxlength="253"
+                 value="${escapeHtml(c.domain_name || "")}"
+                 placeholder="elcliente.com" data-campo="domain_name">
+        </div>
+
+        <p class="admin-hint">La etapa y el dominio se aplican con «Guardar cambios», más abajo.</p>
+
+        ${c.client_decision ? `
+          <div class="flujo-decision">
+            <p class="admin-hint">
+              El cliente ya respondió: <strong>${c.client_decision === "continuar" ? "continúa" : "no continúa"}</strong>.
+              Mientras esa respuesta esté guardada no puede volver a elegir desde su link.
+            </p>
+            <button type="button" class="btn btn-sm btn-outline" data-accion="reabrir">
+              Reabrir la decisión del cliente
+            </button>
+          </div>` : ""}
+      </details>
     </div>`;
 }
-
 /* ==========================================================================
    Ficha desplegada
    ========================================================================== */
@@ -409,7 +486,7 @@ function ficha(c) {
       <div class="admin-pagos" data-zona="pagos"><p class="admin-hint">Cargando…</p></div>
       <div class="admin-link-row" style="margin-top:12px">
         <button type="button" class="btn btn-sm btn-outline" data-accion="crear-saldo">
-          Generar saldo final (50%)
+          Generar el saldo final
         </button>
         <button type="button" class="btn btn-sm btn-outline" data-accion="cobro-manual">
           + Cobro manual
@@ -525,6 +602,46 @@ function conectarFicha(ficha, c, link) {
     }
   });
 
+  // --- Acción principal de la etapa ---
+  // Es el camino normal: un botón que dice exactamente qué va a pasar. La
+  // migración 05 se encarga de los efectos (crear el cobro, abrir el paso
+  // siguiente), así que desde acá solo hay que pedir la transición.
+  const btnAvanzar = accion("avanzar");
+  if (btnAvanzar) {
+    btnAvanzar.addEventListener("click", async (e) => {
+      const b = e.currentTarget;
+      const destino = b.dataset.a;
+
+      const ok = await confirmar({
+        titulo: "¿Pasamos al siguiente paso?",
+        texto: `${c.project_name}: el proyecto pasa a «${ESTADOS[destino]?.label || destino}» y el cliente lo ve al instante en su link.`,
+        confirmar: "Sí, avanzar",
+        icono: "question",
+      });
+      if (!ok) return;
+
+      b.disabled = true;
+      const res = await adminMoverFlujo(c.id, { status: destino });
+      b.disabled = false;
+
+      if (!res.ok) {
+        avisar("No se pudo avanzar", res.error, "error");
+        return;
+      }
+      await recargar();
+      anunciar("Etapa actualizada.");
+
+      const avisos = Array.isArray(res.avisos) ? res.avisos : [];
+      avisar(
+        `Listo · ${res.progreso}%`,
+        avisos.length
+          ? `El proyecto pasó a «${ESTADOS[res.status]?.label || res.status}».\n\nOjo con esto:\n• ${avisos.join("\n• ")}`
+          : `El proyecto pasó a «${ESTADOS[res.status]?.label || res.status}».`,
+        avisos.length ? "info" : "success"
+      );
+    });
+  }
+
   // --- Mostrar/ocultar el nombre del dominio según la opción elegida ---
   const selDominio = ficha.querySelector('[data-campo="dominio"]');
   const zonaNombre = ficha.querySelector('[data-zona="dominio-nombre"]');
@@ -586,7 +703,7 @@ function conectarFicha(ficha, c, link) {
 
   // --- Saldo final ---
   accion("crear-saldo").addEventListener("click", async () => {
-    const res = await adminCrearSaldoFinal(c.id, Number(c.price_usd) || 0);
+    const res = await adminCrearSaldoFinal(c.id);
     if (!res.ok) {
       avisar("No se pudo generar", res.error, "error");
       return;

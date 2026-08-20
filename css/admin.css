@@ -900,6 +900,59 @@
    el color dice el estado sin depender del ícono (que además está marcado
    aria-hidden, porque el texto ya lo explica).
    ========================================================================== */
+.flujo-cab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 13px;
+}
+
+/* De quién es el turno. Es el dato que más rápido se necesita al abrir una
+   ficha, así que va arriba de todo y con color propio. */
+.flujo-turno {
+    padding: 4px 11px;
+    border-radius: 99px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+.flujo-turno-ariel   { background: rgba(245, 158, 11, 0.16); color: #fbbf24; }
+.flujo-turno-cliente { background: rgba(99, 102, 241, 0.18); color: #a5b4fc; }
+.flujo-turno-nadie   { background: rgba(34, 197, 94, 0.16);  color: #4ade80; }
+
+/* La acción principal de la etapa: un solo botón, ancho, imposible de no ver. */
+.flujo-accion { margin-bottom: 4px; }
+.flujo-accion .btn { width: 100%; min-height: 46px; font-size: 0.92rem; }
+.flujo-accion .admin-hint { margin-top: 8px; text-align: center; }
+
+/* Salida de emergencia: plegada por defecto para que el camino normal sea
+   el botón de arriba y no el selector. */
+.flujo-manual {
+    margin-top: 18px;
+    border-top: 1px dashed var(--border);
+    padding-top: 4px;
+}
+.flujo-manual > summary {
+    cursor: pointer;
+    padding: 11px 2px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    list-style: none;
+}
+.flujo-manual > summary::-webkit-details-marker { display: none; }
+.flujo-manual > summary::before {
+    content: "›";
+    display: inline-block;
+    margin-right: 8px;
+    transition: transform 0.2s ease;
+}
+.flujo-manual[open] > summary::before { transform: rotate(90deg); }
+.flujo-manual > summary:hover { color: var(--text-primary); }
+.flujo-manual > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 6px; }
+
 .flujo-pasos {
     list-style: none;
     margin: 0 0 14px;
@@ -958,7 +1011,7 @@
     border-radius: 9px;
     font-size: 0.82rem;
     line-height: 1.5;
-    color: var(--text);
+    color: var(--text-primary);
     border: 1px solid transparent;
 }
 
