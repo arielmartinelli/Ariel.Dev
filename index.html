@@ -87,6 +87,19 @@
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body class="dark-theme">
+    <!-- Pantalla de Carga Inicial (Preloader con Logo Tipeándose) -->
+    <div id="page-loader" class="page-loader">
+        <div class="loader-content">
+            <div class="loader-logo">
+                <span class="loader-logo-accent">&lt;</span><span id="loader-typewriter"></span><span class="loader-logo-accent">/&gt;</span><span class="loader-cursor">|</span>
+            </div>
+            <div class="loader-bar-container">
+                <div class="loader-bar" id="loader-progress-bar"></div>
+            </div>
+            <span class="loader-status-text" id="loader-status">Preparando proyectos...</span>
+        </div>
+    </div>
+
     <!-- Scroll Progress Bar -->
     <div class="scroll-progress" id="scroll-progress"></div>
 

@@ -1380,27 +1380,52 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ==========================================================================
+    // Preloader con Logo Tipeándose
+    // ==========================================================================
+    function initPreloader() {
+        const loader = document.getElementById("page-loader");
+        const typewriterEl = document.getElementById("loader-typewriter");
+        const progressBar = document.getElementById("loader-progress-bar");
+        const statusEl = document.getElementById("loader-status");
+        if (!loader || !typewriterEl) return { finish: () => {} };
+
+        const fullText = "Ariel.Dev";
+        let charIdx = 0;
+
+        const typeInterval = setInterval(() => {
+            if (charIdx <= fullText.length) {
+                typewriterEl.textContent = fullText.slice(0, charIdx);
+                charIdx++;
+            } else {
+                clearInterval(typeInterval);
+            }
+        }, 110);
+
+        if (progressBar) {
+            setTimeout(() => { progressBar.style.width = "75%"; }, 100);
+        }
+
+        return {
+            finish: () => {
+                if (progressBar) progressBar.style.width = "100%";
+                if (statusEl) statusEl.textContent = "¡Listo!";
+                setTimeout(() => {
+                    loader.classList.add("hidden-loader");
+                }, 400);
+            }
+        };
+    }
+
+    // ==========================================================================
     // 8. Inicialización al cargar la página
     // ==========================================================================
     async function init() {
+        const preloader = initPreloader();
+
         // Primero de todo: dejar SweetAlert2 en la capa correcta. Si algo falla
         // más abajo, al menos el cartel de error se va a ver.
         configurarDialogos();
 
-        // ------------------------------------------------------------------
-        // BUG CORREGIDO: el orden importaba y estaba al revés.
-        //
-        // Antes esto empezaba con `await getCategories()` y `await
-        // fetchDollarRate()`, y recién DESPUÉS arrancaba el scroll suave, el
-        // tilt 3D y los efectos de scroll. Consecuencia: si Supabase estaba
-        // lento, caído o mal configurado, esos awaits colgaban la función y
-        // los efectos NO se inicializaban nunca. La página quedaba "muerta"
-        // por un problema de red que no tiene nada que ver con la animación.
-        //
-        // Ahora todo lo que NO depende de la red arranca primero y de forma
-        // síncrona. Los datos se piden después, en paralelo, y un fallo ahí
-        // solo afecta a la sección que los necesita.
-        // ------------------------------------------------------------------
         initSmoothScroll();
         initScrollEffects();
         initMagnetEffect();
@@ -1408,8 +1433,6 @@ document.addEventListener("DOMContentLoaded", () => {
         init3DTilt();
         initStackingProjectsScroll();
         renderizarResenasPublicas();
-        // initCustomCursor();      // Desactivado
-        // initCardGlowTracker();   // Desactivado — CSS vars en cada mousemove
 
         // Los datos van en paralelo: el portfolio y la cotización del dólar no
         // dependen entre sí, y esperarlos en fila duplica el tiempo de carga.
@@ -1423,6 +1446,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             fetchDollarRate().catch((e) => console.error("No se pudo cotizar el dólar:", e?.message || e)),
         ]);
+
+        // Finalizar pantalla de carga al terminar el renderizado
+        preloader.finish();
 
         // Redirección de "Beneficios de Tener"
         const btnVerVentajas = document.getElementById("btn-ver-ventajas");
