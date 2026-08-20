@@ -8,7 +8,7 @@
   color: var(--text-primary, #ffffff);
   font-family: var(--font-body, "Inter", sans-serif);
   min-height: 100vh;
-  padding-bottom: 50px;
+  padding-bottom: 60px;
   overflow-x: hidden; /* Garantiza 0 scroll lateral */
 }
 
@@ -21,7 +21,7 @@
   left: -9999px;
   top: 0;
   z-index: var(--z-toast, 9999);
-  padding: 10px 16px;
+  padding: 12px 20px;
   background: var(--primary, #6366f1);
   color: #fff;
   border-radius: 0 0 8px 0;
@@ -50,7 +50,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 24px;
+  padding: 18px 32px;
   background: rgba(7, 9, 19, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -60,16 +60,16 @@
 .portal-marca {
   display: flex;
   align-items: center;
-  gap: 99px;
+  gap: 10px;
   font-family: var(--font-heading, "Outfit", sans-serif);
   font-weight: 800;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   letter-spacing: -0.02em;
   color: #ffffff;
 }
 
 .portal-marca-punto {
-  width: 8px; height: 8px;
+  width: 9px; height: 9px;
   border-radius: 50%;
   background: var(--primary, #6366f1);
   box-shadow: 0 0 10px var(--primary, #6366f1);
@@ -79,20 +79,20 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: #94a3b8;
   background: rgba(255, 255, 255, 0.05);
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* El ancho del contenedor principal del portal en escritorio */
 .portal-main {
-  max-width: 900px;
+  max-width: 920px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 24px;
   width: 100%;
 }
 
@@ -102,16 +102,16 @@
 .portal-centro {
   display: grid;
   place-items: center;
-  gap: 14px;
+  gap: 16px;
   text-align: center;
   min-height: 60vh;
-  padding: 40px 0;
+  padding: 48px 20px;
 }
-.portal-centro h1 { font-size: 1.5rem; font-weight: 700; color: #ffffff; }
+.portal-centro h1 { font-size: 1.6rem; font-weight: 700; color: #ffffff; }
 .portal-centro p { color: var(--text-secondary, #94a3b8); max-width: 46ch; }
 
 .portal-spinner {
-  width: 36px; height: 36px;
+  width: 38px; height: 38px;
   border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.12);
   border-top-color: var(--primary, #6366f1);
@@ -123,11 +123,11 @@
    Hero Card con Saludo + Avance + Pasos
    ========================================================================== */
 .portal-hero {
-  padding: 28px 32px;
-  margin: 24px 0 28px;
+  padding: 32px 36px;
+  margin: 28px 0 32px;
   background: linear-gradient(145deg, rgba(20, 26, 45, 0.85), rgba(12, 16, 30, 0.95));
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 22px;
+  border-radius: 24px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -141,28 +141,28 @@
   letter-spacing: 1px;
   color: var(--primary-light, #818cf8);
   background: rgba(99, 102, 241, 0.12);
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 20px;
   border: 1px solid rgba(99, 102, 241, 0.25);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .portal-hero-fila {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 20px;
+  gap: 24px;
   flex-wrap: wrap;
 }
 
 .portal-hero-txt {
   flex: 1;
-  min-width: 200px;
+  min-width: 220px;
 }
 
 .portal-hero h1 {
   font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 1.85rem;
+  font-size: 2rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.2;
@@ -172,9 +172,9 @@
 }
 
 .portal-hero-proyecto {
-  margin-top: 4px;
+  margin-top: 6px;
   color: var(--text-secondary, #94a3b8);
-  font-size: 0.98rem;
+  font-size: 1.02rem;
   font-weight: 500;
   word-break: break-word;
 }
@@ -189,7 +189,7 @@
 }
 .portal-hero-num b {
   font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 3rem;
+  font-size: 3.2rem;
   font-weight: 800;
   letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
@@ -200,7 +200,7 @@
 }
 .portal-hero-pct {
   font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--primary-light, #818cf8);
@@ -208,7 +208,7 @@
 }
 .portal-hero-etq {
   display: block;
-  margin-top: 4px;
+  margin-top: 6px;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -220,7 +220,7 @@
   height: 8px;
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.08);
-  margin: 22px 0 24px;
+  margin: 26px 0 28px;
   overflow: hidden;
 }
 .portal-barra i {
@@ -240,7 +240,7 @@
 .portal-pasos-wrapper {
   width: 100%;
   overflow: hidden; /* Garantiza 0 scroll lateral */
-  padding: 4px 0 0 0;
+  padding: 8px 0 4px 0;
 }
 
 .portal-pasos {
@@ -259,13 +259,14 @@
   align-items: center;
   gap: 8px;
   text-align: center;
-  min-width: 0; /* Permite que el texto se adapte sin desbordar la celda */
+  min-width: 0;
+  padding: 0 2px;
 }
 
 .portal-paso::before {
   content: "";
   position: absolute;
-  top: 13px;
+  top: 14px;
   left: 50%;
   width: 100%;
   height: 2px;
@@ -282,18 +283,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px; height: 26px;
+  width: 28px; height: 28px;
   border-radius: 50%;
   border: 1.5px solid rgba(255, 255, 255, 0.16);
   background: #090d16;
   color: var(--text-muted, #64748b);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
   transition: all 0.3s ease;
 }
 
 .portal-paso-t {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 500;
   line-height: 1.25;
   color: var(--text-muted, #64748b);
@@ -314,7 +315,7 @@
   background: linear-gradient(135deg, var(--primary, #6366f1), #06b6d4);
   border-color: transparent;
   color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.25);
 }
 .portal-paso.activo .portal-paso-t { color: #ffffff; font-weight: 700; }
 
@@ -331,27 +332,26 @@
 @media (min-width: 900px) {
   .portal-columnas {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 280px;
-    gap: 24px;
+    grid-template-columns: minmax(0, 1fr) 290px;
+    gap: 28px;
     align-items: start;
   }
 
-  /* Cuando NO hay resumen (ej: etapa demo_pendiente/demo_lista), la tarjeta ocupa el 100% del ancho */
   .portal-columnas.sin-resumen,
   .portal-columnas:has(.portal-resumen:empty) {
     grid-template-columns: 1fr !important;
   }
 
-  .portal-resumen { position: sticky; top: 84px; }
+  .portal-resumen { position: sticky; top: 88px; }
   .portal-columnas > #pc-etapa > .portal-etapa { margin-top: 0; }
 }
 
 .portal-resumen-caja {
   background: linear-gradient(145deg, rgba(20, 26, 45, 0.8), rgba(12, 16, 30, 0.9));
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
-  padding: 22px;
-  margin: 0 0 24px;
+  border-radius: 22px;
+  padding: 26px 28px;
+  margin: 0 0 28px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -362,7 +362,7 @@
 }
 
 .portal-resumen-caja h3 {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted, #64748b);
@@ -370,9 +370,9 @@
 }
 
 .portal-resumen-nombre {
-  margin-top: 4px;
+  margin-top: 6px;
   font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.3;
@@ -380,12 +380,12 @@
 }
 
 .portal-resumen-datos {
-  margin: 16px 0 0;
+  margin: 18px 0 0;
   display: grid;
   gap: 1px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
 }
 .portal-resumen-datos > div {
@@ -393,19 +393,19 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  padding: 11px 13px;
+  padding: 13px 16px;
   background: rgba(15, 20, 35, 0.85);
 }
-.portal-resumen-datos dt { font-size: 0.8rem; color: var(--text-secondary, #94a3b8); }
+.portal-resumen-datos dt { font-size: 0.82rem; color: var(--text-secondary, #94a3b8); }
 .portal-resumen-datos dd {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: #ffffff;
   font-variant-numeric: tabular-nums;
 }
 .portal-resumen-datos dd.corta {
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 600;
   text-align: right;
   word-break: break-all;
@@ -416,14 +416,14 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 42px;
-  margin-top: 12px;
-  padding: 0 16px;
-  border-radius: 12px;
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 0 18px;
+  border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.04);
   color: #ffffff;
-  font-size: 0.86rem;
+  font-size: 0.88rem;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s ease;
@@ -444,9 +444,9 @@
 .portal-etapa {
   background: linear-gradient(145deg, rgba(20, 26, 45, 0.8), rgba(12, 16, 30, 0.9));
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 22px;
-  padding: 28px 32px;
-  margin: 24px 0;
+  border-radius: 24px;
+  padding: 32px 36px;
+  margin: 28px 0;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -456,8 +456,8 @@
 .portal-etapa-ico {
   display: grid;
   place-items: center;
-  width: 44px; height: 44px;
-  margin-bottom: 16px;
+  width: 48px; height: 48px;
+  margin-bottom: 18px;
   border-radius: 14px;
   background: rgba(99, 102, 241, 0.15);
   color: var(--primary-light, #818cf8);
@@ -468,7 +468,7 @@
 
 .portal-etapa h2 {
   font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 1.45rem;
+  font-size: 1.55rem;
   font-weight: 800;
   letter-spacing: -0.025em;
   line-height: 1.25;
@@ -476,19 +476,19 @@
 }
 
 .portal-etapa-sub {
-  margin-top: 8px;
+  margin-top: 10px;
   color: var(--text-secondary, #94a3b8);
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   line-height: 1.55;
   max-width: 64ch;
 }
 
-.portal-etapa-cuerpo { margin-top: 20px; }
+.portal-etapa-cuerpo { margin-top: 24px; }
 
 .portal-url {
-  margin-top: 10px;
+  margin-top: 12px;
   color: var(--text-muted, #64748b);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   word-break: break-all;
 }
 
@@ -497,9 +497,9 @@
    ========================================================================== */
 .portal-acciones {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
-  margin-top: 22px;
+  margin-top: 26px;
 }
 
 .portal-body .btn {
@@ -507,12 +507,12 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 46px;
-  padding: 0 22px;
+  min-height: 48px;
+  padding: 0 24px;
   border-radius: 14px;
   border: 1px solid transparent;
   font-family: var(--font-body, "Inter", sans-serif);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
@@ -553,23 +553,23 @@
   box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
 }
 
-.portal-body .btn-suave { background: transparent; color: var(--text-secondary); padding: 0 12px; }
+.portal-body .btn-suave { background: transparent; color: var(--text-secondary); padding: 0 14px; }
 .portal-body .btn-suave:hover { color: #ffffff; }
 
-.portal-body .btn-sm { min-height: 40px; padding: 0 16px; font-size: 0.84rem; }
+.portal-body .btn-sm { min-height: 42px; padding: 0 18px; font-size: 0.86rem; }
 
 /* ==========================================================================
    Notas y Avisos
    ========================================================================== */
 .portal-nota {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   align-items: flex-start;
-  margin-top: 20px;
-  padding: 13px 16px;
-  border-radius: 12px;
-  font-size: 0.86rem;
-  line-height: 1.5;
+  margin-top: 22px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  font-size: 0.88rem;
+  line-height: 1.55;
   color: var(--text-secondary, #94a3b8);
   background: rgba(99, 102, 241, 0.08);
   border: 1px solid rgba(99, 102, 241, 0.2);
@@ -585,15 +585,15 @@
 .portal-espera {
   display: grid;
   place-items: center;
-  gap: 6px;
+  gap: 8px;
   text-align: center;
-  padding: 30px 20px;
-  border-radius: 14px;
+  padding: 36px 26px;
+  border-radius: 16px;
   border: 1px dashed rgba(245, 158, 11, 0.35);
   background: rgba(245, 158, 11, 0.05);
 }
-.portal-espera strong { margin-top: 4px; font-size: 0.96rem; font-weight: 700; color: #ffffff; }
-.portal-espera small { color: var(--text-muted, #64748b); font-size: 0.84rem; }
+.portal-espera strong { margin-top: 4px; font-size: 1rem; font-weight: 700; color: #ffffff; }
+.portal-espera small { color: var(--text-muted, #64748b); font-size: 0.86rem; }
 
 .portal-pulso { display: flex; gap: 6px; }
 .portal-pulso i {
@@ -611,36 +611,36 @@
 }
 
 .portal-ruta-tit {
-  margin: 24px 0 10px;
-  font-size: 0.72rem;
+  margin: 26px 0 12px;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted, #64748b);
   font-weight: 700;
 }
-.portal-ruta { list-style: none; display: grid; gap: 6px; margin: 0; padding: 0; }
+.portal-ruta { list-style: none; display: grid; gap: 8px; margin: 0; padding: 0; }
 .portal-ruta li {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   align-items: flex-start;
-  padding: 11px 14px;
-  border-radius: 12px;
+  padding: 14px 18px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 .portal-ruta li > span {
   flex: 0 0 auto;
-  width: 22px; height: 22px;
+  width: 24px; height: 24px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-secondary, #94a3b8);
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 700;
 }
-.portal-ruta li b { display: block; font-size: 0.9rem; font-weight: 600; color: #ffffff; }
-.portal-ruta li small { display: block; margin-top: 2px; color: var(--text-muted, #64748b); font-size: 0.82rem; }
+.portal-ruta li b { display: block; font-size: 0.94rem; font-weight: 600; color: #ffffff; }
+.portal-ruta li small { display: block; margin-top: 3px; color: var(--text-muted, #64748b); font-size: 0.84rem; }
 
 /* ==========================================================================
    Pie de página
@@ -649,35 +649,35 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
-  padding: 20px 24px;
-  margin-top: 32px;
-  border-radius: 16px;
+  padding: 24px 30px;
+  margin-top: 40px;
+  border-radius: 20px;
   background: rgba(20, 26, 45, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(12px);
 }
-.portal-pie-info strong { display: block; font-size: 0.92rem; color: #ffffff; }
-.portal-pie-info span { font-size: 0.84rem; color: var(--text-secondary, #94a3b8); }
+.portal-pie-info strong { display: block; font-size: 0.95rem; color: #ffffff; }
+.portal-pie-info span { font-size: 0.85rem; color: var(--text-secondary, #94a3b8); }
 
 /* ==========================================================================
-   Diseño Móvil (< 768px) - 100% Ajustado al Ancho Sin Scroll Horizontal
+   Diseño Móvil (< 768px)
    ========================================================================== */
 @media (max-width: 768px) {
-  .portal-top { padding: 12px 16px; }
-  .portal-main { padding: 0 14px; }
+  .portal-top { padding: 14px 20px; }
+  .portal-main { padding: 0 18px; }
 
   .portal-hero {
-    padding: 20px 16px;
-    margin: 16px 0 20px;
-    border-radius: 18px;
+    padding: 24px 20px;
+    margin: 20px 0 24px;
+    border-radius: 20px;
   }
 
   .portal-hero-fila {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 14px;
   }
 
   .portal-hero-num-box {
@@ -685,21 +685,21 @@
     text-align: left;
   }
   .portal-hero-num { text-align: left; }
-  .portal-hero h1 { font-size: 1.45rem; }
-  .portal-hero-num b { font-size: 2.4rem; }
+  .portal-hero h1 { font-size: 1.5rem; }
+  .portal-hero-num b { font-size: 2.6rem; }
 
   /* 5 Pasos perfectamente ajustados al ancho de la pantalla */
-  .portal-paso-n { width: 22px; height: 22px; font-size: 0.72rem; }
-  .portal-paso::before { top: 11px; }
-  .portal-paso-t { font-size: 0.65rem; line-height: 1.15; }
+  .portal-paso-n { width: 24px; height: 24px; font-size: 0.74rem; }
+  .portal-paso::before { top: 12px; }
+  .portal-paso-t { font-size: 0.68rem; line-height: 1.18; }
 
-  .portal-etapa { padding: 20px 16px; border-radius: 18px; margin: 16px 0; }
-  .portal-etapa h2 { font-size: 1.2rem; }
-  .portal-etapa-ico { width: 40px; height: 40px; }
+  .portal-etapa { padding: 24px 20px; border-radius: 20px; margin: 20px 0; }
+  .portal-etapa h2 { font-size: 1.3rem; }
+  .portal-etapa-ico { width: 44px; height: 44px; }
 
   .portal-acciones .btn { flex: 1 1 100%; width: 100%; justify-content: center; }
 
-  .portal-pie { padding: 18px 16px; flex-direction: column; align-items: stretch; text-align: center; }
+  .portal-pie { padding: 20px 18px; flex-direction: column; align-items: stretch; text-align: center; }
   .portal-pie .btn { width: 100%; justify-content: center; }
 }
 
