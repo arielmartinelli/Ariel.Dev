@@ -603,12 +603,15 @@ function render() {
   // resumir: sin decisión tomada, un cuadro con «Pagado: USD 0» solo mete ruido.
   const conResumen = ["anticipo_pendiente", "en_produccion", "dominio",
                       "publicando", "saldo_pendiente", "finalizado"];
-  const tieneResumen = conResumen.includes(d.status);
-  const resumenEl = $("pc-resumen");
-  if (resumenEl) {
-    resumenEl.innerHTML = tieneResumen ? panelResumen(d) : "";
-    resumenEl.parentElement?.classList.toggle("sin-resumen", !tieneResumen);
-  }
+  const hayResumen = conResumen.includes(d.status);
+  $("pc-resumen").innerHTML = hayResumen ? panelResumen(d) : "";
+
+  // Sin resumen no tiene sentido reservar la columna de la derecha: la
+  // tarjeta quedaría corrida a la izquierda con medio metro de vacío al lado.
+  // Se avisa por clase y no con :has() para no depender del soporte del
+  // navegador en algo que acá ya sabemos con certeza.
+  document.querySelector(".portal-columnas")
+          ?.classList.toggle("sin-resumen", !hayResumen);
 
   $("pc-wa-footer").href = enlaceWhatsApp(`Hola Ariel! Te escribo por "${d.project_name || "mi proyecto"}".`);
 
