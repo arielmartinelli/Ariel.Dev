@@ -9,6 +9,7 @@
   font-family: var(--font-body, "Inter", sans-serif);
   min-height: 100vh;
   padding-bottom: 50px;
+  overflow-x: hidden; /* Garantiza 0 scroll lateral */
 }
 
 .portal-body section { padding: 0; }
@@ -49,7 +50,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 28px;
+  padding: 14px 24px;
   background: rgba(7, 9, 19, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -59,16 +60,16 @@
 .portal-marca {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 99px;
   font-family: var(--font-heading, "Outfit", sans-serif);
   font-weight: 800;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   letter-spacing: -0.02em;
   color: #ffffff;
 }
 
 .portal-marca-punto {
-  width: 9px; height: 9px;
+  width: 8px; height: 8px;
   border-radius: 50%;
   background: var(--primary, #6366f1);
   box-shadow: 0 0 10px var(--primary, #6366f1);
@@ -78,19 +79,21 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #94a3b8;
   background: rgba(255, 255, 255, 0.05);
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* El ancho del contenedor principal del portal en escritorio */
 .portal-main {
-  max-width: 1040px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 20px;
+  width: 100%;
 }
 
 /* ==========================================================================
@@ -101,14 +104,14 @@
   place-items: center;
   gap: 14px;
   text-align: center;
-  min-height: 62vh;
+  min-height: 60vh;
   padding: 40px 0;
 }
-.portal-centro h1 { font-size: 1.6rem; font-weight: 700; color: #ffffff; }
+.portal-centro h1 { font-size: 1.5rem; font-weight: 700; color: #ffffff; }
 .portal-centro p { color: var(--text-secondary, #94a3b8); max-width: 46ch; }
 
 .portal-spinner {
-  width: 38px; height: 38px;
+  width: 36px; height: 36px;
   border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.12);
   border-top-color: var(--primary, #6366f1);
@@ -117,61 +120,63 @@
 @keyframes portal-girar { to { transform: rotate(360deg); } }
 
 /* ==========================================================================
-   Saludo + avance + riel de pasos (Hero Card de Lujo)
+   Hero Card con Saludo + Avance + Pasos
    ========================================================================== */
 .portal-hero {
-  padding: 32px 36px;
-  margin: 28px 0 32px;
+  padding: 28px 32px;
+  margin: 24px 0 28px;
   background: linear-gradient(145deg, rgba(20, 26, 45, 0.85), rgba(12, 16, 30, 0.95));
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 24px;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  position: relative;
+  border-radius: 22px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .portal-badge-estado {
   display: inline-block;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--primary-light, #818cf8);
   background: rgba(99, 102, 241, 0.12);
-  padding: 4px 12px;
+  padding: 4px 10px;
   border-radius: 20px;
   border: 1px solid rgba(99, 102, 241, 0.25);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .portal-hero-fila {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 24px;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
 .portal-hero-txt {
   flex: 1;
-  min-width: 240px;
+  min-width: 200px;
 }
 
 .portal-hero h1 {
   font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 2.2rem;
+  font-size: 1.85rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1.15;
+  line-height: 1.2;
   color: #ffffff;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .portal-hero-proyecto {
-  margin-top: 6px;
+  margin-top: 4px;
   color: var(--text-secondary, #94a3b8);
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   font-weight: 500;
+  word-break: break-word;
 }
 
 .portal-hero-num-box {
@@ -184,7 +189,7 @@
 }
 .portal-hero-num b {
   font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 3.6rem;
+  font-size: 3rem;
   font-weight: 800;
   letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
@@ -195,7 +200,7 @@
 }
 .portal-hero-pct {
   font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--primary-light, #818cf8);
@@ -203,8 +208,8 @@
 }
 .portal-hero-etq {
   display: block;
-  margin-top: 6px;
-  font-size: 0.75rem;
+  margin-top: 4px;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -215,7 +220,7 @@
   height: 8px;
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.08);
-  margin: 24px 0 28px;
+  margin: 22px 0 24px;
   overflow: hidden;
 }
 .portal-barra i {
@@ -229,19 +234,19 @@
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Contenedor responsivo del riel de pasos */
+/* ==========================================================================
+   Riel de 5 Pasos (100% Exacto al ancho del contenedor en Movil y Escritorio)
+   ========================================================================== */
 .portal-pasos-wrapper {
   width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 4px 0 8px 0;
-  scrollbar-width: none;
+  overflow: hidden; /* Garantiza 0 scroll lateral */
+  padding: 4px 0 0 0;
 }
-.portal-pasos-wrapper::-webkit-scrollbar { display: none; }
 
 .portal-pasos {
   display: grid;
-  grid-template-columns: repeat(5, minmax(110px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
+  width: 100%;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -249,21 +254,24 @@
 
 .portal-paso {
   position: relative;
-  display: grid;
-  justify-items: center;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   text-align: center;
+  min-width: 0; /* Permite que el texto se adapte sin desbordar la celda */
 }
 
 .portal-paso::before {
   content: "";
   position: absolute;
-  top: 14px;
+  top: 13px;
   left: 50%;
   width: 100%;
   height: 2px;
   background: rgba(255, 255, 255, 0.1);
   transition: background 0.35s ease;
+  z-index: 0;
 }
 .portal-paso:last-child::before { display: none; }
 .portal-paso.hecho::before { background: #22c55e; }
@@ -274,21 +282,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px; height: 28px;
+  width: 26px; height: 26px;
   border-radius: 50%;
   border: 1.5px solid rgba(255, 255, 255, 0.16);
   background: #090d16;
   color: var(--text-muted, #64748b);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   transition: all 0.3s ease;
 }
 
 .portal-paso-t {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 500;
-  line-height: 1.3;
+  line-height: 1.25;
   color: var(--text-muted, #64748b);
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
   transition: color 0.3s ease;
 }
 
@@ -303,28 +314,35 @@
   background: linear-gradient(135deg, var(--primary, #6366f1), #06b6d4);
   border-color: transparent;
   color: #ffffff;
-  box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.25);
 }
 .portal-paso.activo .portal-paso-t { color: #ffffff; font-weight: 700; }
 
 /* ==========================================================================
-   Dos columnas en pantalla ancha
+   Columnas del Portal (Etapa + Resumen)
    ========================================================================== */
-.portal-columnas { display: block; }
+.portal-columnas {
+  display: block;
+  width: 100%;
+}
 
-.portal-resumen:empty { display: none; }
+.portal-resumen:empty { display: none !important; }
 
-@media (min-width: 992px) {
-  .portal-main { max-width: 1140px; }
-
+@media (min-width: 900px) {
   .portal-columnas {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 340px;
-    gap: 28px;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 24px;
     align-items: start;
   }
 
-  .portal-resumen { position: sticky; top: 92px; }
+  /* Cuando NO hay resumen (ej: etapa demo_pendiente/demo_lista), la tarjeta ocupa el 100% del ancho */
+  .portal-columnas.sin-resumen,
+  .portal-columnas:has(.portal-resumen:empty) {
+    grid-template-columns: 1fr !important;
+  }
+
+  .portal-resumen { position: sticky; top: 84px; }
   .portal-columnas > #pc-etapa > .portal-etapa { margin-top: 0; }
 }
 
@@ -332,19 +350,19 @@
   background: linear-gradient(145deg, rgba(20, 26, 45, 0.8), rgba(12, 16, 30, 0.9));
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
-  padding: 24px;
-  margin: 0 0 30px;
+  padding: 22px;
+  margin: 0 0 24px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 
-@media (min-width: 992px) {
+@media (min-width: 900px) {
   .portal-resumen-caja { margin: 0; }
 }
 
 .portal-resumen-caja h3 {
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted, #64748b);
@@ -352,9 +370,9 @@
 }
 
 .portal-resumen-nombre {
-  margin-top: 6px;
+  margin-top: 4px;
   font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.3;
@@ -362,7 +380,7 @@
 }
 
 .portal-resumen-datos {
-  margin: 18px 0 0;
+  margin: 16px 0 0;
   display: grid;
   gap: 1px;
   background: rgba(255, 255, 255, 0.08);
@@ -375,19 +393,19 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 11px 13px;
   background: rgba(15, 20, 35, 0.85);
 }
-.portal-resumen-datos dt { font-size: 0.82rem; color: var(--text-secondary, #94a3b8); }
+.portal-resumen-datos dt { font-size: 0.8rem; color: var(--text-secondary, #94a3b8); }
 .portal-resumen-datos dd {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: #ffffff;
   font-variant-numeric: tabular-nums;
 }
 .portal-resumen-datos dd.corta {
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 600;
   text-align: right;
   word-break: break-all;
@@ -398,14 +416,14 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
+  min-height: 42px;
   margin-top: 12px;
   padding: 0 16px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.04);
   color: #ffffff;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s ease;
@@ -416,29 +434,30 @@
 }
 
 .portal-resumen-link.solo-ancho { display: none; }
-@media (min-width: 992px) {
+@media (min-width: 900px) {
   .portal-resumen-link.solo-ancho { display: flex; }
 }
 
 /* ==========================================================================
-   Tarjeta de etapa
+   Tarjeta de Etapa Actual
    ========================================================================== */
 .portal-etapa {
   background: linear-gradient(145deg, rgba(20, 26, 45, 0.8), rgba(12, 16, 30, 0.9));
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
-  padding: 32px;
-  margin: 30px 0;
+  border-radius: 22px;
+  padding: 28px 32px;
+  margin: 24px 0;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  width: 100%;
 }
 
 .portal-etapa-ico {
   display: grid;
   place-items: center;
-  width: 48px; height: 48px;
-  margin-bottom: 18px;
+  width: 44px; height: 44px;
+  margin-bottom: 16px;
   border-radius: 14px;
   background: rgba(99, 102, 241, 0.15);
   color: var(--primary-light, #818cf8);
@@ -449,7 +468,7 @@
 
 .portal-etapa h2 {
   font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 1.55rem;
+  font-size: 1.45rem;
   font-weight: 800;
   letter-spacing: -0.025em;
   line-height: 1.25;
@@ -457,19 +476,19 @@
 }
 
 .portal-etapa-sub {
-  margin-top: 10px;
+  margin-top: 8px;
   color: var(--text-secondary, #94a3b8);
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   line-height: 1.55;
   max-width: 64ch;
 }
 
-.portal-etapa-cuerpo { margin-top: 24px; }
+.portal-etapa-cuerpo { margin-top: 20px; }
 
 .portal-url {
-  margin-top: 12px;
+  margin-top: 10px;
   color: var(--text-muted, #64748b);
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   word-break: break-all;
 }
 
@@ -480,7 +499,7 @@
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  margin-top: 24px;
+  margin-top: 22px;
 }
 
 .portal-body .btn {
@@ -488,12 +507,12 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 48px;
-  padding: 0 24px;
+  min-height: 46px;
+  padding: 0 22px;
   border-radius: 14px;
   border: 1px solid transparent;
   font-family: var(--font-body, "Inter", sans-serif);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
@@ -537,20 +556,20 @@
 .portal-body .btn-suave { background: transparent; color: var(--text-secondary); padding: 0 12px; }
 .portal-body .btn-suave:hover { color: #ffffff; }
 
-.portal-body .btn-sm { min-height: 42px; padding: 0 18px; font-size: 0.86rem; }
+.portal-body .btn-sm { min-height: 40px; padding: 0 16px; font-size: 0.84rem; }
 
 /* ==========================================================================
-   Notas y avisos
+   Notas y Avisos
    ========================================================================== */
 .portal-nota {
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  margin-top: 22px;
-  padding: 14px 18px;
+  margin-top: 20px;
+  padding: 13px 16px;
   border-radius: 12px;
-  font-size: 0.88rem;
-  line-height: 1.55;
+  font-size: 0.86rem;
+  line-height: 1.5;
   color: var(--text-secondary, #94a3b8);
   background: rgba(99, 102, 241, 0.08);
   border: 1px solid rgba(99, 102, 241, 0.2);
@@ -561,20 +580,20 @@
 .portal-nota strong { color: #ffffff; }
 
 /* ==========================================================================
-   Cartel de espera
+   Cartel de Espera
    ========================================================================== */
 .portal-espera {
   display: grid;
   place-items: center;
   gap: 6px;
   text-align: center;
-  padding: 36px 24px;
+  padding: 30px 20px;
   border-radius: 14px;
   border: 1px dashed rgba(245, 158, 11, 0.35);
   background: rgba(245, 158, 11, 0.05);
 }
-.portal-espera strong { margin-top: 6px; font-size: 1rem; font-weight: 700; color: #ffffff; }
-.portal-espera small { color: var(--text-muted, #64748b); font-size: 0.86rem; }
+.portal-espera strong { margin-top: 4px; font-size: 0.96rem; font-weight: 700; color: #ffffff; }
+.portal-espera small { color: var(--text-muted, #64748b); font-size: 0.84rem; }
 
 .portal-pulso { display: flex; gap: 6px; }
 .portal-pulso i {
@@ -592,8 +611,8 @@
 }
 
 .portal-ruta-tit {
-  margin: 26px 0 12px;
-  font-size: 0.75rem;
+  margin: 24px 0 10px;
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted, #64748b);
@@ -602,200 +621,26 @@
 .portal-ruta { list-style: none; display: grid; gap: 6px; margin: 0; padding: 0; }
 .portal-ruta li {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   align-items: flex-start;
-  padding: 12px 16px;
+  padding: 11px 14px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 .portal-ruta li > span {
   flex: 0 0 auto;
-  width: 24px; height: 24px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-secondary, #94a3b8);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-.portal-ruta li b { display: block; font-size: 0.94rem; font-weight: 600; color: #ffffff; }
-.portal-ruta li small { display: block; margin-top: 2px; color: var(--text-muted, #64748b); font-size: 0.84rem; }
-
-/* ==========================================================================
-   Montos y desglose
-   ========================================================================== */
-.portal-monto { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 10px; flex-wrap: wrap; }
-.portal-monto b {
-  font-family: var(--font-heading, "Outfit", sans-serif);
-  font-size: 2.6rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
-  color: #ffffff;
-}
-.portal-monto span { color: var(--text-muted, #64748b); font-size: 0.9rem; }
-
-.portal-desglose {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
-  overflow: hidden;
-  margin-bottom: 22px;
-}
-.portal-desglose div {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 13px 18px;
-  font-size: 0.9rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text-secondary, #94a3b8);
-}
-.portal-desglose div:last-child {
-  border-bottom: none;
-  background: rgba(255, 255, 255, 0.04);
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 1.05rem;
-}
-.portal-desglose span:last-child { font-variant-numeric: tabular-nums; }
-
-/* ==========================================================================
-   Opciones (método de pago, dominio)
-   ========================================================================== */
-.portal-ops { display: grid; gap: 12px; }
-
-.portal-op {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  padding: 18px;
-  cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.025);
-  transition: all 0.2s ease;
-}
-.portal-op:hover { border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.05); }
-.portal-op:has(input:checked) { border-color: var(--primary, #6366f1); background: rgba(99, 102, 241, 0.1); box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2); }
-
-.portal-op input { position: absolute; opacity: 0; pointer-events: none; }
-
-.portal-op-marca {
-  flex: 0 0 auto;
   width: 22px; height: 22px;
-  margin-top: 2px;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
   display: grid;
   place-items: center;
-  transition: border-color 0.18s;
-}
-.portal-op-marca::after {
-  content: "";
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  background: var(--primary, #6366f1);
-  transform: scale(0);
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.portal-op input:checked ~ .portal-op-marca { border-color: var(--primary, #6366f1); }
-.portal-op input:checked ~ .portal-op-marca::after { transform: scale(1); }
-
-.portal-op-txt { flex: 1; min-width: 0; }
-.portal-op-txt b { display: block; font-size: 0.98rem; font-weight: 700; color: #ffffff; }
-.portal-op-txt small { display: block; margin-top: 4px; color: var(--text-secondary, #94a3b8); font-size: 0.85rem; word-break: break-word; }
-
-.portal-op-precio {
-  flex: 0 0 auto;
-  padding: 4px 12px;
-  border-radius: 99px;
-  font-size: 0.82rem;
-  font-weight: 700;
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-secondary, #94a3b8);
+  font-size: 0.76rem;
+  font-weight: 700;
 }
-.portal-op-precio.libre { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
-
-/* ==========================================================================
-   Datos de transferencia y comprobante
-   ========================================================================== */
-.portal-datos {
-  display: grid;
-  gap: 1px;
-  margin-top: 18px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  overflow: hidden;
-}
-.portal-dato {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 13px 16px;
-  background: rgba(15, 20, 35, 0.85);
-}
-.portal-dato small {
-  display: block;
-  font-size: 0.74rem;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-muted, #64748b);
-}
-.portal-dato b { font-size: 0.98rem; font-weight: 700; color: #ffffff; }
-
-.portal-copiar {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 38px;
-  padding: 0 14px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-secondary, #94a3b8);
-  font-family: var(--font-body, "Inter", sans-serif);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s ease;
-}
-.portal-copiar:hover { color: #ffffff; border-color: var(--primary, #6366f1); background: rgba(99, 102, 241, 0.1); }
-
-.portal-subir {
-  display: grid;
-  place-items: center;
-  gap: 10px;
-  margin-top: 16px;
-  padding: 28px 20px;
-  text-align: center;
-  cursor: pointer;
-  border: 1.5px dashed rgba(99, 102, 241, 0.35);
-  border-radius: 14px;
-  background: rgba(99, 102, 241, 0.04);
-  color: var(--text-secondary, #94a3b8);
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
-}
-.portal-subir:hover { border-color: var(--primary, #6366f1); background: rgba(99, 102, 241, 0.08); color: #ffffff; }
-.portal-subir img { max-width: 100%; max-height: 240px; border-radius: 10px; margin-top: 6px; }
-
-.portal-campo input {
-  width: 100%;
-  padding: 13px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(0, 0, 0, 0.35);
-  color: #ffffff;
-  font-family: var(--font-body, "Inter", sans-serif);
-  font-size: 16px;
-  transition: border-color 0.18s;
-}
-.portal-campo input:focus { outline: none; border-color: var(--primary, #6366f1); }
+.portal-ruta li b { display: block; font-size: 0.9rem; font-weight: 600; color: #ffffff; }
+.portal-ruta li small { display: block; margin-top: 2px; color: var(--text-muted, #64748b); font-size: 0.82rem; }
 
 /* ==========================================================================
    Pie de página
@@ -806,68 +651,56 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 24px 28px;
-  margin-top: 40px;
-  border-radius: 18px;
+  padding: 20px 24px;
+  margin-top: 32px;
+  border-radius: 16px;
   background: rgba(20, 26, 45, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(12px);
 }
-.portal-pie-info strong { display: block; font-size: 0.95rem; color: #ffffff; }
-.portal-pie-info span { font-size: 0.85rem; color: var(--text-secondary, #94a3b8); }
+.portal-pie-info strong { display: block; font-size: 0.92rem; color: #ffffff; }
+.portal-pie-info span { font-size: 0.84rem; color: var(--text-secondary, #94a3b8); }
 
 /* ==========================================================================
-   Diseño Móvil Responsive (< 768px)
+   Diseño Móvil (< 768px) - 100% Ajustado al Ancho Sin Scroll Horizontal
    ========================================================================== */
 @media (max-width: 768px) {
-  .portal-top { padding: 14px 18px; }
-  .portal-main { padding: 0 16px; }
-  
+  .portal-top { padding: 12px 16px; }
+  .portal-main { padding: 0 14px; }
+
   .portal-hero {
-    padding: 22px 20px;
-    margin: 20px 0 24px;
-    border-radius: 20px;
+    padding: 20px 16px;
+    margin: 16px 0 20px;
+    border-radius: 18px;
   }
-  
+
   .portal-hero-fila {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: 12px;
   }
-  
+
   .portal-hero-num-box {
     align-self: flex-start;
     text-align: left;
   }
   .portal-hero-num { text-align: left; }
-  .portal-hero h1 { font-size: 1.65rem; }
-  .portal-hero-num b { font-size: 2.8rem; }
-  
-  .portal-pasos {
-    grid-template-columns: repeat(5, minmax(105px, 1fr));
-  }
-  .portal-paso-t { font-size: 0.72rem; }
-  
-  .portal-etapa { padding: 22px 18px; border-radius: 18px; margin: 20px 0; }
-  .portal-etapa h2 { font-size: 1.25rem; }
-  .portal-etapa-ico { width: 42px; height: 42px; }
-  
-  .portal-acciones .btn { flex: 1 1 100%; width: 100%; justify-content: center; }
-  .portal-monto b { font-size: 2.2rem; }
-  
-  .portal-pie { padding: 20px; flex-direction: column; align-items: stretch; text-align: center; }
-  .portal-pie .btn { width: 100%; justify-content: center; }
-}
+  .portal-hero h1 { font-size: 1.45rem; }
+  .portal-hero-num b { font-size: 2.4rem; }
 
-@media (max-width: 480px) {
-  .portal-pasos-wrapper {
-    margin: 0 -20px;
-    padding: 4px 20px 12px 20px;
-    width: calc(100% + 40px);
-  }
-  .portal-op { padding: 14px; flex-direction: row; }
-  .portal-dato { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .portal-copiar { width: 100%; justify-content: center; }
+  /* 5 Pasos perfectamente ajustados al ancho de la pantalla */
+  .portal-paso-n { width: 22px; height: 22px; font-size: 0.72rem; }
+  .portal-paso::before { top: 11px; }
+  .portal-paso-t { font-size: 0.65rem; line-height: 1.15; }
+
+  .portal-etapa { padding: 20px 16px; border-radius: 18px; margin: 16px 0; }
+  .portal-etapa h2 { font-size: 1.2rem; }
+  .portal-etapa-ico { width: 40px; height: 40px; }
+
+  .portal-acciones .btn { flex: 1 1 100%; width: 100%; justify-content: center; }
+
+  .portal-pie { padding: 18px 16px; flex-direction: column; align-items: stretch; text-align: center; }
+  .portal-pie .btn { width: 100%; justify-content: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {

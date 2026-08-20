@@ -603,7 +603,12 @@ function render() {
   // resumir: sin decisión tomada, un cuadro con «Pagado: USD 0» solo mete ruido.
   const conResumen = ["anticipo_pendiente", "en_produccion", "dominio",
                       "publicando", "saldo_pendiente", "finalizado"];
-  $("pc-resumen").innerHTML = conResumen.includes(d.status) ? panelResumen(d) : "";
+  const tieneResumen = conResumen.includes(d.status);
+  const resumenEl = $("pc-resumen");
+  if (resumenEl) {
+    resumenEl.innerHTML = tieneResumen ? panelResumen(d) : "";
+    resumenEl.parentElement?.classList.toggle("sin-resumen", !tieneResumen);
+  }
 
   $("pc-wa-footer").href = enlaceWhatsApp(`Hola Ariel! Te escribo por "${d.project_name || "mi proyecto"}".`);
 
