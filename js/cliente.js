@@ -172,16 +172,21 @@ function pintarPasos(status) {
 /* ==========================================================================
    Piezas reutilizables
    ========================================================================== */
+/**
+ * La tarjeta de una etapa.
+ *
+ * UN SOLO BORDE IZQUIERDO. El ícono va en su PROPIA línea, arriba del título,
+ * no al costado. Antes iba al costado y eso creaba dos márgenes distintos
+ * dentro de la misma tarjeta: el título arrancaba corrido unos 100px (después
+ * del ícono) y todo lo de abajo —montos, opciones, botones— arrancaba pegado
+ * al borde. Se veía torcido sin que se notara por qué.
+ */
 function tarjeta({ icono, tono = "", titulo, bajada, cuerpo = "" }) {
   return `
     <section class="portal-etapa">
-      <div class="portal-etapa-cab">
-        <span class="portal-etapa-ico ${tono}">${ico(icono)}</span>
-        <div>
-          <h2>${escapeHtml(titulo)}</h2>
-          ${bajada ? `<p class="portal-etapa-sub">${bajada}</p>` : ""}
-        </div>
-      </div>
+      <span class="portal-etapa-ico ${tono}">${ico(icono)}</span>
+      <h2>${escapeHtml(titulo)}</h2>
+      ${bajada ? `<p class="portal-etapa-sub">${bajada}</p>` : ""}
       ${cuerpo ? `<div class="portal-etapa-cuerpo">${cuerpo}</div>` : ""}
     </section>`;
 }
@@ -512,6 +517,60 @@ const ETAPAS = {
 };
 
 /* ==========================================================================
+   Resumen del proyecto (columna derecha en pantalla ancha)
+   --------------------------------------------------------------------------
+   En el celular va abajo de todo y es un repaso. En la computadora ocupa la
+   columna de la derecha, que antes era puro espacio vacío: la tarjeta de la
+   etapa quedaba como una tira angosta en el medio de una pantalla de 1440.
+   ========================================================================== */
+function panelResumen(d) {
+  const pagos = d.pagos || [];
+  const pagado = pagos.filter((p) => p.status === "pagado")
+                      .reduce((a, p) => a + Number(p.amount_usd || 0), 0);
+  const total = Number(d.total_usd) || 0;
+  const resta = Math.max(0, total - pagado);
+
+  const demo = safeUrl(d.demo_url, "");
+  const prod = safeUrl(d.production_url, "");
+
+  const filas = [
+    ["Presupuesto", usd(total)],
+    ["Pagado", usd(pagado)],
+    resta > 0 ? ["Falta abonar", usd(resta)] : null,
+  ].filter(Boolean);
+
+  const dominio = d.domain_choice === "propio"
+    ? (d.domain_name || "Dominio propio")
+    : d.domain_choice === "vercel"
+      ? (d.demo_url || "").replace(/^https?:\/\//, "")
+      : "A definir";
+
+  return `
+    <div class="portal-resumen-caja">
+      <h3>Tu proyecto</h3>
+      <p class="portal-resumen-nombre">${escapeHtml(d.project_name || "")}</p>
+
+      <dl class="portal-resumen-datos">
+        ${filas.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join("")}
+        <div><dt>Dirección</dt><dd class="corta">${escapeHtml(dominio)}</dd></div>
+      </dl>
+
+      ${prod ? `
+        <a class="portal-resumen-link" href="${escapeHtml(prod)}" target="_blank" rel="noopener noreferrer">
+          ${ico("globo", "pico pico-sm")} Ver mi página
+        </a>` : demo ? `
+        <a class="portal-resumen-link" href="${escapeHtml(demo)}" target="_blank" rel="noopener noreferrer">
+          ${ico("ojo", "pico pico-sm")} Ver la demo
+        </a>` : ""}
+
+      <a class="portal-resumen-link solo-ancho" target="_blank" rel="noopener noreferrer"
+         href="${escapeHtml(enlaceWhatsApp(`Hola Ariel! Te escribo por "${d.project_name || "mi proyecto"}".`))}">
+        ${ico("wa", "pico pico-sm")} Escribirme
+      </a>
+    </div>`;
+}
+
+/* ==========================================================================
    Render
    ========================================================================== */
 function render() {
@@ -540,8 +599,15 @@ function render() {
         bajada: "Te aviso por WhatsApp en cuanto haya novedades.",
       });
 
+  // El resumen no se muestra en las etapas donde todavía no hay nada que
+  // resumir: sin decisión tomada, un cuadro con «Pagado: USD 0» solo mete ruido.
+  const conResumen = ["anticipo_pendiente", "en_produccion", "dominio",
+                      "publicando", "saldo_pendiente", "finalizado"];
+  $("pc-resumen").innerHTML = conResumen.includes(d.status) ? panelResumen(d) : "";
+
   $("pc-wa-footer").href = enlaceWhatsApp(`Hola Ariel! Te escribo por "${d.project_name || "mi proyecto"}".`);
 
+  firmaActual = firma(d);
   mostrarVista("contenido");
 }
 
@@ -552,6 +618,85 @@ async function recargar() {
     return;
   }
   render();
+}
+
+/* ==========================================================================
+   Actualización automática
+   --------------------------------------------------------------------------
+   Cuando Ariel mueve algo del proyecto —manda la demo, tacha un cambio,
+   habilita el dominio— el cliente lo ve solo, sin recargar la página.
+   Es consulta periódica y no Realtime a propósito: Realtime exigiría abrir
+   una suscripción sobre `clients`, una tabla que el rol público no puede
+   tocar ni de lejos. Acá se reusa la misma función que ya valida el token.
+
+   Tres cuidados para que no moleste:
+
+   1. Si la pestaña está en segundo plano, no se consulta nada. No tiene
+      sentido gastar datos y batería para actualizar algo que nadie mira.
+   2. Al volver a la pestaña se consulta AL INSTANTE. Es el momento en que
+      más probable es que haya novedades y donde más se nota la espera.
+   3. Si nada cambió, NO se repinta. Repintar de más reinicia animaciones y,
+      peor, borraría lo que el cliente esté escribiendo.
+   ========================================================================== */
+const REFRESCO_MS = 30000;
+let firmaActual = "";
+
+/** Resumen de lo que, si cambia, amerita repintar. */
+function firma(d) {
+  if (!d) return "";
+  return JSON.stringify([
+    d.status,
+    d.progreso,
+    d.domain_choice,
+    d.production_url,
+    (d.tareas || []).map((t) => [t.id, t.done]),
+    (d.pagos || []).map((p) => [p.kind, p.status, p.amount_usd]),
+  ]);
+}
+
+async function revisarNovedades() {
+  if (document.hidden || !datos) return;
+
+  let nuevos;
+  try {
+    nuevos = await portalObtener(TOKEN);
+  } catch {
+    return;   // Un corte de red no debe romper lo que ya está en pantalla.
+  }
+
+  // Sin respuesta: se deja lo que hay. El link puede seguir siendo válido y
+  // ser un problema momentáneo de conexión; mandarlo a "link inválido" por
+  // eso sería un susto injustificado.
+  if (!nuevos) return;
+  if (firma(nuevos) === firmaActual) return;
+
+  // Si está escribiendo algo, se espera al próximo ciclo antes de repintar.
+  const foco = document.activeElement;
+  const escribiendo =
+    foco && $("pc-etapa")?.contains(foco) &&
+    (foco.tagName === "INPUT" || foco.tagName === "TEXTAREA") && foco.value;
+  if (escribiendo) return;
+
+  const etapaAnterior = datos.status;
+  datos = nuevos;
+  render();
+
+  // Cambiar de etapa es una novedad de verdad y merece un cartel. Que se
+  // tache una tarea no: eso se ve solo en la lista.
+  if (nuevos.status !== etapaAnterior) {
+    anunciar("Tu proyecto avanzó de etapa.");
+    avisar("¡Novedades!", "Tu proyecto avanzó. Mirá lo que sigue acá abajo.", "info");
+  } else {
+    anunciar("Se actualizó el avance de tu proyecto.");
+  }
+}
+
+function iniciarActualizacionAutomatica() {
+  setInterval(revisarNovedades, REFRESCO_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) revisarNovedades();
+  });
+  window.addEventListener("focus", revisarNovedades);
 }
 
 /* ==========================================================================
@@ -859,6 +1004,7 @@ $("pc-etapa").addEventListener("keydown", (ev) => {
 
   try {
     await recargar();
+    iniciarActualizacionAutomatica();
 
     // Si vuelve desde Mercado Pago, el estado lo confirma el webhook y puede
     // tardar unos segundos. Se refresca solo, sin pedirle que recargue.

@@ -142,17 +142,35 @@
   font-size: 1.0625rem;
 }
 
-.portal-hero-num { text-align: right; line-height: 1; }
+/* El numero y su simbolo van en la MISMA linea de base. Antes el % no
+   existia y quedaba un numero suelto que no se leia como porcentaje. El
+   simbolo va mas chico y en gris: acompana, no compite. */
+.portal-hero-num {
+  /* Bloque con alineacion a la derecha, NO grid: el numero y el % son
+     elementos en linea y tienen que compartir renglon. Con grid cada uno
+     tomaba su propia fila y el % caia debajo del numero. */
+  text-align: right;
+  line-height: 1;
+}
 .portal-hero-num b {
   font-family: var(--font-heading);
-  font-size: 3.25rem;
+  font-size: 3.4rem;
   font-weight: 700;
   letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
-.portal-hero-num span {
+.portal-hero-pct {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-secondary);
+  margin-left: 2px;
+}
+.portal-hero-etq {
   display: block;
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -178,32 +196,51 @@
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Riel de pasos.
+   Cada paso centra su circulo y su etiqueta, y la linea que los une sale del
+   circulo hacia el siguiente. Antes el circulo iba pegado a la izquierda y la
+   raya arriba ocupaba toda la columna: no se leia como una secuencia unida,
+   se leia como cinco cosas sueltas mal alineadas. */
 .portal-pasos {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
 .portal-paso {
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  display: grid;
+  justify-items: center;
   gap: 9px;
-  padding-top: 12px;
-  border-top: 2px solid rgba(255, 255, 255, 0.09);
-  transition: border-color 0.35s ease;
+  text-align: center;
 }
 
+/* El conector: nace en el centro de este circulo y llega al del siguiente. */
+.portal-paso::before {
+  content: "";
+  position: absolute;
+  top: 13px;
+  left: 50%;
+  width: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.35s ease;
+}
+.portal-paso:last-child::before { display: none; }
+.portal-paso.hecho::before { background: #22c55e; }
+
 .portal-paso-n {
+  position: relative;   /* por encima del conector */
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
   width: 26px; height: 26px;
   border-radius: 50%;
   border: 1.5px solid rgba(255, 255, 255, 0.14);
+  background: var(--bg-dark);
   color: var(--text-muted);
   font-size: 0.78rem;
   font-weight: 600;
@@ -216,13 +253,133 @@
   color: var(--text-muted);
 }
 
-.portal-paso.hecho { border-top-color: #22c55e; }
-.portal-paso.hecho .portal-paso-n { background: rgba(34, 197, 94, 0.16); border-color: transparent; color: #4ade80; }
+.portal-paso.hecho .portal-paso-n { background: rgba(34, 197, 94, 0.18); border-color: transparent; color: #4ade80; }
 .portal-paso.hecho .portal-paso-t { color: var(--text-secondary); }
 
-.portal-paso.activo { border-top-color: var(--primary); }
-.portal-paso.activo .portal-paso-n { background: var(--primary); border-color: transparent; color: #fff; }
+.portal-paso.activo .portal-paso-n {
+  background: var(--primary);
+  border-color: transparent;
+  color: #fff;
+  /* Halo suave: marca donde esta parado sin agrandar el circulo y romper la
+     alineacion con el conector. */
+  box-shadow: 0 0 0 5px var(--primary-glow);
+}
 .portal-paso.activo .portal-paso-t { color: var(--text-primary); font-weight: 600; }
+
+/* ==========================================================================
+   Dos columnas en pantalla ancha
+   --------------------------------------------------------------------------
+   Hasta 1000px va todo en una columna (celular y tablet). Arriba de eso, la
+   etapa a la izquierda y el resumen del proyecto a la derecha: antes la
+   tarjeta quedaba como una tira angosta en el medio de una pantalla de 1440
+   con medio metro de vacio a los costados.
+   ========================================================================== */
+.portal-columnas { display: block; }
+
+.portal-resumen:empty { display: none; }
+
+@media (min-width: 1000px) {
+  .portal-main { max-width: 1160px; }
+
+  .portal-columnas {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 26px;
+    align-items: start;
+  }
+
+  /* Acompana el scroll de la tarjeta, que es mas larga. */
+  .portal-resumen { position: sticky; top: 88px; }
+  .portal-columnas > #pc-etapa > .portal-etapa { margin-top: 0; }
+}
+
+.portal-resumen-caja {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  margin: 0 0 30px;
+}
+
+@media (min-width: 1000px) {
+  .portal-resumen-caja { margin: 0; }
+}
+
+.portal-resumen-caja h3 {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.portal-resumen-nombre {
+  margin-top: 7px;
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.portal-resumen-datos {
+  margin: 18px 0 0;
+  display: grid;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.portal-resumen-datos > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 13px;
+  background: var(--bg-surface-opaque);
+}
+.portal-resumen-datos dt { font-size: 0.8rem; color: var(--text-secondary); }
+.portal-resumen-datos dd {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.portal-resumen-datos dd.corta {
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: right;
+  word-break: break-all;
+}
+
+.portal-resumen-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  margin-top: 10px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-hover);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.18s, background 0.18s;
+}
+.portal-resumen-link:hover {
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* En celular el resumen queda justo arriba del pie, que ya tiene su propio
+   "Escribirme". Dos botones identicos separados por 3cm es ruido. */
+.portal-resumen-link.solo-ancho { display: none; }
+@media (min-width: 1000px) {
+  .portal-resumen-link.solo-ancho { display: flex; }
+}
 
 /* ==========================================================================
    Tarjeta de etapa
@@ -235,19 +392,16 @@
   margin: 30px 0;
 }
 
-.portal-etapa-cab {
-  display: flex;
-  gap: 15px;
-  align-items: flex-start;
-  margin-bottom: 8px;
-}
-
+/* El icono va ARRIBA del titulo, en su propia linea. Al costado creaba dos
+   margenes izquierdos distintos dentro de la misma tarjeta y todo se veia
+   torcido. Ahora titulo, texto, montos y botones arrancan todos del mismo
+   borde. */
 .portal-etapa-ico {
-  flex: 0 0 auto;
-  width: 42px; height: 42px;
-  border-radius: 11px;
   display: grid;
   place-items: center;
+  width: 44px; height: 44px;
+  margin-bottom: 16px;
+  border-radius: 12px;
   background: var(--primary-glow);
   color: var(--primary-light);
 }
@@ -256,16 +410,18 @@
 
 .portal-etapa h2 {
   font-family: var(--font-heading);
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.25;
 }
 
 .portal-etapa-sub {
-  margin-top: 7px;
+  margin-top: 8px;
   color: var(--text-secondary);
-  max-width: 62ch;
+  /* Medida de lectura: mas de ~68 caracteres por linea cansa y el ojo pierde
+     el renglon al volver. */
+  max-width: 64ch;
 }
 
 .portal-etapa-cuerpo { margin-top: 22px; }

@@ -61,8 +61,8 @@
             <p class="portal-hero-proyecto" id="pc-proyecto"></p>
           </div>
           <p class="portal-hero-num">
-            <b id="pc-progreso-num">0</b>
-            <span>Avance</span>
+            <b id="pc-progreso-num">0</b><span class="portal-hero-pct" aria-hidden="true">%</span>
+            <span class="portal-hero-etq">Avance</span>
           </p>
         </div>
 
@@ -74,8 +74,15 @@
         <ol class="portal-pasos" id="pc-pasos"></ol>
       </div>
 
-      <!-- La tarjeta de la etapa actual. La arma cliente.js -->
-      <div id="pc-etapa"></div>
+      <!-- En pantalla ancha: la etapa a la izquierda y el resumen del proyecto
+           a la derecha. En celular, uno debajo del otro. -->
+      <div class="portal-columnas">
+        <!-- La tarjeta de la etapa actual. La arma cliente.js -->
+        <div id="pc-etapa"></div>
+
+        <!-- Resumen fijo del proyecto. Lo arma cliente.js -->
+        <aside id="pc-resumen" class="portal-resumen"></aside>
+      </div>
 
       <footer class="portal-pie">
         <span>Cualquier duda me escribís por WhatsApp.</span>
@@ -86,6 +93,12 @@
     </section>
 
   </main>
+
+  <!-- SweetAlert2: los mismos carteles que usa el panel.
+       Sin esto, ui-dialogs.js cae a window.confirm / window.alert y el cliente
+       ve los cuadros grises del navegador en vez de los del sitio.
+       Va local (/public), no por CDN: la CSP declara script-src 'self'. -->
+  <script src="/sweetalert2.all.min.js" defer></script>
 
   <script type="module" src="/js/cliente.js"></script>
 </body>
