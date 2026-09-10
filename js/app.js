@@ -263,11 +263,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 ` : '';
 
                 // 3D Stage — Stacking Deck
-                card.className = "stage-card reveal-on-scroll";
+                card.className = "stage-card";
                 card.style.zIndex = i + 1;
                 card.style.top = `calc(160px + ${i * 35}px)`;
                 card.innerHTML = `
-                    <div class="stage-card-inner" data-number="0${i + 1}">
+                    <div class="stage-card-inner reveal-on-scroll" data-number="0${i + 1}">
                         <div class="stack-card-info">
                             <span class="stack-card-tag">${escapeHtml(getCategoryLabel(proj.category))}</span>
                             <h3 class="stack-card-title">${safeTitle}</h3>
@@ -283,8 +283,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 container.appendChild(card);
 
-                if (scrollRevealObserver) {
-                    scrollRevealObserver.observe(card);
+                const innerCard = card.querySelector('.stage-card-inner');
+                if (innerCard && scrollRevealObserver) {
+                    scrollRevealObserver.observe(innerCard);
                 }
             });
 
@@ -1650,8 +1651,27 @@ document.addEventListener("DOMContentLoaded", () => {
         let cachedCards = container.querySelectorAll('.sticky-stack-card, .stage-card');
         let ticking = false;
 
+        const updateCardTops = () => {
+            if (cachedCards.length === 0) return;
+            const isMobile = window.innerWidth < 768;
+            const stepOffset = isMobile ? 24 : 35;
+            const startTop = isMobile ? 80 : 160;
+
+            for (let i = 0; i < cachedCards.length; i++) {
+                if (isMobile) {
+                    cachedCards[i].style.top = '';
+                    const innerCard = cachedCards[i].querySelector('.stage-card-inner') || cachedCards[i];
+                    innerCard.style.transform = '';
+                    innerCard.style.filter = '';
+                } else {
+                    cachedCards[i].style.top = `${startTop + (i * stepOffset)}px`;
+                }
+            }
+        };
+
         recachearApilado = () => {
             cachedCards = container.querySelectorAll('.sticky-stack-card, .stage-card');
+            updateCardTops();
             updateStacking();
         };
 
@@ -1660,7 +1680,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (window.innerWidth < 768) {
                 cachedCards.forEach(card => {
-                    card.style.top = '';
                     const innerCard = card.querySelector('.stage-card-inner') || card;
                     innerCard.style.transform = '';
                     innerCard.style.filter = '';
@@ -1670,30 +1689,19 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const totalCards = cachedCards.length;
-            const isMobile = window.innerWidth < 768;
-            const stepOffset = isMobile ? 24 : 35;
-            const startTop = isMobile ? 80 : 160;
-
+            const stepOffset = 35;
+            const startTop = 160;
             const overlapThreshold = 220;
             const isLightTheme = document.body.classList.contains('light-theme');
 
-            // PASADA 1 — escribir. Todos los `top` de una, sin leer nada en el
-            // medio.
+            const topsReales = new Array(totalCards);
             const baseTops = new Array(totalCards);
+
             for (let i = 0; i < totalCards; i++) {
                 baseTops[i] = startTop + (i * stepOffset);
-                cachedCards[i].style.top = `${baseTops[i]}px`;
-            }
-
-            // PASADA 2 — leer. Un solo recálculo de layout para todas, y ya con
-            // los `top` nuevos aplicados. Antes esto se leía a mitad del bucle
-            // de escritura y las mediciones salían de una posición vieja.
-            const topsReales = new Array(totalCards);
-            for (let i = 0; i < totalCards; i++) {
                 topsReales[i] = cachedCards[i].getBoundingClientRect().top;
             }
 
-            // PASADA 3 — aplicar.
             for (let index = 0; index < totalCards; index++) {
                 const card = cachedCards[index];
                 const baseTop = baseTops[index];
@@ -1734,7 +1742,12 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         window.addEventListener('scroll', onScrollThrottled, { passive: true });
-        window.addEventListener('resize', onScrollThrottled, { passive: true });
+        window.addEventListener('resize', () => {
+            updateCardTops();
+            onScrollThrottled();
+        }, { passive: true });
+
+        updateCardTops();
         updateStacking();
     }
 
@@ -1978,7 +1991,6 @@ document.addEventListener("DOMContentLoaded", () => {
     function marcarContenedoresScrolleables() {
         const fijos = [
             document.getElementById("mobile-drawer"),
-            document.getElementById("projects-stack-container"),
         ];
         fijos.forEach((el) => el && el.setAttribute("data-lenis-prevent", ""));
 

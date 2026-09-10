@@ -154,6 +154,7 @@ async function entrarAlPanel() {
     iniciarSeccionClientes();
     iniciarSeccionPortfolio();
     iniciarSeccionResenas();
+    iniciarRefrescoPanel();
     seccionesIniciadas = true;
   }
 
@@ -260,11 +261,99 @@ export async function refrescarTodo() {
     pintarCobros();
     pintarBadges();
     refrescarClientes(clientes);
+    firmaPanel = firmaDelPanel();
     await refrescarPortfolio();
   } finally {
     boton.classList.remove("girando");
     boton.disabled = false;
   }
+}
+
+/* ==========================================================================
+   Actualización automática del panel
+   --------------------------------------------------------------------------
+   Cuando un cliente hace algo —acepta la demo, paga, sube un comprobante,
+   carga un cambio— aparece solo, sin tener que apretar refrescar.
+
+   Es el mismo mecanismo que usa el portal del cliente, con los mismos tres
+   cuidados y uno más propio del panel:
+
+   1. Pestaña en segundo plano: no consulta nada.
+   2. Al volver a la pestaña: consulta al instante.
+   3. Si nada cambió, no repinta (repintar cierra la ficha que tengas abierta).
+   4. No repinta con un diálogo abierto ni mientras estés escribiendo. Sin
+      esto, revisar un comprobante o cargar una tarea se te cortaba a la mitad.
+   ========================================================================== */
+const REFRESCO_PANEL_MS = 45000;
+let firmaPanel = "";
+
+/** Resumen de lo que, si cambia, amerita repintar el panel. */
+function firmaDelPanel() {
+  return JSON.stringify([
+    cacheClientes.map((c) => [c.id, c.status, c.progreso, c.comprobantes_a_revisar,
+                              c.tareas_total, c.tareas_hechas, c.view_count]),
+    cachePagos.map((p) => [p.id, p.status]),
+    cacheTareas.map((t) => [t.id, t.done]),
+  ]);
+}
+
+/** ¿Hay algo abierto que no se puede interrumpir? */
+function panelOcupado() {
+  if (document.querySelector(".swal2-container")) return true;
+
+  const f = document.activeElement;
+  return Boolean(
+    f && ["INPUT", "TEXTAREA", "SELECT"].includes(f.tagName) &&
+    (f.value || f.tagName === "SELECT")
+  );
+}
+
+async function revisarNovedadesPanel() {
+  if (document.hidden || faltanTablas) return;
+  if (panelOcupado()) return;
+
+  let clientes, tareas, pagos;
+  try {
+    [clientes, tareas, pagos] = await Promise.all([
+      adminListarClientes(), adminTareasDeTodos(), adminPagosDeTodos(),
+    ]);
+  } catch {
+    return;   // Un corte de red no debe vaciar el panel ni tirar un cartel.
+  }
+
+  const antes = firmaPanel;
+  const revisarAntes = cachePagos.filter((p) => p.status === "en_revision").length;
+
+  cacheClientes = clientes;
+  cacheTareas = tareas;
+  cachePagos = pagos;
+
+  if (firmaDelPanel() === antes) return;
+
+  pintarResumen();
+  pintarCobros();
+  pintarBadges();
+  refrescarClientes(clientes);
+  firmaPanel = firmaDelPanel();
+
+  // Un comprobante nuevo es plata esperando tu OK: eso sí merece un aviso.
+  const revisarAhora = cachePagos.filter((p) => p.status === "en_revision").length;
+  if (revisarAhora > revisarAntes) {
+    anunciar("Llegó un comprobante nuevo.");
+    avisar("Comprobante nuevo",
+           "Un cliente subió un comprobante. Revisalo en Cobros para que el proyecto avance.",
+           "info");
+  } else {
+    anunciar("El panel se actualizó.");
+  }
+}
+
+function iniciarRefrescoPanel() {
+  setInterval(revisarNovedadesPanel, REFRESCO_PANEL_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) revisarNovedadesPanel();
+  });
+  window.addEventListener("focus", revisarNovedadesPanel);
 }
 
 /**

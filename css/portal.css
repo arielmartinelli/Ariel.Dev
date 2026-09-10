@@ -238,13 +238,17 @@
   text-align: center;
 }
 
-/* El conector: nace en el centro de este circulo y llega al del siguiente. */
+/* El conector va de circulo a circulo pero SIN tocarlos.
+   Antes iba de centro a centro (left:50%; width:100%) y pasaba por debajo de
+   los circulos. Como el circulo "hecho" tiene fondo verde translucido, la
+   linea se veia atravesando el tilde. Ahora arranca 19px despues del centro
+   (13 de radio + 6 de aire) y termina 19px antes del centro del siguiente. */
 .portal-paso::before {
   content: "";
   position: absolute;
   top: 13px;
-  left: 50%;
-  width: 100%;
+  left: calc(50% + 19px);
+  width: calc(100% - 38px);
   height: 2px;
   background: rgba(255, 255, 255, 0.1);
   transition: background 0.35s ease;
