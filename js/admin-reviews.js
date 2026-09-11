@@ -29,7 +29,7 @@ import { anunciar } from "./a11y.js";
 
 const $ = (id) => document.getElementById(id);
 
-const WHATSAPP = "543517877753";
+const WHATSAPP = "543516121498";
 const LINK_RESENA = `${window.location.origin}/resena`;
 
 let resenas = [];
