@@ -98,9 +98,33 @@ const $ = (id) => document.getElementById(id);
 let datos = null;            // ultimo estado traido del servidor
 let comprobanteBase64 = "";  // imagen ya comprimida, lista para enviar
 let metodoElegido = "mercadopago";
+let cotizacionDolar = 1350;  // respaldo por si falla la red
+
+async function cargarCotizacionDolar() {
+  try {
+    const res = await fetch("https://dolarapi.com/v1/dolares/blue");
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.venta) {
+        cotizacionDolar = Math.round(parseFloat(data.venta));
+        console.log("Cotización Dólar Blue cargada en el portal:", cotizacionDolar);
+      }
+    }
+  } catch (err) {
+    console.warn("No se pudo obtener la cotización en vivo, usando respaldo:", err);
+  } finally {
+    const rateEl = $("pc-dolar-rate");
+    if (rateEl) {
+      rateEl.innerHTML = `💵 Dólar hoy: <strong>$${cotizacionDolar.toLocaleString("es-AR")} ARS</strong>`;
+    }
+  }
+}
 
 const usd = (n) =>
   `USD ${Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+const ars = (nUsd) =>
+  `$${Math.round(Number(nUsd || 0) * cotizacionDolar).toLocaleString("es-AR")} ARS`;
 
 const enlaceWhatsApp = (texto) => `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`;
 
@@ -204,17 +228,24 @@ const cartelDeEspera = (titulo, bajada) => `
 /** Los datos bancarios + el cargador de comprobante. */
 function bloqueTransferencia(kind, monto) {
   const d = DATOS_TRANSFERENCIA;
+  const montoArsNum = Math.round(Number(monto || 0) * cotizacionDolar);
   return `
     <div class="portal-datos">
       <div class="portal-dato">
         <span><small>Alias</small><b>${escapeHtml(d.alias)}</b></span>
         <button type="button" class="portal-copiar" data-accion="copiar" data-valor="${escapeHtml(d.alias)}">
-          ${ico("copiar", "pico pico-sm")} Copiar
+          ${ico("copiar", "pico pico-sm")} Copiar Alias
         </button>
       </div>
       <div class="portal-dato"><span><small>Titular</small><b>${escapeHtml(d.titular)}</b></span></div>
       <div class="portal-dato"><span><small>Banco</small><b>${escapeHtml(d.banco)}</b></span></div>
-      <div class="portal-dato"><span><small>Importe</small><b>${escapeHtml(usd(monto))}</b></span></div>
+      <div class="portal-dato"><span><small>Importe USD</small><b>${escapeHtml(usd(monto))}</b></span></div>
+      <div class="portal-dato">
+        <span><small>Importe al cambio ($${cotizacionDolar.toLocaleString("es-AR")} ARS/USD)</small><b style="color: #4ade80;">${escapeHtml(ars(monto))}</b></span>
+        <button type="button" class="portal-copiar" data-accion="copiar" data-valor="${montoArsNum}">
+          ${ico("copiar", "pico pico-sm")} Copiar ARS
+        </button>
+      </div>
     </div>
 
     <label class="portal-subir" for="pc-archivo">
@@ -245,7 +276,7 @@ function tarjetaPago({ kind, titulo, bajada, monto, detalle, pago }) {
       titulo: "Recibí tu comprobante",
       bajada: "Lo estoy verificando. Apenas confirmo el pago seguimos con el paso siguiente — normalmente en el día.",
       cuerpo:
-        cartelDeEspera("Comprobante en revisión", `${usd(pago.amount_usd)} · enviado el ${fecha(pago.comprobante_fecha)}`) +
+        cartelDeEspera("Comprobante en revisión", `${usd(pago.amount_usd)} (${ars(pago.amount_usd)}) · enviado el ${fecha(pago.comprobante_fecha)}`) +
         nota("Si necesitás que lo mire ya, escribime por WhatsApp y lo destrabo en el momento.", "warn", "alerta"),
     });
   }
@@ -255,20 +286,27 @@ function tarjetaPago({ kind, titulo, bajada, monto, detalle, pago }) {
   return tarjeta({
     icono: "tarjeta", titulo, bajada,
     cuerpo: `
-      ${detalle || `<p class="portal-monto"><b>${escapeHtml(usd(monto))}</b></p>`}
+      ${detalle || `
+        <div class="portal-monto-box" style="margin: 8px 0 18px;">
+          <p class="portal-monto"><b>${escapeHtml(usd(monto))}</b></p>
+          <p style="font-size: 1.05rem; font-weight: 700; color: #4ade80; margin-top: 2px;">
+            ≡ ${escapeHtml(ars(monto))}
+            <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); margin-left: 6px;">(cotización en vivo: $${cotizacionDolar.toLocaleString("es-AR")} ARS/USD)</span>
+          </p>
+        </div>`}
 
       <div class="portal-ops" role="radiogroup" aria-label="Forma de pago">
         <label class="portal-op">
           <input type="radio" name="metodo" value="mercadopago" data-accion="metodo" ${esTransferencia ? "" : "checked"}>
           <span class="portal-op-marca" aria-hidden="true"></span>
           <span class="portal-op-txt"><b>Mercado Pago</b>
-            <small>Tarjeta, débito o dinero en cuenta. Se acredita al instante.</small></span>
+            <small>Tarjeta, débito o dinero en cuenta (en pesos al cambio en vivo). Se acredita al instante.</small></span>
         </label>
         <label class="portal-op">
           <input type="radio" name="metodo" value="transferencia" data-accion="metodo" ${esTransferencia ? "checked" : ""}>
           <span class="portal-op-marca" aria-hidden="true"></span>
-          <span class="portal-op-txt"><b>Transferencia</b>
-            <small>Transferís y subís la foto del comprobante.</small></span>
+          <span class="portal-op-txt"><b>Transferencia Bancaria / Mercado Pago</b>
+            <small>Transferís en pesos (${escapeHtml(ars(monto))}) o USD y subís la foto del comprobante.</small></span>
         </label>
       </div>
 
@@ -340,16 +378,28 @@ const ETAPAS = {
     });
   },
 
-  anticipo_pendiente: (d) => tarjetaPago({
-    kind: "anticipo",
-    titulo: "Anticipo del 50%",
-    bajada: "Con el anticipo arranco a trabajar y se te habilita la lista de cambios para dejar la página a tu gusto.",
-    monto: pagoDe("anticipo")?.amount_usd ?? Number(d.price_usd) / 2,
-    detalle: `<p class="portal-monto">
-        <b>${escapeHtml(usd(pagoDe("anticipo")?.amount_usd ?? Number(d.price_usd) / 2))}</b>
-        <span>de ${escapeHtml(usd(d.total_usd))} totales</span></p>`,
-    pago: pagoDe("anticipo"),
-  }),
+  anticipo_pendiente: (d) => {
+    const monto = pagoDe("anticipo")?.amount_usd ?? Number(d.price_usd) / 2;
+    const totalUsd = Number(d.total_usd) || 0;
+    return tarjetaPago({
+      kind: "anticipo",
+      titulo: "Anticipo del 50%",
+      bajada: "Con el anticipo arranco a trabajar y se te habilita la lista de cambios para dejar la página a tu gusto.",
+      monto,
+      detalle: `
+        <div class="portal-monto-box" style="margin: 8px 0 18px;">
+          <p class="portal-monto">
+            <b>${escapeHtml(usd(monto))}</b>
+            <span>de ${escapeHtml(usd(totalUsd))} totales</span>
+          </p>
+          <p style="font-size: 1.05rem; font-weight: 700; color: #4ade80; margin-top: 2px;">
+            ≡ ${escapeHtml(ars(monto))}
+            <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); margin-left: 6px;">(Cotización Dólar hoy: $${cotizacionDolar.toLocaleString("es-AR")} ARS/USD)</span>
+          </p>
+        </div>`,
+      pago: pagoDe("anticipo"),
+    });
+  },
 
   en_produccion: (d) => {
     const tareas = d.tareas || [];
@@ -464,12 +514,15 @@ const ETAPAS = {
 
     const detalle = `
       <div class="portal-desglose">
-        <div><span>Saldo del desarrollo (50%)</span><span>${escapeHtml(usd(base))}</span></div>
+        <div><span>Saldo del desarrollo (50%)</span><span>${escapeHtml(usd(base))} <small style="color:var(--text-secondary); font-weight:500;">(${ars(base)})</small></span></div>
         ${extra > 0
-          ? `<div><span>Dominio propio${d.domain_name ? ` · ${escapeHtml(d.domain_name)}` : ""}</span><span>${escapeHtml(usd(extra))}</span></div>`
+          ? `<div><span>Dominio propio${d.domain_name ? ` · ${escapeHtml(d.domain_name)}` : ""}</span><span>${escapeHtml(usd(extra))} <small style="color:var(--text-secondary); font-weight:500;">(${ars(extra)})</small></span></div>`
           : ""}
-        <div><span>Total a pagar</span><span>${escapeHtml(usd(monto))}</span></div>
-      </div>`;
+        <div><span>Total a pagar</span><span style="color: #4ade80;">${escapeHtml(usd(monto))} · ${ars(monto)}</span></div>
+      </div>
+      <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 18px; display: flex; align-items: center; gap: 6px;">
+        ${ico("info", "pico pico-sm")} Tipo de cambio en vivo: <strong>$${cotizacionDolar.toLocaleString("es-AR")} ARS/USD</strong>
+      </p>`;
 
     return tarjetaPago({
       kind: "saldo",
@@ -496,7 +549,7 @@ const ETAPAS = {
             <div><b>${escapeHtml(visible)}</b><small>Publicada y funcionando</small></div>
             <a class="btn btn-exito" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">Abrir mi página</a>
           </div>` : ""}
-        ${nota(`Pagos al día: ${escapeHtml(usd(cobrado))} de ${escapeHtml(usd(d.total_usd))}.`, "ok", "check")}
+        ${nota(`Pagos al día: ${escapeHtml(usd(cobrado))} (${ars(cobrado)}) de ${escapeHtml(usd(d.total_usd))}.`, "ok", "check")}
         ${nota("¿Querés sumar algo más adelante? Escribime y lo vemos.", "", "wa")}`,
     });
   },
@@ -534,9 +587,10 @@ function panelResumen(d) {
   const prod = safeUrl(d.production_url, "");
 
   const filas = [
-    ["Presupuesto", usd(total)],
-    ["Pagado", usd(pagado)],
-    resta > 0 ? ["Falta abonar", usd(resta)] : null,
+    ["Presupuesto", `${usd(total)}<br><small style="color: var(--text-secondary); font-weight: 500;">(${ars(total)})</small>`],
+    ["Pagado", `${usd(pagado)}<br><small style="color: var(--text-secondary); font-weight: 500;">(${ars(pagado)})</small>`],
+    resta > 0 ? ["Falta abonar", `${usd(resta)}<br><small style="color: #4ade80; font-weight: 600;">(${ars(resta)})</small>`] : null,
+    ["Cotización USD", `$${cotizacionDolar.toLocaleString("es-AR")} ARS`],
   ].filter(Boolean);
 
   const dominio = d.domain_choice === "propio"
@@ -1011,6 +1065,7 @@ $("pc-etapa").addEventListener("keydown", (ev) => {
   }
 
   try {
+    await cargarCotizacionDolar();
     await recargar();
     iniciarActualizacionAutomatica();
 
