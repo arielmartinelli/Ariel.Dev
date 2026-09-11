@@ -752,10 +752,10 @@ function panelResumen(d) {
   const prod = safeUrl(d.production_url, "");
 
   const filas = [
-    ["Presupuesto", `${usd(total)}<br><small style="color: var(--text-secondary); font-weight: 500;">(${ars(total)})</small>`],
-    ["Pagado", `${usd(pagado)}<br><small style="color: var(--text-secondary); font-weight: 500;">(${ars(pagado)})</small>`],
-    resta > 0 ? ["Falta abonar", `${usd(resta)}<br><small style="color: #4ade80; font-weight: 600;">(${ars(resta)})</small>`] : null,
-    ["Cotización USD", `$${cotizacionDolar.toLocaleString("es-AR")} ARS`],
+    { label: "Presupuesto", usdVal: usd(total), arsVal: ars(total) },
+    { label: "Pagado", usdVal: usd(pagado), arsVal: ars(pagado) },
+    resta > 0 ? { label: "Falta abonar", usdVal: usd(resta), arsVal: ars(resta), highlight: true } : null,
+    { label: "Cotización USD", usdVal: `$${cotizacionDolar.toLocaleString("es-AR")} ARS`, arsVal: null },
   ].filter(Boolean);
 
   const dominio = d.domain_choice === "propio"
@@ -770,7 +770,15 @@ function panelResumen(d) {
       <p class="portal-resumen-nombre">${escapeHtml(d.project_name || "")}</p>
 
       <dl class="portal-resumen-datos">
-        ${filas.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd style="text-align: right;">${v}</dd></div>`).join("")}
+        ${filas.map((f) => `
+          <div>
+            <dt>${escapeHtml(f.label)}</dt>
+            <dd class="portal-resumen-val">
+              <span class="monto-usd">${escapeHtml(f.usdVal)}</span>
+              ${f.arsVal ? `<small class="monto-ars ${f.highlight ? "resaltado" : ""}">(${escapeHtml(f.arsVal)})</small>` : ""}
+            </dd>
+          </div>
+        `).join("")}
         <div><dt>Dirección</dt><dd class="corta">${escapeHtml(dominio)}</dd></div>
       </dl>
 

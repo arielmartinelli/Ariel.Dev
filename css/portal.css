@@ -393,6 +393,26 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+.portal-resumen-datos dd.portal-resumen-val {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  line-height: 1.25;
+}
+.portal-resumen-datos dd.portal-resumen-val .monto-usd {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.portal-resumen-datos dd.portal-resumen-val .monto-ars {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.portal-resumen-datos dd.portal-resumen-val .monto-ars.resaltado {
+  color: #4ade80;
+  font-weight: 600;
+}
 .portal-resumen-datos dd.corta {
   font-size: 0.82rem;
   font-weight: 500;
