@@ -99,6 +99,7 @@ let datos = null;            // ultimo estado traido del servidor
 let comprobanteBase64 = "";  // imagen ya comprimida, lista para enviar
 let metodoElegido = "mercadopago";
 let cotizacionDolar = 1350;  // respaldo por si falla la red
+let pasoVista = null;        // null = ver paso activo en vivo; number (0-4) = inspeccionar historial
 
 async function cargarCotizacionDolar() {
   try {
@@ -180,15 +181,31 @@ const PASO_DE = {
 function pintarPasos(status) {
   const activo = PASO_DE[status] ?? -1;
   const terminado = status === "finalizado";
+  const pasoVisualizado = pasoVista !== null ? pasoVista : (terminado ? 4 : activo);
 
   $("pc-pasos").innerHTML = PASOS.map((t, i) => {
     const hecho = terminado || (activo >= 0 && i < activo);
-    const esActivo = !terminado && i === activo;
-    const clase = hecho ? "hecho" : esActivo ? "activo" : "";
+    const esPasoActivoReal = !terminado && i === activo;
+    const esSeleccionado = i === pasoVisualizado;
+
+    const esClickeable = i <= activo || hecho;
+    const claseHecho = hecho ? "hecho" : "";
+    const claseActivo = esSeleccionado ? "activo" : "";
+    const claseClickeable = esClickeable ? "clickeable" : "";
+
     const marca = hecho ? ico("check", "pico pico-sm") : String(i + 1);
-    return `<li class="portal-paso ${clase}" ${esActivo ? 'aria-current="step"' : ""}>
+
+    const subTexto = esPasoActivoReal && pasoVista !== null && pasoVista !== activo
+      ? `<small style="display:block;font-size:0.62rem;color:var(--primary-light);font-weight:700;">★ en curso</small>`
+      : hecho && !esSeleccionado
+      ? `<small style="display:block;font-size:0.62rem;color:#4ade80;font-weight:600;">✓ listo</small>`
+      : '';
+
+    return `<li class="portal-paso ${claseHecho} ${claseActivo} ${claseClickeable}"
+                ${esSeleccionado ? 'aria-current="step"' : ""}
+                ${esClickeable ? `data-accion="ver-paso" data-paso="${i}" role="button" tabindex="0" title="Tocá para ver ${t}"` : ""}>
               <span class="portal-paso-n">${marca}</span>
-              <span class="portal-paso-t">${t}</span>
+              <span class="portal-paso-t">${t}${subTexto}</span>
             </li>`;
   }).join("");
 }
@@ -570,11 +587,159 @@ const ETAPAS = {
 };
 
 /* ==========================================================================
-   Resumen del proyecto (columna derecha en pantalla ancha)
+   Historial navegable de pasos anteriores
    --------------------------------------------------------------------------
-   En el celular va abajo de todo y es un repaso. En la computadora ocupa la
-   columna de la derecha, que antes era puro espacio vacío: la tarjeta de la
-   etapa quedaba como una tira angosta en el medio de una pantalla de 1440.
+   Permite al cliente hacer clic en cualquier paso completado (Demo, Anticipo,
+   Cambios, Dominio, Entrega) para consultar su historial, recuperar el enlace
+   de la demo, verificar que el anticipo figura pagado, etc.
+   ========================================================================== */
+const ETAPAS_HISTORIAL = {
+  // Paso 0: Demo
+  0: (d) => {
+    const link = safeUrl(d.demo_url, "");
+    return tarjeta({
+      icono: "ojo", tono: "listo",
+      titulo: "Paso 1: Demo del proyecto (Aprobada)",
+      bajada: "Esta fue la versión previa de prueba que revisaste y confirmaste.",
+      cuerpo: `
+        ${link ? `
+          <div class="portal-acciones">
+            <a class="btn btn-outline" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">
+              ${ico("ojo", "pico pico-sm")} Ver la demo
+            </a>
+          </div>
+          <p class="portal-url">${escapeHtml(d.demo_url || "")}</p>` : ""}
+        ${nota("✓ Demo aprobada y confirmada. El proyecto continuó a la fase de desarrollo.", "ok", "check")}
+        <div class="portal-acciones" style="margin-top: 22px;">
+          <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
+            ← Volver al paso en curso
+          </button>
+        </div>`,
+    });
+  },
+
+  // Paso 1: Anticipo
+  1: (d) => {
+    const pago = pagoDe("anticipo");
+    const monto = pago?.amount_usd ?? Number(d.price_usd) / 2;
+    const fechaPago = pago?.comprobante_fecha ? fecha(pago.comprobante_fecha) : "registrado";
+    const estadoTexto = pago?.status === "pagado" ? "Acreditado" : "Aprobado";
+
+    return tarjeta({
+      icono: "tarjeta", tono: "listo",
+      titulo: "Paso 2: Anticipo del 50% (Pagado)",
+      bajada: "El anticipo fue recibido y confirmado correctamente.",
+      cuerpo: `
+        <div class="portal-espera" style="border-color: rgba(34, 197, 94, 0.35); background: rgba(34, 197, 94, 0.06); text-align: left; padding: 20px 24px; justify-content: space-between; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 16px;">
+          <div>
+            <strong style="color: #4ade80; font-size: 1.15rem; display: block;">✓ Anticipo del 50% Acreditado</strong>
+            <small style="color: var(--text-secondary); font-size: 0.92rem; margin-top: 4px; display: block;">
+              ${usd(monto)} (${ars(monto)}) · ${estadoTexto} (${fechaPago})
+            </small>
+          </div>
+          <span style="background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 5px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700;">
+            100% Pagado
+          </span>
+        </div>
+        ${nota("✓ Pago del 50% registrado correctamente. Con este paso abonado se habilitó el desarrollo y la lista de cambios.", "ok", "check")}
+        <div class="portal-acciones" style="margin-top: 22px;">
+          <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
+            ← Volver al paso en curso
+          </button>
+        </div>`,
+    });
+  },
+
+  // Paso 2: Cambios
+  2: (d) => {
+    const tareas = d.tareas || [];
+    const hechas = tareas.filter((t) => t.done).length;
+
+    const lista = tareas.length
+      ? `<ul class="portal-cambios">
+          ${tareas.map((t) => `
+            <li class="portal-cambio ok">
+              <span class="portal-cambio-est">${ico("check", "pico pico-sm")}</span>
+              <div><p>${escapeHtml(t.title)}</p>
+                <small>Listo${t.source === "cliente" ? " · lo pediste vos" : ""}</small></div>
+            </li>`).join("")}
+        </ul>`
+      : `<p class="portal-vacio">Se completó la producción del proyecto sin cambios pendientes.</p>`;
+
+    return tarjeta({
+      icono: "lista", tono: "listo",
+      titulo: "Paso 3: Lista de Cambios (Completados)",
+      bajada: `Resumen de las ${hechas} tareas ajustadas y completadas en tu página.`,
+      cuerpo: `
+        ${lista}
+        ${nota("✓ Todos los cambios fueron completados y validados satisfactoriamente.", "ok", "check")}
+        <div class="portal-acciones" style="margin-top: 22px;">
+          <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
+            ← Volver al paso en curso
+          </button>
+        </div>`,
+    });
+  },
+
+  // Paso 3: Dominio
+  3: (d) => {
+    const propio = d.domain_choice === "propio";
+    const nombreDom = d.domain_name || "";
+    const demoUrl = (d.demo_url || "").replace(/^https?:\/\//, "");
+
+    return tarjeta({
+      icono: "globo", tono: "listo",
+      titulo: "Paso 4: Dirección web (Confirmada)",
+      bajada: "Dirección seleccionada y configurada para publicar tu sitio.",
+      cuerpo: `
+        <div class="portal-datos" style="margin-bottom: 16px;">
+          <div class="portal-dato">
+            <span><small>Modalidad</small><b>${propio ? "Dominio Propio" : "Dirección incluida"}</b></span>
+          </div>
+          <div class="portal-dato">
+            <span><small>Dirección configurada</small><b style="color: #4ade80;">${escapeHtml(propio ? nombreDom : demoUrl)}</b></span>
+          </div>
+        </div>
+        ${nota("✓ Dirección confirmada y lista para la publicación.", "ok", "check")}
+        <div class="portal-acciones" style="margin-top: 22px;">
+          <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
+            ← Volver al paso en curso
+          </button>
+        </div>`,
+    });
+  },
+
+  // Paso 4: Entrega
+  4: (d) => {
+    const pago = pagoDe("saldo");
+    const pagado = pago?.status === "pagado" || d.status === "finalizado";
+    const prod = safeUrl(d.production_url, "");
+
+    if (pagado && prod) {
+      return ETAPAS.finalizado(d);
+    }
+
+    if (pago?.status === "pagado") {
+      return tarjeta({
+        icono: "check", tono: "listo",
+        titulo: "Paso 5: Saldo del proyecto (Abonado)",
+        bajada: "El pago del saldo final fue acreditado correctamente.",
+        cuerpo: `
+          ${nota(`✓ Saldo pagado: ${escapeHtml(usd(pago.amount_usd))} (${ars(pago.amount_usd)}).`, "ok", "check")}
+          <div class="portal-acciones" style="margin-top: 22px;">
+            <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
+              ← Volver al paso en curso
+            </button>
+          </div>`,
+      });
+    }
+
+    return ETAPAS[d.status] ? ETAPAS[d.status](d) : ETAPAS.saldo_pendiente(d);
+  },
+};
+
+/* ==========================================================================
+   Resumen del proyecto (columna derecha en pantalla ancha)
    ========================================================================== */
 function panelResumen(d) {
   const pagos = d.pagos || [];
@@ -605,7 +770,7 @@ function panelResumen(d) {
       <p class="portal-resumen-nombre">${escapeHtml(d.project_name || "")}</p>
 
       <dl class="portal-resumen-datos">
-        ${filas.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd></div>`).join("")}
+        ${filas.map(([k, v]) => `<div><dt>${escapeHtml(k)}</dt><dd style="text-align: right;">${v}</dd></div>`).join("")}
         <div><dt>Dirección</dt><dd class="corta">${escapeHtml(dominio)}</dd></div>
       </dl>
 
@@ -640,18 +805,32 @@ function render() {
   $("pc-barra").style.transform = `scaleX(${progreso / 100})`;
   $("pc-barra-wrap").setAttribute("aria-valuenow", String(progreso));
 
+  const pasoActivo = PASO_DE[d.status] ?? -1;
+  const terminado = d.status === "finalizado";
+
+  // Si pasoVista está fuera de rango o apunta a un paso futuro no disponible, reseteamos a null
+  if (pasoVista !== null && !terminado && pasoVista > pasoActivo) {
+    pasoVista = null;
+  }
+
   pintarPasos(d.status);
 
-  // Si llega una etapa que este build no conoce (porque falta correr una
-  // migración, o al revés), no se muestra una pantalla en blanco.
-  const pintar = ETAPAS[d.status];
-  $("pc-etapa").innerHTML = pintar
-    ? pintar(d)
-    : tarjeta({
-        icono: "info", tono: "espera",
-        titulo: "Estamos trabajando en tu proyecto",
-        bajada: "Te aviso por WhatsApp en cuanto haya novedades.",
-      });
+  // Si pasoVista != null y pasoVista < pasoActivo (o terminado), renderiza historial
+  let htmlEtapa = "";
+  if (pasoVista !== null && (pasoVista < pasoActivo || terminado) && ETAPAS_HISTORIAL[pasoVista]) {
+    htmlEtapa = ETAPAS_HISTORIAL[pasoVista](d);
+  } else {
+    const pintar = ETAPAS[d.status];
+    htmlEtapa = pintar
+      ? pintar(d)
+      : tarjeta({
+          icono: "info", tono: "espera",
+          titulo: "Estamos trabajando en tu proyecto",
+          bajada: "Te aviso por WhatsApp en cuanto haya novedades.",
+        });
+  }
+
+  $("pc-etapa").innerHTML = htmlEtapa;
 
   // El resumen no se muestra en las etapas donde todavía no hay nada que
   // resumir: sin decisión tomada, un cuadro con «Pagado: USD 0» solo mete ruido.
@@ -1018,16 +1197,40 @@ const ACCIONES = {
       el.textContent = "Enviar comprobante";
     }
   },
+
+  "ver-paso": (el) => {
+    const p = parseInt(el.dataset.paso, 10);
+    if (isNaN(p)) return;
+    const pasoActivo = PASO_DE[datos?.status] ?? -1;
+    const terminado = datos?.status === "finalizado";
+
+    if (!terminado && p > pasoActivo) {
+      avisar("Paso pendiente", "Este paso se habilitará a medida que avances en el proyecto.", "info");
+      return;
+    }
+
+    if (p === pasoActivo && !terminado) {
+      pasoVista = null;
+    } else {
+      pasoVista = p;
+    }
+    render();
+  },
+
+  "volver-paso-actual": () => {
+    pasoVista = null;
+    render();
+  },
 };
 
-$("pc-etapa").addEventListener("click", (ev) => {
+$("portal-contenido").addEventListener("click", (ev) => {
   const el = ev.target.closest("[data-accion]");
   if (!el || el.tagName === "INPUT") return;
   const fn = ACCIONES[el.dataset.accion];
   if (fn) fn(el);
 });
 
-$("pc-etapa").addEventListener("change", (ev) => {
+$("portal-contenido").addEventListener("change", (ev) => {
   // El input de archivo está oculto y lo dispara el <label>: no lleva
   // data-accion, así que se atiende por id antes de la delegación normal.
   if (ev.target.id === "pc-archivo") {
@@ -1043,12 +1246,23 @@ $("pc-etapa").addEventListener("change", (ev) => {
   if (fn) fn(el);
 });
 
-// Enter en el campo de cambios = tocar "Agregar".
-$("pc-etapa").addEventListener("keydown", (ev) => {
-  if (ev.key !== "Enter" || ev.target.id !== "pc-cambio") return;
-  ev.preventDefault();
-  const boton = document.querySelector('[data-accion="agregar-cambio"]');
-  if (boton) ACCIONES["agregar-cambio"](boton);
+// Teclado: Enter en el campo de cambios o Enter/Espacio en el riel de pasos.
+$("portal-contenido").addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter" && ev.target.id === "pc-cambio") {
+    ev.preventDefault();
+    const boton = document.querySelector('[data-accion="agregar-cambio"]');
+    if (boton) ACCIONES["agregar-cambio"](boton);
+    return;
+  }
+
+  if (ev.key === "Enter" || ev.key === " ") {
+    const el = ev.target.closest('[data-accion="ver-paso"]');
+    if (el) {
+      ev.preventDefault();
+      const fn = ACCIONES["ver-paso"];
+      if (fn) fn(el);
+    }
+  }
 });
 
 /* ==========================================================================
