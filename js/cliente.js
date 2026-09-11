@@ -610,7 +610,10 @@ const ETAPAS_HISTORIAL = {
           </div>
           <p class="portal-url">${escapeHtml(d.demo_url || "")}</p>` : ""}
         ${nota("✓ Demo aprobada y confirmada. El proyecto continuó a la fase de desarrollo.", "ok", "check")}
-        <div class="portal-acciones" style="margin-top: 22px;">
+        <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="reabrir_demo" data-nombre-paso="Demo">
+            ↺ Retomar proyecto desde la Demo
+          </button>
           <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
             ← Volver al paso en curso
           </button>
@@ -642,7 +645,10 @@ const ETAPAS_HISTORIAL = {
           </span>
         </div>
         ${nota("✓ Pago del 50% registrado correctamente. Con este paso abonado se habilitó el desarrollo y la lista de cambios.", "ok", "check")}
-        <div class="portal-acciones" style="margin-top: 22px;">
+        <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="volver_anticipo" data-nombre-paso="Anticipo">
+            ↺ Retomar paso de Anticipo
+          </button>
           <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
             ← Volver al paso en curso
           </button>
@@ -673,7 +679,10 @@ const ETAPAS_HISTORIAL = {
       cuerpo: `
         ${lista}
         ${nota("✓ Todos los cambios fueron completados y validados satisfactoriamente.", "ok", "check")}
-        <div class="portal-acciones" style="margin-top: 22px;">
+        <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="volver_cambios" data-nombre-paso="Cambios">
+            ↺ Retomar paso de Cambios
+          </button>
           <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
             ← Volver al paso en curso
           </button>
@@ -701,7 +710,10 @@ const ETAPAS_HISTORIAL = {
           </div>
         </div>
         ${nota("✓ Dirección confirmada y lista para la publicación.", "ok", "check")}
-        <div class="portal-acciones" style="margin-top: 22px;">
+        <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="volver_dominio" data-nombre-paso="Dominio">
+            ↺ Retomar paso de Dominio
+          </button>
           <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
             ← Volver al paso en curso
           </button>
@@ -726,7 +738,7 @@ const ETAPAS_HISTORIAL = {
         bajada: "El pago del saldo final fue acreditado correctamente.",
         cuerpo: `
           ${nota(`✓ Saldo pagado: ${escapeHtml(usd(pago.amount_usd))} (${ars(pago.amount_usd)}).`, "ok", "check")}
-          <div class="portal-acciones" style="margin-top: 22px;">
+          <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
             <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
               ← Volver al paso en curso
             </button>
@@ -1228,6 +1240,31 @@ const ACCIONES = {
   "volver-paso-actual": () => {
     pasoVista = null;
     render();
+  },
+
+  "reiniciar-paso": async (el) => {
+    const dec = el.dataset.decision || "reabrir_demo";
+    const nombrePaso = el.dataset.nombrePaso || "Demo";
+    const ok = await confirmar({
+      titulo: `¿Retomar el proyecto desde el paso ${nombrePaso}?`,
+      texto: `El estado del proyecto en vivo se actualizará y volverá activamente a la etapa de «${nombrePaso}».`,
+      confirmar: `Sí, volver a ${nombrePaso}`,
+      cancelar: "Volver",
+      icono: "question",
+    });
+    if (!ok) return;
+
+    el.disabled = true;
+    const res = await portalDecidir(TOKEN, dec);
+    el.disabled = false;
+
+    if (!res?.ok) {
+      avisar("No se pudo reiniciar el paso", res?.error || "Probá de nuevo.", "error");
+      return;
+    }
+    pasoVista = null;
+    await recargar();
+    avisar("Paso retornado", `El proyecto volvió activamente al paso de «${nombrePaso}».`, "success");
   },
 };
 

@@ -673,7 +673,7 @@ function conectarFicha(ficha, c, link) {
       });
       if (!ok) return;
 
-      const res = await adminMoverFlujo(c.id, { reabrirDecision: true });
+      const res = await adminMoverFlujo(c.id, { status: "demo_lista", reabrirDecision: true });
       if (!res.ok) {
         avisar("No se pudo reabrir", res.error, "error");
         return;
@@ -682,7 +682,7 @@ function conectarFicha(ficha, c, link) {
       anunciar("Decisión reabierta.");
       avisar(
         "Decisión reabierta",
-        "Poné el proyecto en «Demo lista» para que el cliente pueda responder de nuevo por el mismo link.",
+        "El proyecto volvió a «Demo lista» y el cliente puede responder de nuevo desde su link.",
         "success"
       );
     });
