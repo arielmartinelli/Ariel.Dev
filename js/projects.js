@@ -136,13 +136,14 @@ function mapProjectFromDB(p) {
     image: p.image || "",
     tags: Array.isArray(p.tags) ? p.tags : [],
     demoUrl: p.demo_url || "#",
+    position: typeof p.position === "number" ? p.position : 0,
     createdAt: p.created_at || null,
   };
 }
 
 /** Frontend -> DB. Un solo lugar donde se define el shape que viaja. */
 function mapProjectToDB(p) {
-  return {
+  const item = {
     title: p.title,
     description: p.description,
     category: p.category,
@@ -150,6 +151,10 @@ function mapProjectToDB(p) {
     tags: p.tags,
     demo_url: p.demoUrl,
   };
+  if (typeof p.position === "number") {
+    item.position = p.position;
+  }
+  return item;
 }
 
 /* ==========================================================================
@@ -161,10 +166,26 @@ export async function getProjects({ forzar = false } = {}) {
   }
 
   try {
-    const { data, error } = await supabase
+    let data, error;
+    // Intentar ordenar por la columna 'position' si existe en la base
+    const resPos = await supabase
       .from("projects")
       .select("*")
+      .order("position", { ascending: true })
       .order("created_at", { ascending: true });
+
+    if (resPos.error) {
+      // Si la columna position aún no se migró en la base, cae a created_at
+      const resFallback = await supabase
+        .from("projects")
+        .select("*")
+        .order("created_at", { ascending: true });
+      data = resFallback.data;
+      error = resFallback.error;
+    } else {
+      data = resPos.data;
+      error = resPos.error;
+    }
 
     if (error) throw error;
 
@@ -188,6 +209,7 @@ export async function getProjects({ forzar = false } = {}) {
     }
 
     const listos = data.map(mapProjectFromDB);
+    listos.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     cache.projects = listos;
     cache.projectsAt = Date.now();
     escribirLocal(CLAVE_PROYECTOS, listos); // respaldo para modo offline
@@ -195,6 +217,7 @@ export async function getProjects({ forzar = false } = {}) {
   } catch (e) {
     console.error("Supabase no disponible, se usa el respaldo local:", e?.message || e);
     const respaldo = leerLocal(CLAVE_PROYECTOS, DEFAULT_PROJECTS);
+    respaldo.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     cache.projects = respaldo;
     cache.projectsAt = Date.now();
     return respaldo;
@@ -335,6 +358,47 @@ export async function deleteProject(id) {
   } catch (e) {
     console.error("Error al eliminar proyecto:", e?.message || e);
     const proyectos = leerLocal(CLAVE_PROYECTOS, [...DEFAULT_PROJECTS]).filter((p) => p.id !== id);
+    escribirLocal(CLAVE_PROYECTOS, proyectos);
+    return { ok: true, persistido: false, error: motivoNoPersistido(e) };
+  }
+}
+
+export async function reorderProjects(orderedProjects) {
+  invalidarCache();
+  const updates = orderedProjects.map((p, index) => ({
+    id: p.id,
+    position: index,
+  }));
+
+  try {
+    let algunError = false;
+    for (const u of updates) {
+      const { error } = await supabase
+        .from("projects")
+        .update({ position: u.position })
+        .eq("id", u.id);
+      if (error) algunError = true;
+    }
+
+    const current = cache.projects || (await getProjects());
+    const listos = orderedProjects.map((p, idx) => {
+      const match = (current || []).find((c) => c.id === p.id) || p;
+      return { ...match, position: idx };
+    });
+
+    cache.projects = listos;
+    cache.projectsAt = Date.now();
+    escribirLocal(CLAVE_PROYECTOS, listos);
+
+    return { ok: true, persistido: !algunError };
+  } catch (e) {
+    console.error("Error al reordenar proyectos:", e?.message || e);
+    let proyectos = leerLocal(CLAVE_PROYECTOS, [...DEFAULT_PROJECTS]);
+    orderedProjects.forEach((p, idx) => {
+      const item = proyectos.find((x) => x.id === p.id);
+      if (item) item.position = idx;
+    });
+    proyectos.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     escribirLocal(CLAVE_PROYECTOS, proyectos);
     return { ok: true, persistido: false, error: motivoNoPersistido(e) };
   }

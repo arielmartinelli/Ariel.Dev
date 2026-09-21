@@ -1101,6 +1101,12 @@
 
 .admin-categoria-nombre { flex: 1; font-size: 0.9rem; }
 
+.admin-proyecto-acciones {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
 .admin-icon-btn {
     background: transparent;
     border: none;
@@ -1113,12 +1119,25 @@
 }
 
 .admin-icon-btn:hover { background: rgba(255, 255, 255, 0.06); }
+.admin-icon-btn.mover:hover { color: #6366f1; }
 .admin-icon-btn.editar:hover { color: var(--secondary); }
 .admin-icon-btn.borrar:hover { color: #ef4444; }
 
 .admin-icon-btn:disabled {
-    opacity: 0.3;
+    opacity: 0.25;
     cursor: not-allowed;
+}
+
+.admin-proyecto-item[draggable="true"] {
+    cursor: grab;
+    user-select: none;
+}
+.admin-proyecto-item.arrastrando {
+    opacity: 0.4;
+}
+.admin-proyecto-item.drag-target {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.12);
 }
 
 /* ==========================================================================

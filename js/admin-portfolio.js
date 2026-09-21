@@ -12,7 +12,7 @@
  */
 
 import {
-  getProjects, addProject, updateProject, deleteProject,
+  getProjects, addProject, updateProject, deleteProject, reorderProjects,
   getCategories, addCategory, deleteCategory,
 } from "./projects.js";
 import { escapeHtml, safeUrl, sanitizeText, LIMITS, ALLOWED_IMAGE_TYPES } from "./security.js";
@@ -311,6 +311,8 @@ function procesarArchivo(file) {
 /* ==========================================================================
    Lista de proyectos
    ========================================================================== */
+let arrastreOrigenIndex = null;
+
 async function pintarProyectos() {
   const cont = $("lista-proyectos");
   const proyectos = await getProjects({ forzar: true });
@@ -322,15 +324,64 @@ async function pintarProyectos() {
     return;
   }
 
-  proyectos.forEach((p) => {
+  proyectos.forEach((p, idx) => {
     const item = document.createElement("div");
     item.className = "admin-proyecto-item";
+    item.draggable = true;
+
+    // Eventos Drag & Drop
+    item.addEventListener("dragstart", (ev) => {
+      arrastreOrigenIndex = idx;
+      item.classList.add("arrastrando");
+      ev.dataTransfer.effectAllowed = "move";
+    });
+
+    item.addEventListener("dragend", () => {
+      item.classList.remove("arrastrando");
+      cont.querySelectorAll(".admin-proyecto-item").forEach((el) => el.classList.remove("drag-target"));
+    });
+
+    item.addEventListener("dragover", (ev) => {
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = "move";
+      item.classList.add("drag-target");
+    });
+
+    item.addEventListener("dragleave", () => {
+      item.classList.remove("drag-target");
+    });
+
+    item.addEventListener("drop", (ev) => {
+      ev.preventDefault();
+      item.classList.remove("drag-target");
+      if (arrastreOrigenIndex !== null && arrastreOrigenIndex !== idx) {
+        moverOrden(proyectos, arrastreOrigenIndex, idx);
+      }
+    });
 
     const meta = document.createElement("div");
     meta.className = "admin-proyecto-meta";
     meta.innerHTML = `
       <div class="admin-proyecto-nombre">${escapeHtml(p.title)}</div>
       <div class="admin-proyecto-cat">${escapeHtml(etiquetaCategoria(p.category))}</div>`;
+
+    const subir = document.createElement("button");
+    subir.type = "button";
+    subir.className = "admin-icon-btn mover";
+    subir.disabled = idx === 0;
+    subir.title = idx === 0 ? "Ya es el primero" : "Mover arriba";
+    subir.setAttribute("aria-label", `Mover ${p.title} arriba`);
+    subir.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
+    subir.addEventListener("click", () => moverOrden(proyectos, idx, idx - 1));
+
+    const bajar = document.createElement("button");
+    bajar.type = "button";
+    bajar.className = "admin-icon-btn mover";
+    bajar.disabled = idx === proyectos.length - 1;
+    bajar.title = idx === proyectos.length - 1 ? "Ya es el último" : "Mover abajo";
+    bajar.setAttribute("aria-label", `Mover ${p.title} abajo`);
+    bajar.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+    bajar.addEventListener("click", () => moverOrden(proyectos, idx, idx + 1));
 
     const editar = document.createElement("button");
     editar.type = "button";
@@ -347,11 +398,28 @@ async function pintarProyectos() {
     borrar.addEventListener("click", () => borrarProyecto(p));
 
     const acciones = document.createElement("div");
-    acciones.append(editar, borrar);
+    acciones.className = "admin-proyecto-acciones";
+    acciones.append(subir, bajar, editar, borrar);
 
     item.append(meta, acciones);
     cont.appendChild(item);
   });
+}
+
+async function moverOrden(proyectos, fromIndex, toIndex) {
+  if (toIndex < 0 || toIndex >= proyectos.length) return;
+  const listaClon = [...proyectos];
+  const [removido] = listaClon.splice(fromIndex, 1);
+  listaClon.splice(toIndex, 0, removido);
+
+  const res = await reorderProjects(listaClon);
+  await refrescarPortfolio();
+
+  if (res.ok) {
+    anunciar("Orden de proyectos actualizado.");
+  } else {
+    avisar("No se pudo guardar el orden", res.error || "Intentá de nuevo.", "error");
+  }
 }
 
 async function borrarProyecto(p) {
