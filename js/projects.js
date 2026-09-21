@@ -82,6 +82,7 @@ const DEFAULT_CATEGORIES = [
 
 const CLAVE_PROYECTOS = "portfolio_projects";
 const CLAVE_CATEGORIAS = "portfolio_categories";
+const CLAVE_ORDEN_PROYECTOS = "portfolio_projects_order";
 
 /* ==========================================================================
    Cache en memoria (evita pedir lo mismo 4 veces en el mismo render)
@@ -106,7 +107,7 @@ function leerLocal(clave, porDefecto) {
     const guardado = localStorage.getItem(clave);
     if (!guardado) return porDefecto;
     const parseado = JSON.parse(guardado);
-    return Array.isArray(parseado) ? parseado : porDefecto;
+    return parseado !== null && typeof parseado === "object" ? parseado : porDefecto;
   } catch {
     // JSON corrupto: no tiene sentido conservarlo.
     try {
@@ -142,7 +143,7 @@ function mapProjectFromDB(p) {
 }
 
 /** Frontend -> DB. Un solo lugar donde se define el shape que viaja. */
-function mapProjectToDB(p) {
+function mapProjectToDB(p, incluirPosicion = true) {
   const item = {
     title: p.title,
     description: p.description,
@@ -151,7 +152,7 @@ function mapProjectToDB(p) {
     tags: p.tags,
     demo_url: p.demoUrl,
   };
-  if (typeof p.position === "number") {
+  if (incluirPosicion && typeof p.position === "number") {
     item.position = p.position;
   }
   return item;
@@ -203,20 +204,31 @@ export async function getProjects({ forzar = false } = {}) {
         cache.projectsAt = Date.now();
         return listos;
       }
-      // Visitante sin datos en la base: se muestran los ejemplos para que la
-      // seccion no quede vacia, pero NO se escribe nada.
       return DEFAULT_PROJECTS;
     }
 
+    const orderMap = leerLocal(CLAVE_ORDEN_PROYECTOS, {});
     const listos = data.map(mapProjectFromDB);
+    listos.forEach((p) => {
+      if (typeof orderMap[p.id] === "number") {
+        p.position = orderMap[p.id];
+      }
+    });
     listos.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+
     cache.projects = listos;
     cache.projectsAt = Date.now();
     escribirLocal(CLAVE_PROYECTOS, listos); // respaldo para modo offline
     return listos;
   } catch (e) {
     console.error("Supabase no disponible, se usa el respaldo local:", e?.message || e);
+    const orderMap = leerLocal(CLAVE_ORDEN_PROYECTOS, {});
     const respaldo = leerLocal(CLAVE_PROYECTOS, DEFAULT_PROJECTS);
+    respaldo.forEach((p) => {
+      if (typeof orderMap[p.id] === "number") {
+        p.position = orderMap[p.id];
+      }
+    });
     respaldo.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     cache.projects = respaldo;
     cache.projectsAt = Date.now();
@@ -303,10 +315,21 @@ function motivoNoPersistido(e) {
 export async function addProject(project) {
   invalidarCache();
   try {
-    const { data, error } = await supabase
+    let payload = mapProjectToDB(project, true);
+    let { data, error } = await supabase
       .from("projects")
-      .insert([mapProjectToDB(project)])
+      .insert([payload])
       .select();
+
+    if (error && /position/i.test(error.message)) {
+      payload = mapProjectToDB(project, false);
+      const resRetry = await supabase
+        .from("projects")
+        .insert([payload])
+        .select();
+      data = resRetry.data;
+      error = resRetry.error;
+    }
 
     if (error) throw error;
     return { ok: true, persistido: true, data };
@@ -322,16 +345,26 @@ export async function addProject(project) {
 export async function updateProject(project) {
   invalidarCache();
   try {
-    const { data, error } = await supabase
+    let payload = mapProjectToDB(project, true);
+    let { data, error } = await supabase
       .from("projects")
-      .update(mapProjectToDB(project))
+      .update(payload)
       .eq("id", project.id)
       .select();
 
+    if (error && /position/i.test(error.message)) {
+      payload = mapProjectToDB(project, false);
+      const resRetry = await supabase
+        .from("projects")
+        .update(payload)
+        .eq("id", project.id)
+        .select();
+      data = resRetry.data;
+      error = resRetry.error;
+    }
+
     if (error) throw error;
 
-    // Un UPDATE que no toca ninguna fila devuelve [] sin error: pasa cuando el
-    // id ya no existe o cuando RLS filtra la fila. Antes se contaba como exito.
     if (!data || data.length === 0) {
       return {
         ok: false,
@@ -365,43 +398,32 @@ export async function deleteProject(id) {
 
 export async function reorderProjects(orderedProjects) {
   invalidarCache();
-  const updates = orderedProjects.map((p, index) => ({
-    id: p.id,
-    position: index,
-  }));
 
+  const orderMap = {};
+  orderedProjects.forEach((p, index) => {
+    p.position = index;
+    orderMap[p.id] = index;
+  });
+  escribirLocal(CLAVE_ORDEN_PROYECTOS, orderMap);
+
+  let algunError = false;
   try {
-    let algunError = false;
-    for (const u of updates) {
+    for (const p of orderedProjects) {
       const { error } = await supabase
         .from("projects")
-        .update({ position: u.position })
-        .eq("id", u.id);
+        .update({ position: p.position })
+        .eq("id", p.id);
       if (error) algunError = true;
     }
-
-    const current = cache.projects || (await getProjects());
-    const listos = orderedProjects.map((p, idx) => {
-      const match = (current || []).find((c) => c.id === p.id) || p;
-      return { ...match, position: idx };
-    });
-
-    cache.projects = listos;
-    cache.projectsAt = Date.now();
-    escribirLocal(CLAVE_PROYECTOS, listos);
-
-    return { ok: true, persistido: !algunError };
   } catch (e) {
-    console.error("Error al reordenar proyectos:", e?.message || e);
-    let proyectos = leerLocal(CLAVE_PROYECTOS, [...DEFAULT_PROJECTS]);
-    orderedProjects.forEach((p, idx) => {
-      const item = proyectos.find((x) => x.id === p.id);
-      if (item) item.position = idx;
-    });
-    proyectos.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
-    escribirLocal(CLAVE_PROYECTOS, proyectos);
-    return { ok: true, persistido: false, error: motivoNoPersistido(e) };
+    algunError = true;
   }
+
+  cache.projects = orderedProjects;
+  cache.projectsAt = Date.now();
+  escribirLocal(CLAVE_PROYECTOS, orderedProjects);
+
+  return { ok: true, persistido: !algunError };
 }
 
 /* ==========================================================================
