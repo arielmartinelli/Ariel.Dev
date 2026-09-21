@@ -39,11 +39,11 @@ export function iniciarSeccionPortfolio() {
   inicializarTechPresets();
 }
 
-export async function refrescarPortfolio() {
+export async function refrescarPortfolio({ forzar = true } = {}) {
   try {
-    categorias = await getCategories({ forzar: true });
+    categorias = await getCategories({ forzar });
     pintarSelectCategorias();
-    await pintarProyectos();
+    await pintarProyectos({ forzar });
     pintarCategorias();
   } catch (err) {
     console.error("refrescarPortfolio:", err);
@@ -313,9 +313,9 @@ function procesarArchivo(file) {
    ========================================================================== */
 let arrastreOrigenIndex = null;
 
-async function pintarProyectos() {
+async function pintarProyectos({ forzar = true } = {}) {
   const cont = $("lista-proyectos");
-  const proyectos = await getProjects({ forzar: true });
+  const proyectos = await getProjects({ forzar });
 
   cont.innerHTML = "";
 
@@ -413,10 +413,17 @@ async function moverOrden(proyectos, fromIndex, toIndex) {
   listaClon.splice(toIndex, 0, removido);
 
   const res = await reorderProjects(listaClon);
-  await refrescarPortfolio();
+  await refrescarPortfolio({ forzar: false });
 
   if (res.ok) {
     anunciar("Orden de proyectos actualizado.");
+    if (!res.persistido) {
+      avisar(
+        "Orden guardado en este navegador",
+        res.error || "El orden quedó aplicado en tu equipo. Si no se guardó en Supabase para otros dispositivos, iniciá sesión en el panel de administración.",
+        "warning"
+      );
+    }
   } else {
     avisar("No se pudo guardar el orden", res.error || "Intentá de nuevo.", "error");
   }
