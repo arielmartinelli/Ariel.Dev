@@ -452,7 +452,6 @@ function ficha(c) {
     ${bloqueFlujo(c)}
 
     <div class="admin-bloque">
-    <div class="admin-bloque">
       <div class="form-group">
         <label for="ed-brief-${c.id}">Propuesta escrita / Brief</label>
         <textarea id="ed-brief-${c.id}" rows="3" maxlength="2000" data-campo="project_brief">${escapeHtml(c.project_brief || "")}</textarea>

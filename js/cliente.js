@@ -383,6 +383,11 @@ const ETAPAS = {
           <a class="btn btn-primary" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">
             ${ico("ojo", "pico pico-sm")} Ver la demo
           </a>
+          ${safeUrl(d.proposal_url, "") ? `
+            <a class="btn btn-outline" href="${escapeHtml(safeUrl(d.proposal_url, ""))}" target="_blank" rel="noopener noreferrer">
+              📄 Ver Propuesta PDF
+            </a>
+          ` : ""}
         </div>
         <p class="portal-url">${escapeHtml(d.demo_url || "")}</p>
         ${nota(`Si continuás, el primer paso es el <strong>anticipo del 50%</strong>. El otro 50% se paga recién cuando la página está publicada y funcionando.`)}
@@ -800,6 +805,11 @@ function panelResumen(d) {
         </a>` : demo ? `
         <a class="portal-resumen-link" href="${escapeHtml(demo)}" target="_blank" rel="noopener noreferrer">
           ${ico("ojo", "pico pico-sm")} Ver la demo
+        </a>` : ""}
+
+      ${safeUrl(d.proposal_url, "") ? `
+        <a class="portal-resumen-link" href="${escapeHtml(safeUrl(d.proposal_url, ""))}" target="_blank" rel="noopener noreferrer" style="border-color: rgba(168,85,247,0.3); color: #c084fc;">
+          📄 Ver Propuesta PDF
         </a>` : ""}
 
       <a class="portal-resumen-link solo-ancho" target="_blank" rel="noopener noreferrer"
