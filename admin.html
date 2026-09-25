@@ -178,9 +178,29 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="cli-brief">¿Qué se va a hacer?</label>
+                                <label for="cli-brief">Propuesta escrita / ¿Qué se va a hacer?</label>
                                 <textarea id="cli-brief" rows="3" maxlength="2000"
                                           placeholder="Landing de una página con formulario de contacto, galería y turnos por WhatsApp."></textarea>
+                            </div>
+
+                            <div class="admin-form-grid">
+                                <div class="form-group">
+                                    <label for="cli-proposal-url">Link de la propuesta (opcional)</label>
+                                    <input type="url" id="cli-proposal-url" placeholder="https://drive.google.com/... o pdf">
+                                    <p class="admin-hint">Link a Notion, Google Doc o PDF externo.</p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cli-proposal-file">Subir PDF de la propuesta (opcional)</label>
+                                    <input type="file" id="cli-proposal-file" accept="application/pdf">
+                                    <p class="admin-hint" id="cli-proposal-file-hint">Seleccioná un archivo PDF (máx 5 MB).</p>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="cli-tareas-iniciales">Tareas del proyecto / Alcance inicial (una por línea)</label>
+                                <textarea id="cli-tareas-iniciales" rows="3" maxlength="2000"
+                                          placeholder="Diseño responsive adaptable a celulares&#10;Formulario de contacto directo a WhatsApp&#10;Integración de mapa interactivo"></textarea>
+                                <p class="admin-hint">Se crearán como el listado inicial de tareas que el cliente verá en su portal.</p>
                             </div>
 
                             <div class="admin-form-grid">

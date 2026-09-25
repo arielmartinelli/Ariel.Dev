@@ -809,6 +809,128 @@ function panelResumen(d) {
     </div>`;
 }
 
+function panelPilares(d) {
+  const demoUrl = safeUrl(d.demo_url, "");
+  const propUrl = safeUrl(d.proposal_url, "");
+  const propNombre = d.proposal_filename || "Documento PDF de Propuesta";
+  const brief = d.project_brief || "";
+  const tareas = d.tareas || [];
+  const hechas = tareas.filter((t) => t.done).length;
+  const pct = tareas.length ? Math.round((hechas / tareas.length) * 100) : 0;
+
+  // 1. Tarjeta Demo
+  const cardDemo = `
+    <div class="pilar-card">
+      <div class="pilar-card-head">
+        <span class="pilar-ico pilar-ico-demo">${ico("ojo")}</span>
+        <div>
+          <h3 class="pilar-card-tit">Demo en Vivo</h3>
+          <span class="pilar-card-sub">${demoUrl ? "Versión preliminar interactiva" : "En desarrollo"}</span>
+        </div>
+      </div>
+      <div class="pilar-card-body">
+        ${demoUrl ? `
+          <p class="pilar-desc">Podés revisar el diseño, animación y estructura de tu página en vivo:</p>
+          <a class="btn btn-primary btn-block" href="${escapeHtml(demoUrl)}" target="_blank" rel="noopener noreferrer" style="margin-top:10px;">
+            ${ico("ojo", "pico pico-sm")} Abrir la demo
+          </a>
+          <span class="pilar-url">${escapeHtml(d.demo_url || "")}</span>
+        ` : `
+          <p class="pilar-desc">Tu demo está en preparación. Apenas la publique vas a poder probarla directamente desde acá.</p>
+          <div class="pilar-badge-espera">⏳ En proceso de armado</div>
+        `}
+      </div>
+    </div>`;
+
+  // 2. Tarjeta Propuesta
+  const cardPropuesta = `
+    <div class="pilar-card">
+      <div class="pilar-card-head">
+        <span class="pilar-ico pilar-ico-propuesta">${ico("lista")}</span>
+        <div>
+          <h3 class="pilar-card-tit">Propuesta del Proyecto</h3>
+          <span class="pilar-card-sub">Alcance y especificaciones</span>
+        </div>
+      </div>
+      <div class="pilar-card-body">
+        ${brief ? `
+          <div class="pilar-brief-box">
+            <p>${escapeHtml(brief)}</p>
+          </div>
+        ` : `<p class="pilar-desc">Propuesta general acordada para el desarrollo de tu sitio web.</p>`}
+
+        ${propUrl ? `
+          <div style="margin-top: 14px;">
+            <a class="btn btn-outline btn-block" href="${escapeHtml(propUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+              📄 Abrir Propuesta PDF
+            </a>
+            ${d.proposal_filename ? `<small style="display:block; text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:4px;">${escapeHtml(d.proposal_filename)}</small>` : ""}
+          </div>
+        ` : ""}
+      </div>
+    </div>`;
+
+  // 3. Tarjeta Tareas (Cuadradito de Tareas)
+  const puedePedirCambio = ["en_produccion", "dominio"].includes(d.status);
+
+  const listaTareasHtml = tareas.length
+    ? `<ul class="pilar-tareas-list">
+        ${tareas.map((t) => `
+          <li class="pilar-tarea-item ${t.done ? "hecha" : ""}">
+            <span class="pilar-tarea-icon">${ico(t.done ? "check" : "reloj", "pico pico-sm")}</span>
+            <div class="pilar-tarea-info">
+              <span class="pilar-tarea-txt">${escapeHtml(t.title)}</span>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:2px;">
+                <small class="pilar-tarea-sub">${t.done ? "Listo" : "Pendiente"}${t.source === "cliente" ? " · tu pedido" : ""}</small>
+                ${t.pdf_data ? `
+                  <a href="${escapeHtml(t.pdf_data)}" target="_blank" rel="noopener noreferrer" class="pilar-pdf-chip">
+                    📄 ${escapeHtml(t.pdf_name || "Ver PDF adjunto")}
+                  </a>
+                ` : ""}
+              </div>
+            </div>
+          </li>
+        `).join("")}
+      </ul>
+      <div class="portal-avance" style="margin-top:14px;">
+        <b>${hechas} de ${tareas.length} completadas</b>
+        <span class="portal-avance-barra"><i style="transform:scaleX(${pct / 100})"></i></span>
+        <b>${pct}%</b>
+      </div>`
+    : `<p class="portal-vacio">Aún no hay tareas cargadas en la lista.</p>`;
+
+  const cardTareas = `
+    <div class="pilar-card pilar-card-tareas">
+      <div class="pilar-card-head">
+        <span class="pilar-ico pilar-ico-tareas">${ico("check")}</span>
+        <div>
+          <h3 class="pilar-card-tit">Cuadradito de Tareas</h3>
+          <span class="pilar-card-sub">${tareas.length ? `${hechas} de ${tareas.length} completadas (${pct}%)` : "Alcance del proyecto"}</span>
+        </div>
+      </div>
+      <div class="pilar-card-body">
+        ${listaTareasHtml}
+
+        ${puedePedirCambio ? `
+          <div class="pilar-nuevo-cambio-wrap" style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border);">
+            <p style="font-size:0.85rem; font-weight:600; color:var(--text-primary); margin-bottom:8px;">Sumar un nuevo cambio o pedido:</p>
+            <div class="portal-fila-campo" style="flex-wrap:wrap; gap:8px;">
+              <input type="text" id="pc-pilar-cambio" maxlength="400" placeholder="Ej: cambiar el color del botón de contacto" style="flex:1; min-width:180px;">
+              <label class="btn btn-outline btn-sm" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+                📄 PDF
+                <input type="file" id="pc-pilar-pdf" accept="application/pdf" style="display:none">
+              </label>
+              <button type="button" class="btn btn-primary btn-sm" data-accion="agregar-cambio-pilar">Agregar</button>
+            </div>
+            <span id="pc-pilar-pdf-nombre" class="admin-hint" style="font-size:0.75rem; margin-top:4px; display:block;"></span>
+          </div>
+        ` : ""}
+      </div>
+    </div>`;
+
+  return cardDemo + cardPropuesta + cardTareas;
+}
+
 /* ==========================================================================
    Render
    ========================================================================== */
@@ -852,19 +974,30 @@ function render() {
 
   $("pc-etapa").innerHTML = htmlEtapa;
 
-  // El resumen no se muestra en las etapas donde todavía no hay nada que
-  // resumir: sin decisión tomada, un cuadro con «Pagado: USD 0» solo mete ruido.
   const conResumen = ["anticipo_pendiente", "en_produccion", "dominio",
                       "publicando", "saldo_pendiente", "finalizado"];
   const hayResumen = conResumen.includes(d.status);
   $("pc-resumen").innerHTML = hayResumen ? panelResumen(d) : "";
 
-  // Sin resumen no tiene sentido reservar la columna de la derecha: la
-  // tarjeta quedaría corrida a la izquierda con medio metro de vacío al lado.
-  // Se avisa por clase y no con :has() para no depender del soporte del
-  // navegador en algo que acá ya sabemos con certeza.
   document.querySelector(".portal-columnas")
           ?.classList.toggle("sin-resumen", !hayResumen);
+
+  const pilaresEl = $("pc-pilares");
+  if (pilaresEl) {
+    pilaresEl.innerHTML = panelPilares(d);
+
+    const pilarPdfInput = $("pc-pilar-pdf");
+    const pilarPdfNombre = $("pc-pilar-pdf-nombre");
+    if (pilarPdfInput && pilarPdfNombre) {
+      pilarPdfInput.addEventListener("change", () => {
+        if (pilarPdfInput.files && pilarPdfInput.files[0]) {
+          pilarPdfNombre.textContent = `📄 PDF adjunto listo: ${pilarPdfInput.files[0].name}`;
+        } else {
+          pilarPdfNombre.textContent = "";
+        }
+      });
+    }
+  }
 
   $("pc-wa-footer").href = enlaceWhatsApp(`Hola Ariel! Te escribo por "${d.project_name || "mi proyecto"}".`);
 
@@ -1145,6 +1278,57 @@ const ACCIONES = {
     await recargar();
     anunciar("Cambio agregado.");
     $("pc-cambio")?.focus();
+  },
+
+  "agregar-cambio-pilar": async (el) => {
+    const campo = $("pc-pilar-cambio");
+    const pdfInput = $("pc-pilar-pdf");
+    const texto = sanitizeText(campo?.value || "", 400);
+
+    if (!texto) {
+      avisar("Falta el texto", "Escribí qué querés cambiar o hacer.", "warning");
+      campo?.focus();
+      return;
+    }
+
+    let pdfData = null;
+    let pdfName = null;
+
+    if (pdfInput && pdfInput.files && pdfInput.files[0]) {
+      try {
+        const file = pdfInput.files[0];
+        if (file.type !== "application/pdf") {
+          avisar("Formato inválido", "El archivo adjunto debe ser un PDF.", "warning");
+          return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          avisar("Archivo grande", "El PDF no puede pesar más de 5 MB.", "warning");
+          return;
+        }
+        const reader = new FileReader();
+        const resPdf = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve({ data: String(reader.result || ""), name: file.name });
+          reader.onerror = () => reject(new Error("Error leyendo el PDF"));
+          reader.readAsDataURL(file);
+        });
+        pdfData = resPdf.data;
+        pdfName = resPdf.name;
+      } catch (err) {
+        avisar("Error de archivo", "No se pudo leer el PDF adjunto.", "error");
+        return;
+      }
+    }
+
+    el.disabled = true;
+    const res = await portalPedirCambio(TOKEN, texto, pdfData, pdfName);
+    el.disabled = false;
+
+    if (!res?.ok) {
+      avisar("No se pudo agregar", res?.error || "Probá de nuevo.", "error");
+      return;
+    }
+    await recargar();
+    anunciar("Cambio agregado.");
   },
 
   "dominio-op": (el) => {

@@ -452,12 +452,29 @@ function ficha(c) {
     ${bloqueFlujo(c)}
 
     <div class="admin-bloque">
+    <div class="admin-bloque">
+      <div class="form-group">
+        <label for="ed-brief-${c.id}">Propuesta escrita / Brief</label>
+        <textarea id="ed-brief-${c.id}" rows="3" maxlength="2000" data-campo="project_brief">${escapeHtml(c.project_brief || "")}</textarea>
+      </div>
+
       <div class="admin-form-grid">
         <div class="form-group">
           <label for="ed-precio-${c.id}">Precio de producción (USD)</label>
           <input type="number" id="ed-precio-${c.id}" min="0" step="1"
                  value="${Number(c.price_usd) || 0}" data-campo="price_usd">
         </div>
+        <div class="form-group">
+          <label for="ed-proposal-url-${c.id}">Link de la propuesta</label>
+          <input type="url" id="ed-proposal-url-${c.id}" value="${escapeHtml(c.proposal_url || "")}"
+                 placeholder="https://drive.google.com/..." data-campo="proposal_url">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="ed-proposal-file-${c.id}">Subir / Cambiar PDF de la propuesta</label>
+        <input type="file" id="ed-proposal-file-${c.id}" accept="application/pdf" data-campo="proposal_file">
+        ${c.proposal_filename ? `<p class="admin-hint">PDF actual: 📄 ${escapeHtml(c.proposal_filename)}</p>` : ""}
       </div>
 
       <div class="form-group">
@@ -479,9 +496,14 @@ function ficha(c) {
     <div class="admin-bloque">
       <label class="admin-bloque-label">Tareas · ${c.tareas_hechas}/${c.tareas_total} completadas</label>
       <div class="admin-tareas" data-zona="tareas"><p class="admin-hint">Cargando…</p></div>
-      <div class="admin-link-row" style="margin-top:12px">
+      <div class="admin-link-row" style="margin-top:12px; flex-wrap:wrap; gap:8px; align-items:center;">
         <input type="text" class="admin-link-input" data-campo="nueva-tarea" maxlength="400"
-               placeholder="Agregar una tarea…" aria-label="Nueva tarea">
+               placeholder="Agregar una tarea…" aria-label="Nueva tarea" style="flex:1; min-width:180px;">
+        <label class="btn btn-sm btn-outline" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+          📄 Adjuntar PDF
+          <input type="file" data-campo="nueva-tarea-pdf" accept="application/pdf" style="display:none">
+        </label>
+        <span data-zona="nueva-tarea-pdf-nombre" class="admin-hint" style="font-size:0.75rem; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
         <button type="button" class="btn btn-sm btn-outline" data-accion="add-tarea">Agregar</button>
       </div>
     </div>
@@ -516,6 +538,22 @@ function ficha(c) {
   return cont;
 }
 
+function leerArchivoPdf(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) return resolve(null);
+    if (file.type !== "application/pdf") {
+      return reject(new Error("El archivo debe ser un PDF."));
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      return reject(new Error("El PDF no puede pesar más de 5 MB."));
+    }
+    const reader = new FileReader();
+    reader.onload = () => resolve({ data: String(reader.result || ""), name: file.name });
+    reader.onerror = () => reject(new Error("No se pudo leer el PDF."));
+    reader.readAsDataURL(file);
+  });
+}
+
 function conectarFicha(ficha, c, link) {
   const accion = (n) => ficha.querySelector(`[data-accion="${n}"]`);
   const leer = (campo) => ficha.querySelector(`[data-campo="${campo}"]`)?.value ?? "";
@@ -548,9 +586,24 @@ function conectarFicha(ficha, c, link) {
     const boton = e.currentTarget;
     const demo = leer("demo_url").trim();
     const prod = leer("production_url").trim();
+    const brief = leer("project_brief").trim();
+    let propUrl = leer("proposal_url").trim();
+    let propName = c.proposal_filename || null;
 
-    // Se valida acá además de en la base: un CHECK que salta devuelve un error
-    // de Postgres ilegible; este mensaje dice qué corregir.
+    const propFileEl = ficha.querySelector('[data-campo="proposal_file"]');
+    if (propFileEl && propFileEl.files && propFileEl.files[0]) {
+      try {
+        const resPdf = await leerArchivoPdf(propFileEl.files[0]);
+        if (resPdf) {
+          propUrl = resPdf.data;
+          propName = resPdf.name;
+        }
+      } catch (err) {
+        avisar("Error de archivo", err.message, "warning");
+        return;
+      }
+    }
+
     if (demo && !safeUrl(demo, "")) {
       avisar("Link de demo inválido", "Tiene que empezar con http:// o https://", "warning");
       return;
@@ -568,12 +621,11 @@ function conectarFicha(ficha, c, link) {
 
     boton.disabled = true;
     try {
-      // ORDEN A PROPÓSITO: primero los datos sueltos, después el flujo.
-      // admin_mover_flujo revisa si falta el link de producción para avisar,
-      // así que el link tiene que estar guardado antes de que lo mire. Al
-      // revés, avisaría de algo que el usuario acaba de completar.
       const datos = await adminActualizarCliente(c.id, {
         price_usd: precio,
+        project_brief: brief || null,
+        proposal_url: propUrl || null,
+        proposal_filename: propName || null,
         demo_url: demo || null,
         production_url: prod || null,
       });
@@ -690,16 +742,47 @@ function conectarFicha(ficha, c, link) {
 
   // --- Nueva tarea ---
   const campo = ficha.querySelector('[data-campo="nueva-tarea"]');
+  const pdfInput = ficha.querySelector('[data-campo="nueva-tarea-pdf"]');
+  const pdfNombreLabel = ficha.querySelector('[data-zona="nueva-tarea-pdf-nombre"]');
+
+  if (pdfInput && pdfNombreLabel) {
+    pdfInput.addEventListener("change", () => {
+      if (pdfInput.files && pdfInput.files[0]) {
+        pdfNombreLabel.textContent = `📄 ${pdfInput.files[0].name}`;
+      } else {
+        pdfNombreLabel.textContent = "";
+      }
+    });
+  }
+
   const crearTarea = async () => {
     const texto = sanitizeText(campo.value, 400);
     if (!texto) return;
 
-    const res = await adminAgregarTarea(c.id, texto);
+    let pdfData = null;
+    let pdfName = null;
+
+    if (pdfInput && pdfInput.files && pdfInput.files[0]) {
+      try {
+        const resPdf = await leerArchivoPdf(pdfInput.files[0]);
+        if (resPdf) {
+          pdfData = resPdf.data;
+          pdfName = resPdf.name;
+        }
+      } catch (err) {
+        avisar("Error en PDF de la tarea", err.message, "warning");
+        return;
+      }
+    }
+
+    const res = await adminAgregarTarea(c.id, texto, 999, pdfData, pdfName);
     if (!res.ok) {
       avisar("No se pudo agregar", res.error, "error");
       return;
     }
     campo.value = "";
+    if (pdfInput) pdfInput.value = "";
+    if (pdfNombreLabel) pdfNombreLabel.textContent = "";
     await recargar();
   };
 
@@ -868,6 +951,17 @@ async function cargarTareas(ficha, c) {
     });
 
     fila.append(check, etiqueta);
+
+    if (t.pdf_data) {
+      const pdfLink = document.createElement("a");
+      pdfLink.href = t.pdf_data;
+      pdfLink.target = "_blank";
+      pdfLink.rel = "noopener noreferrer";
+      pdfLink.className = "admin-tarea-pdf-link";
+      pdfLink.style.cssText = "font-size:0.75rem; color: #60a5fa; margin-left:8px; text-decoration:none; display:inline-flex; align-items:center; gap:3px;";
+      pdfLink.innerHTML = `📄 <u>${escapeHtml(t.pdf_name || "Ver PDF")}</u>`;
+      fila.appendChild(pdfLink);
+    }
 
     if (t.source === "cliente") {
       const origen = document.createElement("span");

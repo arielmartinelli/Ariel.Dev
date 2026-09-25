@@ -156,10 +156,12 @@ export async function portalElegirDominio(token, opcion, dominio = null) {
 }
 
 /** Pedido de cambio adicional durante la producción. */
-export async function portalPedirCambio(token, texto) {
+export async function portalPedirCambio(token, texto, pdfData = null, pdfName = null) {
   const { data, error } = await supabase.rpc("portal_pedir_cambio", {
     p_token: token,
     p_texto: texto,
+    p_pdf_data: pdfData,
+    p_pdf_name: pdfName,
   });
   if (error) {
     console.error("portal_pedir_cambio:", error.message);
@@ -212,6 +214,8 @@ export async function adminCrearCliente(cliente) {
         client_name: cliente.clientName,
         project_name: cliente.projectName,
         project_brief: cliente.brief || null,
+        proposal_url: cliente.proposalUrl || null,
+        proposal_filename: cliente.proposalFilename || null,
         demo_url: cliente.demoUrl || null,
         price_usd: Number(cliente.priceUsd) || 0,
         whatsapp: cliente.whatsapp || null,
@@ -322,10 +326,10 @@ export async function adminListarTareas(clientId) {
   return data || [];
 }
 
-export async function adminAgregarTarea(clientId, title, position = 999) {
+export async function adminAgregarTarea(clientId, title, position = 999, pdfData = null, pdfName = null) {
   const { error } = await supabase
     .from("client_tasks")
-    .insert([{ client_id: clientId, title, source: "ariel", position }]);
+    .insert([{ client_id: clientId, title, source: "ariel", position, pdf_data: pdfData, pdf_name: pdfName }]);
   if (error) return { ok: false, error: traducirError(error) };
   return { ok: true };
 }
