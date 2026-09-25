@@ -36,6 +36,7 @@ import {
 import { escapeHtml, safeUrl, sanitizeText } from "./security.js";
 import { configurarDialogos, confirmar, avisar } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
+import { abrirDocumentoPdf } from "./pdf-helper.js";
 
 const WHATSAPP = "543516121498";
 
@@ -384,9 +385,14 @@ const ETAPAS = {
             ${ico("ojo", "pico pico-sm")} Ver la demo
           </a>
           ${safeUrl(d.proposal_url, "") ? `
-            <a class="btn btn-outline" href="${escapeHtml(safeUrl(d.proposal_url, ""))}" target="_blank" rel="noopener noreferrer">
+            <button type="button" class="btn btn-outline" data-pdf-url="${escapeHtml(safeUrl(d.proposal_url, ""))}" data-pdf-filename="${escapeHtml(d.proposal_filename || "Propuesta.pdf")}">
               ${(d.proposal_url || "").startsWith("data:application/pdf") ? "📄 Ver Propuesta PDF" : "🔗 Ver Propuesta"}
-            </a>
+            </button>
+          ` : ""}
+          ${safeUrl(d.brief_pdf_url, "") ? `
+            <button type="button" class="btn btn-outline" data-pdf-url="${escapeHtml(safeUrl(d.brief_pdf_url, ""))}" data-pdf-filename="${escapeHtml(d.brief_pdf_filename || "Descripcion.pdf")}">
+              📄 Ver Descripción PDF
+            </button>
           ` : ""}
         </div>
         <p class="portal-url">${escapeHtml(d.demo_url || "")}</p>
@@ -808,9 +814,14 @@ function panelResumen(d) {
         </a>` : ""}
 
       ${safeUrl(d.proposal_url, "") ? `
-        <a class="portal-resumen-link" href="${escapeHtml(safeUrl(d.proposal_url, ""))}" target="_blank" rel="noopener noreferrer" style="border-color: rgba(168,85,247,0.3); color: #c084fc;">
+        <button type="button" class="portal-resumen-link" data-pdf-url="${escapeHtml(safeUrl(d.proposal_url, ""))}" data-pdf-filename="${escapeHtml(d.proposal_filename || "Propuesta.pdf")}" style="border-color: rgba(168,85,247,0.3); color: #c084fc; text-align: left; background: transparent; width: 100%; cursor: pointer;">
           ${(d.proposal_url || "").startsWith("data:application/pdf") ? "📄 Ver Propuesta PDF" : "🔗 Ver Propuesta"}
-        </a>` : ""}
+        </button>` : ""}
+
+      ${safeUrl(d.brief_pdf_url, "") ? `
+        <button type="button" class="portal-resumen-link" data-pdf-url="${escapeHtml(safeUrl(d.brief_pdf_url, ""))}" data-pdf-filename="${escapeHtml(d.brief_pdf_filename || "Descripcion.pdf")}" style="border-color: rgba(59,130,246,0.3); color: #60a5fa; text-align: left; background: transparent; width: 100%; cursor: pointer; margin-top: 6px;">
+          📄 Ver Descripción PDF
+        </button>` : ""}
 
       <a class="portal-resumen-link solo-ancho" target="_blank" rel="noopener noreferrer"
          href="${escapeHtml(enlaceWhatsApp(`Hola Ariel! Te escribo por "${d.project_name || "mi proyecto"}".`))}">
@@ -824,6 +835,8 @@ function panelPilares(d) {
   const propUrl = safeUrl(d.proposal_url, "");
   const propNombre = d.proposal_filename || "Documento PDF de Propuesta";
   const brief = d.project_brief || "";
+  const briefPdfUrl = safeUrl(d.brief_pdf_url, "");
+  const briefPdfNombre = d.brief_pdf_filename || "Documento PDF de Descripción";
   const tareas = d.tareas || [];
   const hechas = tareas.filter((t) => t.done).length;
   const pct = tareas.length ? Math.round((hechas / tareas.length) * 100) : 0;
@@ -852,34 +865,46 @@ function panelPilares(d) {
       </div>
     </div>`;
 
-  // 2. Tarjeta Propuesta
-  const esPdfData = propUrl.startsWith("data:application/pdf");
-  const etiquetaBtnProp = esPdfData ? "📄 Abrir Propuesta PDF" : "🔗 Ver Link de la Propuesta";
+  // 2. Tarjeta Propuesta y Descripción del Proyecto
+  const esPdfProp = propUrl.startsWith("data:application/pdf");
+  const etiquetaBtnProp = esPdfProp ? "📄 Abrir Propuesta PDF" : "🔗 Ver Link de la Propuesta";
 
   const cardPropuesta = `
     <div class="pilar-card">
       <div class="pilar-card-head">
         <span class="pilar-ico pilar-ico-propuesta">${ico("lista")}</span>
         <div>
-          <h3 class="pilar-card-tit">Propuesta del Proyecto</h3>
-          <span class="pilar-card-sub">Alcance y especificaciones</span>
+          <h3 class="pilar-card-tit">Propuesta y Descripción</h3>
+          <span class="pilar-card-sub">Alcance, brief y especificaciones</span>
         </div>
       </div>
       <div class="pilar-card-body">
         ${brief ? `
-          <div class="pilar-brief-box">
-            <p>${escapeHtml(brief)}</p>
-          </div>
-        ` : `<p class="pilar-desc">Propuesta general acordada para el desarrollo de tu sitio web.</p>`}
-
-        ${propUrl ? `
-          <div style="margin-top: 14px;">
-            <a class="btn btn-outline btn-block" href="${escapeHtml(propUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
-              ${etiquetaBtnProp}
-            </a>
-            ${d.proposal_filename ? `<small style="display:block; text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:4px;">${escapeHtml(d.proposal_filename)}</small>` : !esPdfData ? `<span class="pilar-url">${escapeHtml(d.proposal_url)}</span>` : ""}
+          <div class="pilar-brief-box" style="margin-bottom: 12px;">
+            <p style="font-weight:600; color:var(--text-primary); margin-bottom:4px;">Descripción del proyecto:</p>
+            <p style="white-space:pre-wrap;">${escapeHtml(brief)}</p>
           </div>
         ` : ""}
+
+        ${briefPdfUrl ? `
+          <div style="margin-top: 10px; margin-bottom: 10px;">
+            <button type="button" class="btn btn-outline btn-block" data-pdf-url="${escapeHtml(briefPdfUrl)}" data-pdf-filename="${escapeHtml(briefPdfNombre)}" style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+              📄 PDF Descripción del Proyecto
+            </button>
+            ${d.brief_pdf_filename ? `<small style="display:block; text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:4px;">${escapeHtml(d.brief_pdf_filename)}</small>` : ""}
+          </div>
+        ` : ""}
+
+        ${propUrl ? `
+          <div style="margin-top: 10px;">
+            <button type="button" class="btn btn-outline btn-block" data-pdf-url="${escapeHtml(propUrl)}" data-pdf-filename="${escapeHtml(propNombre)}" style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+              ${etiquetaBtnProp}
+            </button>
+            ${d.proposal_filename ? `<small style="display:block; text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:4px;">${escapeHtml(d.proposal_filename)}</small>` : !esPdfProp ? `<span class="pilar-url">${escapeHtml(d.proposal_url)}</span>` : ""}
+          </div>
+        ` : ""}
+
+        ${!brief && !briefPdfUrl && !propUrl ? `<p class="pilar-desc">Propuesta general acordada para el desarrollo de tu sitio web.</p>` : ""}
       </div>
     </div>`;
 
@@ -896,9 +921,9 @@ function panelPilares(d) {
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:2px;">
                 <small class="pilar-tarea-sub">${t.done ? "Listo" : "Pendiente"}${t.source === "cliente" ? " · tu pedido" : ""}</small>
                 ${t.pdf_data ? `
-                  <a href="${escapeHtml(t.pdf_data)}" target="_blank" rel="noopener noreferrer" class="pilar-pdf-chip">
+                  <button type="button" class="pilar-pdf-chip" data-pdf-url="${escapeHtml(t.pdf_data)}" data-pdf-filename="${escapeHtml(t.pdf_name || "Tarea.pdf")}">
                     📄 ${escapeHtml(t.pdf_name || "Ver PDF adjunto")}
-                  </a>
+                  </button>
                 ` : ""}
               </div>
             </div>
@@ -1466,6 +1491,15 @@ const ACCIONES = {
 };
 
 $("portal-contenido").addEventListener("click", (ev) => {
+  const btnPdf = ev.target.closest("[data-pdf-url]");
+  if (btnPdf) {
+    ev.preventDefault();
+    const url = btnPdf.dataset.pdfUrl;
+    const name = btnPdf.dataset.pdfFilename || "documento.pdf";
+    abrirDocumentoPdf(url, name);
+    return;
+  }
+
   const el = ev.target.closest("[data-accion]");
   if (!el || el.tagName === "INPUT") return;
   const fn = ACCIONES[el.dataset.accion];

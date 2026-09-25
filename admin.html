@@ -177,10 +177,17 @@
                                 </div>
                             </div>
 
-                            <div class="form-group">
-                                <label for="cli-brief">Propuesta escrita / ¿Qué se va a hacer?</label>
-                                <textarea id="cli-brief" rows="3" maxlength="2000"
-                                          placeholder="Landing de una página con formulario de contacto, galería y turnos por WhatsApp."></textarea>
+                            <div class="admin-form-grid">
+                                <div class="form-group">
+                                    <label for="cli-brief">Descripción del proyecto / Brief escrito</label>
+                                    <textarea id="cli-brief" rows="3" maxlength="2000"
+                                              placeholder="Landing de una página con formulario de contacto, galería y turnos por WhatsApp."></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cli-brief-file">Subir PDF de Descripción del Proyecto (opcional)</label>
+                                    <input type="file" id="cli-brief-file" accept="application/pdf">
+                                    <p class="admin-hint">Adjuntá un PDF con el brief o especificaciones (máx 5 MB).</p>
+                                </div>
                             </div>
 
                             <div class="admin-form-grid">

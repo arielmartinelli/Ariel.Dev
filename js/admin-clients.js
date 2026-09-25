@@ -22,6 +22,7 @@ import {
 import { escapeHtml, safeUrl, sanitizeText } from "./security.js";
 import { confirmar, avisar } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
+import { abrirDocumentoPdf } from "./pdf-helper.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -37,6 +38,15 @@ const usd = (n) => `USD ${Number(n || 0).toLocaleString("es-AR", { maximumFracti
 export function iniciarSeccionClientes() {
   conectarAlta();
   conectarFiltros();
+  document.addEventListener("click", (ev) => {
+    const btnPdf = ev.target.closest("[data-pdf-url]");
+    if (btnPdf) {
+      ev.preventDefault();
+      const url = btnPdf.dataset.pdfUrl;
+      const name = btnPdf.dataset.pdfFilename || "documento.pdf";
+      abrirDocumentoPdf(url, name);
+    }
+  });
 }
 
 /** Llamado por admin.js con la lista ya cargada. */
@@ -452,9 +462,16 @@ function ficha(c) {
     ${bloqueFlujo(c)}
 
     <div class="admin-bloque">
-      <div class="form-group">
-        <label for="ed-brief-${c.id}">Propuesta escrita / Brief</label>
-        <textarea id="ed-brief-${c.id}" rows="3" maxlength="2000" data-campo="project_brief">${escapeHtml(c.project_brief || "")}</textarea>
+      <div class="admin-form-grid">
+        <div class="form-group">
+          <label for="ed-brief-${c.id}">Descripción del proyecto / Brief escrito</label>
+          <textarea id="ed-brief-${c.id}" rows="3" maxlength="2000" data-campo="project_brief">${escapeHtml(c.project_brief || "")}</textarea>
+        </div>
+        <div class="form-group">
+          <label for="ed-brief-file-${c.id}">Subir / Cambiar PDF de Descripción</label>
+          <input type="file" id="ed-brief-file-${c.id}" accept="application/pdf" data-campo="brief_file">
+          ${c.brief_pdf_filename && c.brief_pdf_url ? `<button type="button" class="btn btn-sm btn-outline mt-1" data-pdf-url="${escapeHtml(c.brief_pdf_url)}" data-pdf-filename="${escapeHtml(c.brief_pdf_filename)}">📄 Ver PDF actual: ${escapeHtml(c.brief_pdf_filename)}</button>` : ""}
+        </div>
       </div>
 
       <div class="admin-form-grid">
@@ -473,7 +490,7 @@ function ficha(c) {
       <div class="form-group">
         <label for="ed-proposal-file-${c.id}">Subir / Cambiar PDF de la propuesta</label>
         <input type="file" id="ed-proposal-file-${c.id}" accept="application/pdf" data-campo="proposal_file">
-        ${c.proposal_filename ? `<p class="admin-hint">PDF actual: 📄 ${escapeHtml(c.proposal_filename)}</p>` : ""}
+        ${c.proposal_filename && c.proposal_url ? `<button type="button" class="btn btn-sm btn-outline mt-1" data-pdf-url="${escapeHtml(c.proposal_url)}" data-pdf-filename="${escapeHtml(c.proposal_filename)}">📄 Ver PDF actual: ${escapeHtml(c.proposal_filename)}</button>` : ""}
       </div>
 
       <div class="form-group">
@@ -588,6 +605,22 @@ function conectarFicha(ficha, c, link) {
     const brief = leer("project_brief").trim();
     let propUrl = leer("proposal_url").trim();
     let propName = c.proposal_filename || null;
+    let briefPdfUrl = c.brief_pdf_url || null;
+    let briefPdfName = c.brief_pdf_filename || null;
+
+    const briefFileEl = ficha.querySelector('[data-campo="brief_file"]');
+    if (briefFileEl && briefFileEl.files && briefFileEl.files[0]) {
+      try {
+        const resPdf = await leerArchivoPdf(briefFileEl.files[0]);
+        if (resPdf) {
+          briefPdfUrl = resPdf.data;
+          briefPdfName = resPdf.name;
+        }
+      } catch (err) {
+        avisar("Error de archivo", err.message, "warning");
+        return;
+      }
+    }
 
     const propFileEl = ficha.querySelector('[data-campo="proposal_file"]');
     if (propFileEl && propFileEl.files && propFileEl.files[0]) {
@@ -623,6 +656,8 @@ function conectarFicha(ficha, c, link) {
       const datos = await adminActualizarCliente(c.id, {
         price_usd: precio,
         project_brief: brief || null,
+        brief_pdf_url: briefPdfUrl || null,
+        brief_pdf_filename: briefPdfName || null,
         proposal_url: propUrl || null,
         proposal_filename: propName || null,
         demo_url: demo || null,
@@ -952,14 +987,14 @@ async function cargarTareas(ficha, c) {
     fila.append(check, etiqueta);
 
     if (t.pdf_data) {
-      const pdfLink = document.createElement("a");
-      pdfLink.href = t.pdf_data;
-      pdfLink.target = "_blank";
-      pdfLink.rel = "noopener noreferrer";
-      pdfLink.className = "admin-tarea-pdf-link";
-      pdfLink.style.cssText = "font-size:0.75rem; color: #60a5fa; margin-left:8px; text-decoration:none; display:inline-flex; align-items:center; gap:3px;";
-      pdfLink.innerHTML = `📄 <u>${escapeHtml(t.pdf_name || "Ver PDF")}</u>`;
-      fila.appendChild(pdfLink);
+      const pdfBtn = document.createElement("button");
+      pdfBtn.type = "button";
+      pdfBtn.dataset.pdfUrl = t.pdf_data;
+      pdfBtn.dataset.pdfFilename = t.pdf_name || "Tarea.pdf";
+      pdfBtn.className = "admin-tarea-pdf-link";
+      pdfBtn.style.cssText = "font-size:0.75rem; color: #60a5fa; margin-left:8px; background:none; border:none; padding:0; cursor:pointer; display:inline-flex; align-items:center; gap:3px; font-family:inherit;";
+      pdfBtn.innerHTML = `📄 <u>${escapeHtml(t.pdf_name || "Ver PDF")}</u>`;
+      fila.appendChild(pdfBtn);
     }
 
     if (t.source === "cliente") {
@@ -1055,12 +1090,48 @@ function conectarAlta() {
     e.preventDefault();
 
     const boton = $("btn-crear-cliente");
-    if (boton.disabled) return;   // evita crear dos clientes con doble clic
+    if (boton.disabled) return;
+
+    let briefPdfUrl = null;
+    let briefPdfFilename = null;
+    const briefFileEl = $("cli-brief-file");
+    if (briefFileEl && briefFileEl.files && briefFileEl.files[0]) {
+      try {
+        const pdfRes = await leerArchivoPdf(briefFileEl.files[0]);
+        if (pdfRes) {
+          briefPdfUrl = pdfRes.data;
+          briefPdfFilename = pdfRes.name;
+        }
+      } catch (err) {
+        avisar("Error de PDF", err.message, "warning");
+        return;
+      }
+    }
+
+    let propUrl = $("cli-proposal-url")?.value.trim() || null;
+    let propName = null;
+    const propFileEl = $("cli-proposal-file");
+    if (propFileEl && propFileEl.files && propFileEl.files[0]) {
+      try {
+        const pdfRes = await leerArchivoPdf(propFileEl.files[0]);
+        if (pdfRes) {
+          propUrl = pdfRes.data;
+          propName = pdfRes.name;
+        }
+      } catch (err) {
+        avisar("Error de PDF", err.message, "warning");
+        return;
+      }
+    }
 
     const datos = {
       clientName: sanitizeText($("cli-nombre").value, 120),
       projectName: sanitizeText($("cli-proyecto").value, 120),
       brief: sanitizeText($("cli-brief").value, 2000),
+      briefPdfUrl,
+      briefPdfFilename,
+      proposalUrl: propUrl,
+      proposalFilename: propName,
       demoUrl: $("cli-demo").value.trim(),
       priceUsd: Number($("cli-precio").value),
       whatsapp: sanitizeText($("cli-whatsapp").value, 30).replace(/[^\d+]/g, ""),

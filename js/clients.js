@@ -214,13 +214,13 @@ export async function adminCrearCliente(cliente) {
         client_name: cliente.clientName,
         project_name: cliente.projectName,
         project_brief: cliente.brief || null,
+        brief_pdf_url: cliente.briefPdfUrl || null,
+        brief_pdf_filename: cliente.briefPdfFilename || null,
         proposal_url: cliente.proposalUrl || null,
         proposal_filename: cliente.proposalFilename || null,
         demo_url: cliente.demoUrl || null,
         price_usd: Number(cliente.priceUsd) || 0,
         whatsapp: cliente.whatsapp || null,
-        // Si ya cargaste el link de la demo, el proyecto nace "demo lista":
-        // es exactamente el momento en que le mandás el link al cliente.
         status: cliente.demoUrl ? "demo_lista" : "demo_pendiente",
       },
     ])
