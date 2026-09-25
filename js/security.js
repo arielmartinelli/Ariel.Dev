@@ -26,11 +26,15 @@ export function escapeHtml(value) {
  * ejecutar código si se inyectan en un href o src.
  */
 const SAFE_PROTOCOLS = ["http:", "https:", "mailto:", "tel:"];
+const SAFE_PDF_DATA = /^data:application\/pdf;base64,[a-z0-9+/=\s]+$/i;
 
 export function safeUrl(value, fallback = "#") {
   if (!value) return fallback;
   const raw = String(value).trim();
   if (raw === "#") return "#";
+  if (raw.startsWith("data:application/pdf;base64,")) {
+    return SAFE_PDF_DATA.test(raw) ? raw : fallback;
+  }
   try {
     const parsed = new URL(raw, window.location.origin);
     return SAFE_PROTOCOLS.includes(parsed.protocol) ? parsed.href : fallback;

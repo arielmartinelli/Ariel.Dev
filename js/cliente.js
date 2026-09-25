@@ -385,7 +385,7 @@ const ETAPAS = {
           </a>
           ${safeUrl(d.proposal_url, "") ? `
             <a class="btn btn-outline" href="${escapeHtml(safeUrl(d.proposal_url, ""))}" target="_blank" rel="noopener noreferrer">
-              📄 Ver Propuesta PDF
+              ${(d.proposal_url || "").startsWith("data:application/pdf") ? "📄 Ver Propuesta PDF" : "🔗 Ver Propuesta"}
             </a>
           ` : ""}
         </div>
@@ -809,7 +809,7 @@ function panelResumen(d) {
 
       ${safeUrl(d.proposal_url, "") ? `
         <a class="portal-resumen-link" href="${escapeHtml(safeUrl(d.proposal_url, ""))}" target="_blank" rel="noopener noreferrer" style="border-color: rgba(168,85,247,0.3); color: #c084fc;">
-          📄 Ver Propuesta PDF
+          ${(d.proposal_url || "").startsWith("data:application/pdf") ? "📄 Ver Propuesta PDF" : "🔗 Ver Propuesta"}
         </a>` : ""}
 
       <a class="portal-resumen-link solo-ancho" target="_blank" rel="noopener noreferrer"
@@ -853,6 +853,9 @@ function panelPilares(d) {
     </div>`;
 
   // 2. Tarjeta Propuesta
+  const esPdfData = propUrl.startsWith("data:application/pdf");
+  const etiquetaBtnProp = esPdfData ? "📄 Abrir Propuesta PDF" : "🔗 Ver Link de la Propuesta";
+
   const cardPropuesta = `
     <div class="pilar-card">
       <div class="pilar-card-head">
@@ -872,9 +875,9 @@ function panelPilares(d) {
         ${propUrl ? `
           <div style="margin-top: 14px;">
             <a class="btn btn-outline btn-block" href="${escapeHtml(propUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
-              📄 Abrir Propuesta PDF
+              ${etiquetaBtnProp}
             </a>
-            ${d.proposal_filename ? `<small style="display:block; text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:4px;">${escapeHtml(d.proposal_filename)}</small>` : ""}
+            ${d.proposal_filename ? `<small style="display:block; text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:4px;">${escapeHtml(d.proposal_filename)}</small>` : !esPdfData ? `<span class="pilar-url">${escapeHtml(d.proposal_url)}</span>` : ""}
           </div>
         ` : ""}
       </div>
