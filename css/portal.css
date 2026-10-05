@@ -54,17 +54,31 @@
 }
 .skip-link:focus { left: 0; }
 
-/* Iconos: SVG dibujados, mismo grosor de trazo en todo el portal. */
-.pico {
-  width: 20px; height: 20px;
-  display: block;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.75;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+/* Los íconos (.pico, .pico-sm…) están en styles.css, que cargan las tres
+   pantallas. Acá abajo solo van las piezas propias del portal. */
+
+/* Nota al pie de un paso del stepper ("en curso" / "listo"): el ícono y el
+   texto van en la misma línea base, no uno arriba del otro. */
+.paso-nota {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  line-height: 1;
+  white-space: nowrap;
 }
-.pico-sm { width: 16px; height: 16px; }
+.paso-nota .pico { flex: 0 0 auto; }
+.paso-nota-curso { color: var(--primary-light, var(--primary)); }
+.paso-nota-listo { color: #4ade80; }
+
+/* Hito cumplido dentro de una tarjeta (ej. "Anticipo acreditado"). */
+.portal-hito-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #4ade80;
+}
+.portal-hito-ok .pico { flex: 0 0 auto; }
 
 /* ==========================================================================
    Cabecera
@@ -105,6 +119,45 @@
   gap: 6px;
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+/* Chip del hero. Estaba en el HTML sin ninguna regla que lo tomara, así que
+   salía como texto suelto arriba del "Hola, …". */
+.portal-badge-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--e3);
+  padding: 5px 11px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-hover);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Título de la página de reseña. Lleva el ícono al lado, así que va en flex:
+   con el display de bloque que tiene un <h1>, el <svg> se iba a su propio
+   renglón y el título quedaba partido en dos. */
+.resena-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 1.5rem;
+}
+.resena-titulo .pico { color: #fbbf24; }
+
+/* Éxito de la página de reseña: antes era un 🎉 de 3.5rem. */
+.resena-exito-ico {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+  color: #4ade80;
 }
 
 .portal-main {
@@ -439,6 +492,60 @@
 .portal-resumen-link:hover {
   border-color: rgba(255, 255, 255, 0.32);
   background: rgba(255, 255, 255, 0.04);
+}
+
+/* ---- Recibos ----
+   Van separados del resto de los links por una linea: los de arriba son
+   documentos del proyecto (propuesta, presupuesto) y estos son plata ya
+   cobrada. Mezclados se leen como lo mismo. */
+/* Cerrado arriba Y abajo: con una sola linea arriba, la nota "No válido como
+   factura" quedaba pegada al boton de Escribirme y se leia como si hablara
+   de ese boton. */
+.portal-recibos {
+  margin-top: var(--e4);
+  padding: var(--e3) 0 var(--e3);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.portal-recibos-tit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 var(--e1);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* justify-content a flex-start, no center como el resto de los links: acá hay
+   dos renglones de texto, y centrados quedan desalineados entre botones. */
+.portal-recibo-btn {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 48px;   /* 44px es el minimo tactil de WCAG 2.5.5 */
+  padding: 8px 12px;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+.portal-recibo-btn:disabled { opacity: 0.6; cursor: default; }
+
+.portal-recibo-txt { display: grid; line-height: 1.25; }
+.portal-recibo-txt small {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.portal-recibos-nota {
+  margin: var(--e2) 0 0;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 /* En celular el resumen queda justo arriba del pie, que ya tiene su propio
@@ -1022,7 +1129,9 @@
 }
 
 .pilar-badge-espera {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-top: 10px;
   padding: 6px 12px;
   border-radius: 8px;
@@ -1153,4 +1262,68 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ==========================================================================
+   Precio en el primer paso
+   --------------------------------------------------------------------------
+   El cliente tiene que ver cuánto sale ANTES de decidir, en la misma tarjeta
+   donde están la demo, la propuesta y el presupuesto. Antes el número recién
+   aparecía en el paso del pago, o sea después de haber aceptado.
+   ========================================================================== */
+.portal-precio {
+  margin-bottom: var(--e5);
+  padding: var(--e4) var(--e5);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(6, 182, 212, 0.07));
+  border: 1px solid rgba(99, 102, 241, 0.26);
+}
+
+.portal-precio-etq {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.portal-precio-num {
+  margin-top: var(--e1);
+  font-family: var(--font-heading);
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.portal-precio-ars {
+  margin-top: var(--e2);
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4ade80;
+}
+.portal-precio-ars span {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* Las 3 cuotas desglosadas, para que no haya que hacer la cuenta. */
+.portal-cuotas-hint {
+  margin-top: var(--e2);
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+/* Los documentos del proyecto, uno debajo del otro. */
+.pilar-docs { display: grid; gap: var(--e2); margin-top: var(--e3); }
+.pilar-docs:empty { display: none; }
+
+@media (max-width: 760px) {
+  .portal-precio { padding: var(--e3) var(--e4); }
+  .portal-precio-num { font-size: 2rem; }
 }

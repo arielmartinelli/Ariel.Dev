@@ -30,7 +30,13 @@ const TITULOS = {
   anticipo: "Adelanto 50% — desarrollo web",
   saldo: "Saldo final 50% — desarrollo web",
   dominio: "Dominio propio (.com) — registro y configuración",
+  total: "Desarrollo web — pago total en 3 cuotas",
 };
+
+/* Cuántas cuotas se le ofrecen al cliente según el tipo de cobro.
+   El plan de 3 cuotas es UN cobro por el total: el que divide en tres es el
+   banco del cliente, no nosotros. El resto de los cobros van en un pago. */
+const CUOTAS = { total: 3 };
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -71,7 +77,7 @@ export default async function handler(req, res) {
     //    service_role, porque la clave publica no tiene acceso a esta tabla.
     const { data: cliente, error: errCliente } = await db
       .from("clients")
-      .select("id, client_name, project_name, price_usd, domain_extra_usd, domain_choice, status, is_active")
+      .select("id, client_name, project_name, price_usd, domain_extra_usd, domain_choice, payment_plan, status, is_active")
       .eq("access_token", token)
       .maybeSingle();
 
@@ -124,6 +130,23 @@ export default async function handler(req, res) {
       // El webhook lo usa para saber qué marcar. Sin esto habría que adivinar.
       external_reference: `${cliente.id}:${kind}:${pago.id}`,
       metadata: { client_id: cliente.id, payment_id: pago.id, kind, usd: montoUsd, cotizacion },
+
+      // CUOTAS
+      // `installments` es el MÁXIMO de cuotas que Mercado Pago le ofrece al
+      // cliente. Para el plan de 3 cuotas se fija en 3 y se desactiva el
+      // dinero en cuenta: pagar con saldo no se puede financiar, y si queda
+      // habilitado el cliente elige esa opción y se le cobra todo junto.
+      //
+      // OJO: que las cuotas sean SIN INTERÉS no se decide acá. Eso se
+      // configura en la cuenta de Mercado Pago (Tu negocio → Costos →
+      // Cuotas sin interés) y el costo lo absorbe el vendedor. Sin esa
+      // promoción activa, Mercado Pago igual ofrece 3 cuotas pero CON
+      // interés para el cliente. Ver MANTENIMIENTO.md.
+      payment_methods: {
+        installments: CUOTAS[kind] || 1,
+        default_installments: CUOTAS[kind] || 1,
+        excluded_payment_types: CUOTAS[kind] ? [{ id: "account_money" }] : [],
+      },
       back_urls: {
         success: `${volver}?pago=ok`,
         pending: `${volver}?pago=pendiente`,

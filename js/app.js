@@ -3,6 +3,7 @@ import { getProjects, getCategories } from "./projects.js";
 import { supabase, isSupabaseConfigured } from "./supabase.js";
 import { configurarDialogos, confirmar, avisar } from "./ui-dialogs.js";
 import { obtenerResenasPublicas } from "./reviews.js";
+import { estrellas as pintarEstrellas } from "./iconos.js";
 import {
     escapeHtml,
     safeUrl,
@@ -1285,8 +1286,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div class="resena-card-item">
                         <div class="resena-card-inner glass" id="resena-card-${idx}">
                             <div class="resena-top-box">
-                                <div class="resena-stars">
-                                    ${"★".repeat(r.rating || 5)}${"☆".repeat(5 - (r.rating || 5))}
+                                <div class="resena-stars" aria-label="${r.rating || 5} de 5 estrellas">
+                                    ${pintarEstrellas(r.rating || 5)}
                                 </div>
                                 <p class="resena-comment">
                                     "${escapeHtml(commentText)}"

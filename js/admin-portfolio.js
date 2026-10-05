@@ -18,6 +18,7 @@ import {
 import { escapeHtml, safeUrl, sanitizeText, LIMITS, ALLOWED_IMAGE_TYPES } from "./security.js";
 import { confirmar, avisar } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
+import { ico } from "./iconos.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -210,7 +211,10 @@ function actualizarEstadoBadgeTech() {
     const techLower = btn.dataset.tech.toLowerCase();
     const activo = actualTags.includes(techLower);
     btn.classList.toggle("activo", activo);
-    btn.textContent = activo ? `✓ ${btn.dataset.tech}` : `+ ${btn.dataset.tech}`;
+    /* El nombre de la tecnología sale de una lista fija del código, no de
+       un input, pero va escapado igual: el día que esa lista se cargue desde
+       la base, este innerHTML ya está cubierto. */
+    btn.innerHTML = `${ico(activo ? "check" : "mas", "pico pico-xs")} ${escapeHtml(btn.dataset.tech)}`;
   });
 }
 

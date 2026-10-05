@@ -72,6 +72,10 @@ export const ETIQUETA_PAGO = {
   anticipo: "Anticipo (50%)",
   saldo: "Saldo final (50%)",
   dominio: "Dominio propio",
+  // Plan de 3 cuotas: un solo cobro por el 100%. Las cuotas las arma la
+  // tarjeta del cliente, así que para la caja esto entra de una.
+  total: "Pago total (3 cuotas)",
+  otro: "Cobro manual",
 };
 
 /* ==========================================================================
@@ -128,14 +132,46 @@ export async function portalObtener(token) {
  * anticipo está acreditado. El parámetro queda por compatibilidad con la
  * firma de la función en Postgres.
  */
-export async function portalDecidir(token, decision) {
+/**
+ * El cliente acepta, rechaza o vuelve a un paso anterior.
+ *
+ * `plan` solo hace falta al aceptar: 'mitades' (50% y 50%) o 'cuotas3'
+ * (el 100% de una, con tarjeta en 3 cuotas sin interés). La base rechaza
+ * un «continuar» sin plan, así que no se puede arrancar un proyecto sin
+ * saber cómo se cobra.
+ */
+export async function portalDecidir(token, decision, plan = null) {
   const { data, error } = await supabase.rpc("portal_decidir", {
     p_token: token,
     p_decision: decision,
     p_cambios: null,
+    p_plan: plan,
   });
   if (error) {
     console.error("portal_decidir:", error.message);
+    return { ok: false, error: mensajePortal(error) };
+  }
+  return data;
+}
+
+/**
+ * Trae UN documento PDF, recién cuando el cliente lo toca.
+ *
+ * Los PDF ya no vienen dentro de portal_obtener: esa función se consulta
+ * cada 30 segundos para que el portal se actualice solo, y arrastrar ahí la
+ * propuesta, el presupuesto y los adjuntos significaba que un cliente con el
+ * portal abierto en el celular se bajaba todo eso dos veces por minuto.
+ *
+ * `cual` es 'propuesta' | 'descripcion' | 'presupuesto' | 'tarea'.
+ */
+export async function portalDocumento(token, cual, tareaId = null) {
+  const { data, error } = await supabase.rpc("portal_documento", {
+    p_token: token,
+    p_cual: cual,
+    p_tarea: tareaId,
+  });
+  if (error) {
+    console.error("portal_documento:", error.message);
     return { ok: false, error: mensajePortal(error) };
   }
   return data;
@@ -218,6 +254,8 @@ export async function adminCrearCliente(cliente) {
         brief_pdf_filename: cliente.briefPdfFilename || null,
         proposal_url: cliente.proposalUrl || null,
         proposal_filename: cliente.proposalFilename || null,
+        budget_pdf_url: cliente.budgetPdfUrl || null,
+        budget_pdf_filename: cliente.budgetPdfFilename || null,
         demo_url: cliente.demoUrl || null,
         price_usd: Number(cliente.priceUsd) || 0,
         whatsapp: cliente.whatsapp || null,

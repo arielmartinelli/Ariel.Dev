@@ -223,3 +223,200 @@ y sin controles por debajo del mínimo táctil.
 Dos bugs los encontró el propio test y no habrían aparecido leyendo el código:
 `ALTER COLUMN ... TYPE` falla si una vista depende de la columna, y
 `admin_mover_flujo` no podía ejecutar `asegurar_cobro` por permisos.
+
+---
+
+## Planes de pago, presupuesto y documentos (migración 11)
+
+### Los dos planes
+
+El cliente elige en el **paso 1**, junto al precio, antes de aceptar.
+
+| Plan | Qué paga | Cuándo | Cómo entra la plata |
+|---|---|---|---|
+| **Mitades** | 50% + 50% | al arrancar y al entregar | dos cobros |
+| **3 cuotas sin interés** | 100% | al arrancar | **un solo cobro** |
+
+La clave del segundo: *3 cuotas* es un asunto entre el cliente y su tarjeta.
+Mercado Pago cobra el total de una y el banco se lo divide en tres. Para la
+caja es un pago, al principio, y el proyecto arranca ahí.
+
+> **Hace falta activarlo en Mercado Pago.** `installments: 3` solo define
+> cuántas cuotas se le *ofrecen*. Que sean **sin interés** se configura en la
+> cuenta (Tu negocio → Costos → Cuotas sin interés) y el costo lo absorbe el
+> vendedor. Sin esa promoción activa, Mercado Pago igual muestra 3 cuotas
+> pero **con interés para el cliente**.
+
+Si eligió 3 cuotas y después pide dominio propio, al final queda un cobro de
+**solo USD 10**. Y si eligió el dominio de la demo, no queda nada: el proyecto
+pasa directo a finalizado en vez de mostrarle una pantalla de pago por cero.
+
+### Presupuesto
+
+Documento aparte de la propuesta: la propuesta dice **qué** se hace, el
+presupuesto **cuánto** sale y con qué detalle. Se carga como link o como PDF,
+en la ficha del cliente y en el alta, igual que la propuesta. El cliente lo ve
+en el paso 1 junto a la demo y al precio.
+
+### Los PDF ya no viajan en cada consulta
+
+El portal se actualiza solo cada 30 segundos. Con la propuesta, el
+presupuesto, la descripción y los adjuntos de cada tarea metidos dentro de
+`portal_obtener`, un cliente con el portal abierto en el celular se bajaba
+**todo eso dos veces por minuto**. Medido con una propuesta de 600 KB, un
+presupuesto de 400 KB y un adjunto de 300 KB:
+
+| | Antes | Ahora |
+|---|---|---|
+| Peso de cada consulta | **1,3 MB** | **805 bytes** |
+
+Ahora viaja el nombre y un sí/no. El contenido se pide con
+`portal_documento()` cuando el cliente toca el botón, una sola vez. Los links
+http(s) comunes siguen viniendo enteros porque no pesan nada.
+
+### Lo que estaba roto y se arregló de paso
+
+Las migraciones 09 y 10 redefinieron `portal_obtener()` y `v_clientes_panel`
+enteras, partiendo de una versión anterior. Sin querer se llevaron puesto:
+
+- **El panel no avisaba de comprobantes nuevos.** La vista perdió
+  `comprobantes_a_revisar`, así que el chip de turno decía «le toca al
+  cliente» aunque hubiera una transferencia esperando tu aprobación.
+- **El rastro del link no se registraba.** `portal_obtener` volvió a ser
+  `STABLE` y dejó de escribir `last_seen_at` / `view_count`: el panel siempre
+  decía «todavía no lo abrió nadie», y no había forma de detectar un link
+  filtrado.
+- **Se perdió la red de seguridad de la demo sin link**, y el aviso de
+  comprobante en el portal del cliente.
+
+No es un error de nadie en particular: redefinir una función entera en una
+migración nueva siempre arrastra ese riesgo. La migración 11 deja las dos
+definiciones completas, con todo lo de la 09 y la 10 adentro.
+
+---
+
+## Íconos: se fueron los emojis
+
+Había tres sistemas de íconos conviviendo en la misma pantalla: SVG dibujados
+(solo en el portal), emojis sueltos (📄 💵 ⚠️ ⚙️ 👤 📭 💸 ⭐ 🚀 📍 ✉️ 📞 📸 🧾 📋
+💬 🎉 ❤️) y glifos tipográficos (✓ ✕ ● ○ ★ ☆).
+
+El emoji es el problema serio de los tres, y no por gusto:
+
+- **Lo dibuja la fuente del sistema.** El mismo 📄 se ve distinto en Windows,
+  en Android y en iPhone. No controlás cómo se ve tu propia pantalla.
+- **No hereda el color del texto.** Queda a todo color al lado de un ícono
+  gris de trazo fino. Es lo que más delata que la pantalla se armó apurada.
+- **No escala con la tipografía.**
+- **El lector de pantalla lo lee en voz alta** con un nombre que nadie
+  eligió: 📄 se anuncia como «página de cara arriba».
+
+Ahora hay **uno solo**: `js/iconos.js`. Mismo `viewBox`, mismo grosor de
+trazo, `currentColor` (toman el color del texto que los rodea) y
+`aria-hidden` porque el texto al lado ya dice lo que el ícono repite.
+
+```js
+import { ico, estrellas } from "./iconos.js";
+
+ico("documento")                       // tamaño normal
+ico("check", "pico pico-sm")           // chico
+ico("estrella", "pico", { relleno: true })
+estrellas(4)                           // las 5 de una reseña
+```
+
+La clase base `.pico` vive en **`css/styles.css`**, no en `portal.css`, porque
+las tres pantallas (home, panel y portal) cargan esa hoja y el módulo de
+íconos es uno solo para las tres.
+
+### Detalle que muerde
+
+Un `<svg>` es `display:block`. Metido en un `<h2>` o en un `<span>` de texto
+plano, **se va a su propio renglón** y parte el título en dos. Donde un ícono
+acompaña texto, el contenedor va `inline-flex` con `gap`. Pasó en cuatro
+lugares (`.tech-badge-btn`, `.admin-h2-ico`, `.resena-titulo`,
+`.footer-corazon`) y lo detectó `pruebas/verificar-iconos.mjs` midiendo la
+posición vertical real del ícono contra la del texto — no mirando capturas.
+
+### Lo que quedó afuera a propósito
+
+- **Los mensajes de WhatsApp** (`js/app.js`): ahí el emoji está bien. Es un
+  chat, no una interfaz, y los dibuja WhatsApp.
+- **El PDF del presupuesto**: lo rasteriza html2canvas, que con SVG inline es
+  inconsistente. Cambiarlo es arriesgar un documento que hoy sale bien.
+- **Las cinco páginas `ventajas-*.html`**: son autónomas, no cargan
+  `styles.css`, así que `.pico` no les llega. Son ~50 ocurrencias de dos
+  patrones (`.point-icon` ✓/✕ y el emoji del `<h2>`); se hacen en una pasada
+  aparte copiando el bloque `.pico` al `<style>` de cada una.
+
+---
+
+## El comprobante del cliente (migración 12)
+
+Cuando un pago queda acreditado, el cliente puede bajarse un **recibo en
+PDF** desde el resumen de su portal.
+
+### No es una factura, y lo dice
+
+Es un recibo propio: constancia de que cobraste. **No reemplaza una factura
+de AFIP.** El PDF lo aclara en un recuadro, con texto normal y no letra
+chica, y el portal lo repite abajo de los botones.
+
+Por eso el número **no** se formatea como `0001-00000001`: ese es justo el
+formato de un comprobante fiscal argentino y confundiría al cliente. El
+formato es `R-2026-0012` — la R de recibo y el año legible dejan claro de un
+vistazo que es otra cosa.
+
+### Por qué el número lo da la base y no el navegador
+
+| Si el número saliera de… | Qué pasa |
+|---|---|
+| La fecha | Cambia en cada descarga. El número que tiene el cliente no existe en ningún lado. |
+| El `uuid` del pago | Estable pero ilegible, y filtra una clave interna en un papel que el cliente puede reenviar. |
+| `max(receipt_number) + 1` | Dos pagos aprobados en el mismo instante leen el mismo máximo y se pisan. |
+
+Lo que se hizo: una **secuencia** de Postgres (`comprobantes_seq`), un
+`int` guardado en `payments.receipt_number` y un índice único parcial.
+`nextval()` nunca devuelve dos veces lo mismo, ni en transacciones paralelas.
+
+### Se asigna solo
+
+Un trigger `BEFORE UPDATE OF status`, no código en el navegador. Hoy hay
+**tres** caminos para que un pago quede pagado — el webhook de Mercado Pago,
+el botón del panel y la aprobación de un comprobante de transferencia — y
+mañana puede haber un cuarto. En un trigger te alcanza con acordarte una vez.
+
+La condición `receipt_number IS NULL` es lo que hace que el número **no
+cambie nunca**: si marcás un pago, volvés atrás y lo volvés a marcar, se
+queda con el primero. Verificado en la base local: tres re-marcas, mismo
+número.
+
+### Cómo se tocó `portal_obtener`
+
+**Este es el punto importante del archivo.** El cuerpo de la función no se
+reescribió: se sacó con `pg_get_functiondef()` de la función que ya estaba
+corriendo y se le agregaron tres claves al bloque `pagos`.
+
+El primer intento de esta migración **sí** la reescribió de memoria. La
+comparación contra la versión real mostró que se perdían `total_usd`,
+`created_at`, el orden de las tareas por `t.position` y el candado que oculta
+`production_url` hasta que el proyecto está finalizado. Ninguna de las cuatro
+habría dado error: habrían fallado en silencio, igual que las migraciones 09
+y 10.
+
+Si hay que tocarla otra vez, el camino es el mismo:
+
+```sql
+SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'portal_obtener';
+```
+
+### Qué se verificó
+
+- Las 8 comprobaciones del PASO 6 de la migración, en Postgres 16 local con
+  las 12 migraciones aplicadas en orden.
+- El número es estable: tres re-marcas del mismo pago → mismo número.
+- `portal_obtener` sigue devolviendo `total_usd`, `created_at`,
+  `production_url` y `tareas`.
+- Cuatro escenarios en Chromium (`pruebas/verificar-recibo.mjs`): dos pagos
+  acreditados → 2 botones; saldo pendiente → 1; pago viejo sin numerar → el
+  botón no aparece; nada cobrado → ninguno.
+- El PDF se descarga de verdad: 259 kB, abierto y leído, no «no tiró error».

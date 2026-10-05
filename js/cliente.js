@@ -32,11 +32,14 @@ import {
   portalElegirDominio,
   portalPedirCambio,
   portalSubirComprobante,
+  portalDocumento,
 } from "./clients.js";
 import { escapeHtml, safeUrl, sanitizeText } from "./security.js";
 import { configurarDialogos, confirmar, avisar } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
 import { abrirDocumentoPdf } from "./pdf-helper.js";
+import { ico } from "./iconos.js";
+import { descargarComprobante, numeroRecibo } from "./comprobante.js";
 
 const WHATSAPP = "543516121498";
 
@@ -117,7 +120,7 @@ async function cargarCotizacionDolar() {
   } finally {
     const rateEl = $("pc-dolar-rate");
     if (rateEl) {
-      rateEl.innerHTML = `💵 Dólar hoy: <strong>$${cotizacionDolar.toLocaleString("es-AR")} ARS</strong>`;
+      rateEl.innerHTML = `${ico("billete", "pico pico-sm")}<span>Dólar hoy: <strong>$${cotizacionDolar.toLocaleString("es-AR")} ARS</strong></span>`;
     }
   }
 }
@@ -143,23 +146,6 @@ function mostrarVista(cual) {
    SVG dibujados, no emojis: un emoji cambia de forma en cada sistema
    operativo y no hereda el color del texto.
    ========================================================================== */
-const TRAZOS = {
-  reloj:   '<path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="9"/>',
-  ojo:     '<path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/>',
-  tarjeta: '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h3"/>',
-  lista:   '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
-  globo:   '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/>',
-  subir:   '<path d="M12 19V5"/><path d="m5.5 11.5 6.5-6.5 6.5 6.5"/>',
-  check:   '<path d="m4.5 12.5 5 5 10-11"/>',
-  copiar:  '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
-  info:    '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6h.01"/>',
-  alerta:  '<path d="M12 4.5 2.8 20h18.4L12 4.5z"/><path d="M12 10v4M12 17.2h.01"/>',
-  wa:      '<path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/>',
-  cohete:  '<path d="M13.5 4.5c3.5-2 6-1 6-1s1 2.5-1 6c-1.7 3-5 6-7 7l-4-4c1-2 4-5.3 6-8z"/><path d="M7.5 12.5 4 14l2 2 2 2 1.5-3.5"/>',
-  cruz:    '<path d="M7 7l10 10M17 7 7 17"/>',
-};
-const ico = (k, clase = "pico") =>
-  `<svg class="${clase}" viewBox="0 0 24 24" aria-hidden="true">${TRAZOS[k] || ""}</svg>`;
 
 /* ==========================================================================
    El riel de 5 pasos
@@ -197,9 +183,9 @@ function pintarPasos(status) {
     const marca = hecho ? ico("check", "pico pico-sm") : String(i + 1);
 
     const subTexto = esPasoActivoReal && pasoVista !== null && pasoVista !== activo
-      ? `<small style="display:block;font-size:0.62rem;color:var(--primary-light);font-weight:700;">★ en curso</small>`
+      ? `<small class="paso-nota paso-nota-curso">${ico("punto", "pico pico-xs")} en curso</small>`
       : hecho && !esSeleccionado
-      ? `<small style="display:block;font-size:0.62rem;color:#4ade80;font-weight:600;">✓ listo</small>`
+      ? `<small class="paso-nota paso-nota-listo">${ico("check", "pico pico-xs")} listo</small>`
       : '';
 
     return `<li class="portal-paso ${claseHecho} ${claseActivo} ${claseClickeable}"
@@ -209,6 +195,81 @@ function pintarPasos(status) {
               <span class="portal-paso-t">${t}${subTexto}</span>
             </li>`;
   }).join("");
+}
+
+/* ==========================================================================
+   Documentos del proyecto
+   --------------------------------------------------------------------------
+   Tres documentos distintos, todos opcionales:
+     propuesta   — qué se va a hacer
+     presupuesto — cuánto sale y con qué detalle
+     descripción — el brief del proyecto
+
+   Cada uno puede ser un link común o un PDF guardado en la base. El botón se
+   arma igual en los dos casos; lo que cambia es de dónde sale el archivo:
+
+     - link http(s): viene dentro de portal_obtener, se abre directo.
+     - PDF guardado: NO viaja en portal_obtener (esa consulta se repite cada
+       30 segundos). Viaja solo el nombre, y el contenido se pide con
+       portalDocumento() cuando el cliente toca el botón.
+   ========================================================================== */
+const DOCUMENTOS = {
+  propuesta:   { url: "proposal_url",   nombre: "proposal_filename",   flag: "proposal_es_pdf", etiqueta: "la propuesta",   porDefecto: "Propuesta.pdf" },
+  presupuesto: { url: "budget_pdf_url", nombre: "budget_pdf_filename", flag: "budget_es_pdf",   etiqueta: "el presupuesto", porDefecto: "Presupuesto.pdf" },
+  descripcion: { url: "brief_pdf_url",  nombre: "brief_pdf_filename",  flag: "brief_es_pdf",    etiqueta: "la descripción", porDefecto: "Descripcion.pdf" },
+};
+
+/** ¿Hay algo cargado en este documento, sea link o PDF? */
+function hayDocumento(d, cual) {
+  const m = DOCUMENTOS[cual];
+  return Boolean(d?.[m.flag] || safeUrl(d?.[m.url], ""));
+}
+
+/**
+ * Botón para ver un documento.
+ * Si es un PDF guardado lleva data-doc (se pide al tocarlo); si es un link,
+ * lleva data-pdf-url y se abre directo, como siempre.
+ */
+function botonDocumento(d, cual, clase = "btn btn-outline") {
+  if (!hayDocumento(d, cual)) return "";
+  const m = DOCUMENTOS[cual];
+  const nombre = d[m.nombre] || m.porDefecto;
+
+  if (d[m.flag]) {
+    return `<button type="button" class="${clase}" data-doc="${cual}"
+                    data-doc-nombre="${escapeHtml(nombre)}">
+              ${ico("documento", "pico pico-sm")} Ver ${escapeHtml(m.etiqueta)}
+            </button>`;
+  }
+
+  const url = safeUrl(d[m.url], "");
+  return `<button type="button" class="${clase}" data-pdf-url="${escapeHtml(url)}"
+                  data-pdf-filename="${escapeHtml(nombre)}">
+            ${ico("documento", "pico pico-sm")} Ver ${escapeHtml(m.etiqueta)}
+          </button>`;
+}
+
+/** Pide un PDF guardado y lo abre. Se llama al tocar el botón, no antes. */
+async function abrirDocumentoGuardado(boton) {
+  const cual = boton.dataset.doc;
+  const tareaId = boton.dataset.docTarea || null;
+  const nombre = boton.dataset.docNombre || "documento.pdf";
+
+  const original = boton.innerHTML;
+  boton.disabled = true;
+  boton.textContent = "Abriendo…";
+
+  try {
+    const res = await portalDocumento(TOKEN, cual, tareaId);
+    if (!res?.ok) {
+      avisar("No se pudo abrir", res?.error || "Probá de nuevo.", "error");
+      return;
+    }
+    abrirDocumentoPdf(res.data, res.filename || nombre);
+  } finally {
+    boton.disabled = false;
+    boton.innerHTML = original;
+  }
 }
 
 /* ==========================================================================
@@ -375,28 +436,52 @@ const ETAPAS = {
 
   demo_lista: (d) => {
     const link = safeUrl(d.demo_url, "");
+    const precio = Number(d.price_usd) || 0;
+
     return tarjeta({
       icono: "ojo",
       titulo: "Tu demo está lista",
-      bajada: "Miralá con calma, desde la computadora y desde el celular. Si te convence cómo va, arrancamos con tu página de verdad.",
+      bajada: "Miralá con calma, desde la computadora y desde el celular. Abajo tenés la propuesta, el presupuesto y el valor del trabajo.",
       cuerpo: `
+        ${precio > 0 ? `
+          <div class="portal-precio">
+            <span class="portal-precio-etq">Valor del proyecto</span>
+            <p class="portal-precio-num">${escapeHtml(usd(precio))}</p>
+            <p class="portal-precio-ars">
+              ${escapeHtml(ars(precio))}
+              <span>Dólar hoy $${cotizacionDolar.toLocaleString("es-AR")}</span>
+            </p>
+          </div>` : ""}
+
         <div class="portal-acciones">
           <a class="btn btn-primary" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">
             ${ico("ojo", "pico pico-sm")} Ver la demo
           </a>
-          ${safeUrl(d.proposal_url, "") ? `
-            <button type="button" class="btn btn-outline" data-pdf-url="${escapeHtml(safeUrl(d.proposal_url, ""))}" data-pdf-filename="${escapeHtml(d.proposal_filename || "Propuesta.pdf")}">
-              ${(d.proposal_url || "").startsWith("data:application/pdf") ? "📄 Ver Propuesta PDF" : "🔗 Ver Propuesta"}
-            </button>
-          ` : ""}
-          ${safeUrl(d.brief_pdf_url, "") ? `
-            <button type="button" class="btn btn-outline" data-pdf-url="${escapeHtml(safeUrl(d.brief_pdf_url, ""))}" data-pdf-filename="${escapeHtml(d.brief_pdf_filename || "Descripcion.pdf")}">
-              📄 Ver Descripción PDF
-            </button>
-          ` : ""}
+          ${botonDocumento(d, "propuesta")}
+          ${botonDocumento(d, "presupuesto")}
+          ${botonDocumento(d, "descripcion")}
         </div>
         <p class="portal-url">${escapeHtml(d.demo_url || "")}</p>
-        ${nota(`Si continuás, el primer paso es el <strong>anticipo del 50%</strong>. El otro 50% se paga recién cuando la página está publicada y funcionando.`)}
+
+        <p class="portal-ruta-tit">¿Cómo preferís pagarlo?</p>
+        <div class="portal-ops" role="radiogroup" aria-label="Forma de pago">
+          <label class="portal-op">
+            <input type="radio" name="plan" value="mitades" checked>
+            <span class="portal-op-marca" aria-hidden="true"></span>
+            <span class="portal-op-txt"><b>Mitades</b>
+              <small>${escapeHtml(usd(precio / 2))} para arrancar y ${escapeHtml(usd(precio / 2))} cuando la página está publicada.</small></span>
+          </label>
+          <label class="portal-op">
+            <input type="radio" name="plan" value="cuotas3">
+            <span class="portal-op-marca" aria-hidden="true"></span>
+            <span class="portal-op-txt"><b>3 cuotas sin interés</b>
+              <small>${escapeHtml(usd(precio))} con tarjeta en Mercado Pago. Lo pagás una vez y la tarjeta te lo divide en 3.</small></span>
+            <span class="portal-op-precio libre">Sin recargo</span>
+          </label>
+        </div>
+
+        ${nota("Elegís ahora y después, si querés cambiar, me escribís y lo vemos. El dominio propio, si lo elegís más adelante, se suma al final.")}
+
         <div class="portal-acciones">
           <button type="button" class="btn btn-exito" data-accion="continuar">
             ${ico("check", "pico pico-sm")} Sí, quiero continuar
@@ -407,25 +492,33 @@ const ETAPAS = {
   },
 
   anticipo_pendiente: (d) => {
-    const monto = pagoDe("anticipo")?.amount_usd ?? Number(d.price_usd) / 2;
+    // El plan de 3 cuotas genera UN cobro por el total; el de mitades, el
+    // anticipo del 50%. La tarjeta es la misma, cambian el monto y el texto.
+    const enCuotas = d.payment_plan === "cuotas3";
+    const pago = pagoDe(enCuotas ? "total" : "anticipo");
+    const monto = pago?.amount_usd ?? (enCuotas ? Number(d.price_usd) : Number(d.price_usd) / 2);
     const totalUsd = Number(d.total_usd) || 0;
+
     return tarjetaPago({
-      kind: "anticipo",
-      titulo: "Anticipo del 50%",
-      bajada: "Con el anticipo arranco a trabajar y se te habilita la lista de cambios para dejar la página a tu gusto.",
+      kind: enCuotas ? "total" : "anticipo",
+      titulo: enCuotas ? "Pago en 3 cuotas sin interés" : "Anticipo del 50%",
+      bajada: enCuotas
+        ? "Pagás una sola vez con tarjeta y Mercado Pago te lo divide en 3 cuotas sin interés. Apenas se acredita arranco y se te habilita la lista de cambios."
+        : "Con el anticipo arranco a trabajar y se te habilita la lista de cambios para dejar la página a tu gusto.",
       monto,
       detalle: `
         <div class="portal-monto-box" style="margin: 8px 0 18px;">
           <p class="portal-monto">
             <b>${escapeHtml(usd(monto))}</b>
-            <span>de ${escapeHtml(usd(totalUsd))} totales</span>
+            <span>${enCuotas ? "el proyecto completo" : `de ${escapeHtml(usd(totalUsd))} totales`}</span>
           </p>
           <p style="font-size: 1.05rem; font-weight: 700; color: #4ade80; margin-top: 2px;">
             ≡ ${escapeHtml(ars(monto))}
             <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); margin-left: 6px;">(Cotización Dólar hoy: $${cotizacionDolar.toLocaleString("es-AR")} ARS/USD)</span>
           </p>
+          ${enCuotas ? `<p class="portal-cuotas-hint">3 cuotas de ${escapeHtml(usd(monto / 3))} · ${escapeHtml(ars(monto / 3))} cada una</p>` : ""}
         </div>`,
-      pago: pagoDe("anticipo"),
+      pago,
     });
   },
 
@@ -620,7 +713,7 @@ const ETAPAS_HISTORIAL = {
             </a>
           </div>
           <p class="portal-url">${escapeHtml(d.demo_url || "")}</p>` : ""}
-        ${nota("✓ Demo aprobada y confirmada. El proyecto continuó a la fase de desarrollo.", "ok", "check")}
+        ${nota("Demo aprobada y confirmada. El proyecto continuó a la fase de desarrollo.", "ok", "check")}
         <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
           <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="reabrir_demo" data-nombre-paso="Demo">
             ↺ Retomar proyecto desde la Demo
@@ -646,7 +739,7 @@ const ETAPAS_HISTORIAL = {
       cuerpo: `
         <div class="portal-espera" style="border-color: rgba(34, 197, 94, 0.35); background: rgba(34, 197, 94, 0.06); text-align: left; padding: 20px 24px; justify-content: space-between; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 16px;">
           <div>
-            <strong style="color: #4ade80; font-size: 1.15rem; display: block;">✓ Anticipo del 50% Acreditado</strong>
+            <strong class="portal-hito-ok">${ico("checkCirculo", "pico")} Anticipo del 50% acreditado</strong>
             <small style="color: var(--text-secondary); font-size: 0.92rem; margin-top: 4px; display: block;">
               ${usd(monto)} (${ars(monto)}) · ${estadoTexto} (${fechaPago})
             </small>
@@ -655,7 +748,7 @@ const ETAPAS_HISTORIAL = {
             100% Pagado
           </span>
         </div>
-        ${nota("✓ Pago del 50% registrado correctamente. Con este paso abonado se habilitó el desarrollo y la lista de cambios.", "ok", "check")}
+        ${nota("Pago del 50% registrado correctamente. Con este paso abonado se habilitó el desarrollo y la lista de cambios.", "ok", "check")}
         <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
           <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="volver_anticipo" data-nombre-paso="Anticipo">
             ↺ Retomar paso de Anticipo
@@ -689,7 +782,7 @@ const ETAPAS_HISTORIAL = {
       bajada: `Resumen de las ${hechas} tareas ajustadas y completadas en tu página.`,
       cuerpo: `
         ${lista}
-        ${nota("✓ Todos los cambios fueron completados y validados satisfactoriamente.", "ok", "check")}
+        ${nota("Todos los cambios fueron completados y validados satisfactoriamente.", "ok", "check")}
         <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
           <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="volver_cambios" data-nombre-paso="Cambios">
             ↺ Retomar paso de Cambios
@@ -720,7 +813,7 @@ const ETAPAS_HISTORIAL = {
             <span><small>Dirección configurada</small><b style="color: #4ade80;">${escapeHtml(propio ? nombreDom : demoUrl)}</b></span>
           </div>
         </div>
-        ${nota("✓ Dirección confirmada y lista para la publicación.", "ok", "check")}
+        ${nota("Dirección confirmada y lista para la publicación.", "ok", "check")}
         <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
           <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="volver_dominio" data-nombre-paso="Dominio">
             ↺ Retomar paso de Dominio
@@ -748,7 +841,7 @@ const ETAPAS_HISTORIAL = {
         titulo: "Paso 5: Saldo del proyecto (Abonado)",
         bajada: "El pago del saldo final fue acreditado correctamente.",
         cuerpo: `
-          ${nota(`✓ Saldo pagado: ${escapeHtml(usd(pago.amount_usd))} (${ars(pago.amount_usd)}).`, "ok", "check")}
+          ${nota(`Saldo pagado: ${escapeHtml(usd(pago.amount_usd))} (${ars(pago.amount_usd)}).`, "ok", "check")}
           <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
             <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
               ← Volver al paso en curso
@@ -760,6 +853,46 @@ const ETAPAS_HISTORIAL = {
     return ETAPAS[d.status] ? ETAPAS[d.status](d) : ETAPAS.saldo_pendiente(d);
   },
 };
+
+/* ==========================================================================
+   Recibos
+   --------------------------------------------------------------------------
+   Un boton por pago acreditado. Van en el resumen y no adentro de la tarjeta
+   de la etapa a proposito: la tarjeta cambia a medida que avanza el
+   proyecto, y el recibo del anticipo tiene que seguir estando a mano en el
+   paso 5, no solo el dia que se pago.
+
+   El numero lo pone la base (migracion 12). Si un pago figura pagado y no
+   tiene numero, es un pago anterior a esa migracion que no se alcanzo a
+   numerar: en vez de mostrar un boton que generaria un recibo sin numero, no
+   se muestra nada y el cliente lo pide por WhatsApp.
+   ========================================================================== */
+const CONCEPTO_CORTO = {
+  anticipo: "Anticipo 50%",
+  saldo:    "Saldo final",
+  total:    "Pago total",
+  dominio:  "Dominio propio",
+};
+
+function bloqueComprobantes(d) {
+  const conRecibo = (d.pagos || []).filter((p) => p.status === "pagado" && p.nro_recibo);
+  if (!conRecibo.length) return "";
+
+  return `
+    <div class="portal-recibos">
+      <p class="portal-recibos-tit">${ico("recibo", "pico pico-sm")} Tus comprobantes</p>
+      ${conRecibo.map((p) => `
+        <button type="button" class="portal-resumen-link portal-recibo-btn"
+                data-accion="bajar-recibo" data-kind="${escapeHtml(p.kind)}">
+          ${ico("descargar", "pico pico-sm")}
+          <span class="portal-recibo-txt">
+            <b>${escapeHtml(CONCEPTO_CORTO[p.kind] || "Pago")}</b>
+            <small>${escapeHtml(numeroRecibo(p.nro_recibo, p.recibo_fecha || p.paid_at) || "")} · ${escapeHtml(usd(p.amount_usd))}</small>
+          </span>
+        </button>`).join("")}
+      <p class="portal-recibos-nota">No válido como factura.</p>
+    </div>`;
+}
 
 /* ==========================================================================
    Resumen del proyecto (columna derecha en pantalla ancha)
@@ -813,15 +946,11 @@ function panelResumen(d) {
           ${ico("ojo", "pico pico-sm")} Ver la demo
         </a>` : ""}
 
-      ${safeUrl(d.proposal_url, "") ? `
-        <button type="button" class="portal-resumen-link" data-pdf-url="${escapeHtml(safeUrl(d.proposal_url, ""))}" data-pdf-filename="${escapeHtml(d.proposal_filename || "Propuesta.pdf")}" style="border-color: rgba(168,85,247,0.3); color: #c084fc; text-align: left; background: transparent; width: 100%; cursor: pointer;">
-          ${(d.proposal_url || "").startsWith("data:application/pdf") ? "📄 Ver Propuesta PDF" : "🔗 Ver Propuesta"}
-        </button>` : ""}
+      ${botonDocumento(d, "propuesta", "portal-resumen-link")}
+      ${botonDocumento(d, "presupuesto", "portal-resumen-link")}
+      ${botonDocumento(d, "descripcion", "portal-resumen-link")}
 
-      ${safeUrl(d.brief_pdf_url, "") ? `
-        <button type="button" class="portal-resumen-link" data-pdf-url="${escapeHtml(safeUrl(d.brief_pdf_url, ""))}" data-pdf-filename="${escapeHtml(d.brief_pdf_filename || "Descripcion.pdf")}" style="border-color: rgba(59,130,246,0.3); color: #60a5fa; text-align: left; background: transparent; width: 100%; cursor: pointer; margin-top: 6px;">
-          📄 Ver Descripción PDF
-        </button>` : ""}
+      ${bloqueComprobantes(d)}
 
       <a class="portal-resumen-link solo-ancho" target="_blank" rel="noopener noreferrer"
          href="${escapeHtml(enlaceWhatsApp(`Hola Ariel! Te escribo por "${d.project_name || "mi proyecto"}".`))}">
@@ -832,11 +961,7 @@ function panelResumen(d) {
 
 function panelPilares(d) {
   const demoUrl = safeUrl(d.demo_url, "");
-  const propUrl = safeUrl(d.proposal_url, "");
-  const propNombre = d.proposal_filename || "Documento PDF de Propuesta";
   const brief = d.project_brief || "";
-  const briefPdfUrl = safeUrl(d.brief_pdf_url, "");
-  const briefPdfNombre = d.brief_pdf_filename || "Documento PDF de Descripción";
   const tareas = d.tareas || [];
   const hechas = tareas.filter((t) => t.done).length;
   const pct = tareas.length ? Math.round((hechas / tareas.length) * 100) : 0;
@@ -860,14 +985,12 @@ function panelPilares(d) {
           <span class="pilar-url">${escapeHtml(d.demo_url || "")}</span>
         ` : `
           <p class="pilar-desc">Tu demo está en preparación. Apenas la publique vas a poder probarla directamente desde acá.</p>
-          <div class="pilar-badge-espera">⏳ En proceso de armado</div>
+          <div class="pilar-badge-espera">${ico("reloj", "pico pico-sm")} En proceso de armado</div>
         `}
       </div>
     </div>`;
 
   // 2. Tarjeta Propuesta y Descripción del Proyecto
-  const esPdfProp = propUrl.startsWith("data:application/pdf");
-  const etiquetaBtnProp = esPdfProp ? "📄 Abrir Propuesta PDF" : "🔗 Ver Link de la Propuesta";
 
   const cardPropuesta = `
     <div class="pilar-card">
@@ -886,25 +1009,14 @@ function panelPilares(d) {
           </div>
         ` : ""}
 
-        ${briefPdfUrl ? `
-          <div style="margin-top: 10px; margin-bottom: 10px;">
-            <button type="button" class="btn btn-outline btn-block" data-pdf-url="${escapeHtml(briefPdfUrl)}" data-pdf-filename="${escapeHtml(briefPdfNombre)}" style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
-              📄 PDF Descripción del Proyecto
-            </button>
-            ${d.brief_pdf_filename ? `<small style="display:block; text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:4px;">${escapeHtml(d.brief_pdf_filename)}</small>` : ""}
-          </div>
-        ` : ""}
+        <div class="pilar-docs">
+          ${botonDocumento(d, "propuesta", "btn btn-outline btn-block")}
+          ${botonDocumento(d, "presupuesto", "btn btn-outline btn-block")}
+          ${botonDocumento(d, "descripcion", "btn btn-outline btn-block")}
+        </div>
 
-        ${propUrl ? `
-          <div style="margin-top: 10px;">
-            <button type="button" class="btn btn-outline btn-block" data-pdf-url="${escapeHtml(propUrl)}" data-pdf-filename="${escapeHtml(propNombre)}" style="display:inline-flex; align-items:center; justify-content:center; gap:6px;">
-              ${etiquetaBtnProp}
-            </button>
-            ${d.proposal_filename ? `<small style="display:block; text-align:center; font-size:0.75rem; color:var(--text-muted); margin-top:4px;">${escapeHtml(d.proposal_filename)}</small>` : !esPdfProp ? `<span class="pilar-url">${escapeHtml(d.proposal_url)}</span>` : ""}
-          </div>
-        ` : ""}
-
-        ${!brief && !briefPdfUrl && !propUrl ? `<p class="pilar-desc">Propuesta general acordada para el desarrollo de tu sitio web.</p>` : ""}
+        ${!brief && !hayDocumento(d, "propuesta") && !hayDocumento(d, "presupuesto") && !hayDocumento(d, "descripcion")
+          ? `<p class="pilar-desc">Propuesta general acordada para el desarrollo de tu sitio web.</p>` : ""}
       </div>
     </div>`;
 
@@ -920,9 +1032,9 @@ function panelPilares(d) {
               <span class="pilar-tarea-txt">${escapeHtml(t.title)}</span>
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:2px;">
                 <small class="pilar-tarea-sub">${t.done ? "Listo" : "Pendiente"}${t.source === "cliente" ? " · tu pedido" : ""}</small>
-                ${t.pdf_data ? `
-                  <button type="button" class="pilar-pdf-chip" data-pdf-url="${escapeHtml(t.pdf_data)}" data-pdf-filename="${escapeHtml(t.pdf_name || "Tarea.pdf")}">
-                    📄 ${escapeHtml(t.pdf_name || "Ver PDF adjunto")}
+                ${t.tiene_pdf ? `
+                  <button type="button" class="pilar-pdf-chip" data-doc="tarea" data-doc-tarea="${escapeHtml(String(t.id))}" data-doc-nombre="${escapeHtml(t.pdf_name || "Tarea.pdf")}">
+                    ${ico("documento", "pico pico-sm")} ${escapeHtml(t.pdf_name || "Ver PDF adjunto")}
                   </button>
                 ` : ""}
               </div>
@@ -955,7 +1067,7 @@ function panelPilares(d) {
             <div class="portal-fila-campo" style="flex-wrap:wrap; gap:8px;">
               <input type="text" id="pc-pilar-cambio" maxlength="400" placeholder="Ej: cambiar el color del botón de contacto" style="flex:1; min-width:180px;">
               <label class="btn btn-outline btn-sm" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
-                📄 PDF
+                ${ico("documento", "pico pico-sm")} PDF
                 <input type="file" id="pc-pilar-pdf" accept="application/pdf" style="display:none">
               </label>
               <button type="button" class="btn btn-primary btn-sm" data-accion="agregar-cambio-pilar">Agregar</button>
@@ -1029,7 +1141,7 @@ function render() {
     if (pilarPdfInput && pilarPdfNombre) {
       pilarPdfInput.addEventListener("change", () => {
         if (pilarPdfInput.files && pilarPdfInput.files[0]) {
-          pilarPdfNombre.textContent = `📄 PDF adjunto listo: ${pilarPdfInput.files[0].name}`;
+          pilarPdfNombre.textContent = `${ico("documento", "pico pico-sm")} PDF adjunto listo: ${pilarPdfInput.files[0].name}`;
         } else {
           pilarPdfNombre.textContent = "";
         }
@@ -1256,10 +1368,45 @@ const ACCIONES = {
 
   mercadopago: (el) => iniciarPago(el.dataset.kind, el),
 
+  /**
+   * Baja el recibo del pago que se toco.
+   *
+   * El boton se deshabilita mientras se genera: html2pdf tarda ~1 segundo y
+   * sin esto el cliente aprieta tres veces y se bajan tres archivos iguales.
+   */
+  "bajar-recibo": async (el) => {
+    const pago = pagoDe(el.dataset.kind);
+    if (!pago) return;
+
+    const original = el.innerHTML;
+    el.disabled = true;
+    el.innerHTML = `${ico("reloj", "pico pico-sm")} <span class="portal-recibo-txt">Generando…</span>`;
+
+    try {
+      await descargarComprobante({ pago, datos, cotizacion: cotizacionDolar });
+      anunciar("Comprobante descargado.");
+    } catch (err) {
+      console.error("comprobante:", err);
+      avisar("No se pudo generar el comprobante",
+             "Probá de nuevo en un momento. Si sigue sin salir, escribime y te lo paso por WhatsApp.",
+             "error");
+    } finally {
+      el.disabled = false;
+      el.innerHTML = original;
+    }
+  },
+
   continuar: async (el) => {
+    const plan = document.querySelector('input[name="plan"]:checked')?.value || "mitades";
+    const precio = Number(datos?.price_usd) || 0;
+
+    const detalle = plan === "cuotas3"
+      ? `Vas a pagar ${usd(precio)} en 3 cuotas sin interés con tarjeta, desde Mercado Pago. Con eso arranco y se te habilita la lista de cambios.`
+      : `Vas a pagar ${usd(precio / 2)} ahora para arrancar, y los otros ${usd(precio / 2)} cuando la página esté publicada.`;
+
     const ok = await confirmar({
       titulo: "¿Arrancamos?",
-      texto: "Al confirmar se genera el anticipo del 50%. Cuando se acredite vas a poder cargar todos los cambios que quieras.",
+      texto: detalle,
       confirmar: "Sí, arrancamos",
       cancelar: "Volver",
       icono: "question",
@@ -1267,7 +1414,7 @@ const ACCIONES = {
     if (!ok) return;
 
     el.disabled = true;
-    const res = await portalDecidir(TOKEN, "continuar");
+    const res = await portalDecidir(TOKEN, "continuar", plan);
     el.disabled = false;
 
     if (!res?.ok) {
@@ -1275,7 +1422,11 @@ const ACCIONES = {
       return;
     }
     await recargar();
-    avisar("¡Buenísimo!", "Te dejé el anticipo listo para pagar acá abajo.", "success");
+    avisar("¡Buenísimo!",
+           plan === "cuotas3"
+             ? "Te dejé el pago listo acá abajo. Al entrar a Mercado Pago elegí 3 cuotas."
+             : "Te dejé el anticipo listo para pagar acá abajo.",
+           "success");
   },
 
   "no-continuar": async () => {
@@ -1491,6 +1642,13 @@ const ACCIONES = {
 };
 
 $("portal-contenido").addEventListener("click", (ev) => {
+  const btnDoc = ev.target.closest("[data-doc]");
+  if (btnDoc) {
+    ev.preventDefault();
+    abrirDocumentoGuardado(btnDoc);
+    return;
+  }
+
   const btnPdf = ev.target.closest("[data-pdf-url]");
   if (btnPdf) {
     ev.preventDefault();

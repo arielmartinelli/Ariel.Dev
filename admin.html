@@ -106,7 +106,7 @@
                       es plata que ya entró y todavía no está registrada.
                     -->
                     <button class="admin-aviso-revisar" id="aviso-revisar" type="button" hidden>
-                        <span class="admin-aviso-revisar-icono" aria-hidden="true">🧾</span>
+                        <span class="admin-aviso-revisar-icono"><svg class="pico pico-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18l-2.3-1.6L14.4 21 12 19.4 9.6 21l-2.3-1.6L5 21z"/><path d="M9 8h6M9 12h6"/></svg></span>
                         <span id="aviso-revisar-texto">—</span>
                         <span class="admin-aviso-revisar-ir">Ver cobros →</span>
                     </button>
@@ -200,6 +200,21 @@
                                     <label for="cli-proposal-file">Subir PDF de la propuesta (opcional)</label>
                                     <input type="file" id="cli-proposal-file" accept="application/pdf">
                                     <p class="admin-hint" id="cli-proposal-file-hint">Seleccioná un archivo PDF (máx 5 MB).</p>
+                                </div>
+                            </div>
+
+                            <!-- Presupuesto: va aparte de la propuesta. La propuesta dice
+                                 qué se hace; el presupuesto, cuánto sale y con qué detalle. -->
+                            <div class="admin-form-grid">
+                                <div class="form-group">
+                                    <label for="cli-budget-url">Link del presupuesto (opcional)</label>
+                                    <input type="url" id="cli-budget-url" placeholder="https://drive.google.com/... o pdf">
+                                    <p class="admin-hint">Link a Notion, Google Doc o PDF externo.</p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cli-budget-file">Subir PDF del presupuesto (opcional)</label>
+                                    <input type="file" id="cli-budget-file" accept="application/pdf">
+                                    <p class="admin-hint">Seleccioná un archivo PDF (máx 5 MB).</p>
                                 </div>
                             </div>
 
@@ -310,7 +325,7 @@
                                     
                                     <div style="margin-top: 10px;">
                                         <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">
-                                            ⚡ Tocar para agregar / quitar tecnología:
+                                            Tocar para agregar / quitar tecnología:
                                         </span>
                                         <div id="tech-presets-container" style="display: flex; flex-wrap: wrap; gap: 6px;">
                                             <!-- Renderizado dinámicamente desde admin-portfolio.js -->
@@ -365,23 +380,23 @@
 
                 <!-- ======================= RESEÑAS ======================= -->
                 <section class="admin-vista hidden" id="vista-resenas">
-                    <div class="admin-tarjeta">
-                        <div class="admin-tarjeta-head" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                    <div class="admin-card">
+                        <div class="admin-seccion-head">
                             <div>
-                                <h2 class="admin-tarjeta-titulo">⭐ Reseñas de Clientes</h2>
+                                <h2 class="admin-h2 admin-h2-ico"><svg class="pico pico-sm" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="none"><path d="m12 3.6 2.6 5.4 5.9.8-4.3 4.1 1.1 5.9-5.3-2.9-5.3 2.9 1.1-5.9L3.5 9.8l5.9-.8z"/></svg> Reseñas de clientes</h2>
                                 <p class="admin-hint">Gestioná los testimonios recibidos de tus clientes para mostrarlos en tu página web.</p>
                             </div>
-                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <div class="admin-acciones-fila">
                                 <button type="button" class="btn btn-sm btn-outline" id="btn-copiar-link-resena">
-                                    📋 Copiar Link de Reseña
+                                    <svg class="pico pico-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg> Copiar link de reseña
                                 </button>
                                 <button type="button" class="btn btn-sm btn-primary" id="btn-wa-link-resena">
-                                    💬 Enviar por WhatsApp
+                                    <svg class="pico pico-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.1-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg> Enviar por WhatsApp
                                 </button>
                             </div>
                         </div>
 
-                        <div id="admin-lista-resenas" style="margin-top:16px; display:flex; flex-direction:column; gap:12px;">
+                        <div id="admin-lista-resenas" class="admin-lista-resenas">
                             <p class="admin-hint">Cargando reseñas…</p>
                         </div>
                     </div>

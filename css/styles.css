@@ -148,6 +148,52 @@ img {
 .opacity-80 { opacity: 0.8; }
 .text-sm { font-size: 0.875rem; }
 
+/* ==========================================================================
+   Iconos (js/iconos.js)
+   --------------------------------------------------------------------------
+   La clase base vive acá, en la hoja que cargan las tres pantallas (home,
+   admin y portal del cliente), porque el módulo de íconos es uno solo para
+   las tres. Antes estaba únicamente en portal.css y los SVG del panel
+   salían sin estilo: sin tamaño, negros y rellenos.
+
+   `stroke: currentColor` + `fill: none` es lo que hace que el ícono tome el
+   color del texto que lo rodea, que es justamente lo que un emoji no puede
+   hacer.
+   ========================================================================== */
+.pico {
+    width: 20px; height: 20px;
+    display: block;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.pico-xs { width: 13px; height: 13px; }
+.pico-sm { width: 16px; height: 16px; }
+.pico-lg { width: 34px; height: 34px; stroke-width: 1.4; }
+
+/* La estrella llena se pinta con `fill` desde ico(..., {relleno:true}); acá
+   solo cambia el color, para que la vacía no compita con la llena. */
+.estrella-llena { color: #fbbf24; }
+.estrella-vacia { color: var(--border-hover); }
+
+/* Texto que solo existe para el lector de pantalla.
+   Hace falta porque los .pico van con aria-hidden: cuando el ícono NO tiene
+   un texto al lado que diga lo mismo (el corazón del pie), la palabra tiene
+   que estar en algún lado. No se usa `display:none`, que lo saca también del
+   árbol de accesibilidad. */
+.sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
 /* Background Shapes (Abstract Glows) */
 .bg-gradient-shapes {
     position: fixed;
@@ -765,8 +811,11 @@ body.light-theme .floating-badge {
 }
 
 .badge-icon {
-    font-size: 1.5rem;
+    display: grid;
+    place-items: center;
+    color: var(--primary-light);
 }
+.badge-icon .pico { width: 24px; height: 24px; }
 
 .badge-title {
     font-weight: 700;
@@ -1493,7 +1542,6 @@ body.light-theme .builder-step {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
     flex-shrink: 0;
 }
 
@@ -1524,6 +1572,14 @@ body.light-theme .builder-step {
 
 body.light-theme .footer {
     background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* El corazón del pie: inline-flex para que caiga en la línea del texto y no
+   en su propio renglón (el <svg> es display:block). */
+.footer-corazon {
+    display: inline-flex;
+    vertical-align: -2px;
+    color: #f43f5e;
 }
 
 .footer-content {
@@ -3005,9 +3061,9 @@ body.light-theme .mobile-dot.active {
 }
 
 .resena-stars {
-  color: #f59e0b;
-  font-size: 1rem;
-  letter-spacing: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .resena-comment {
@@ -3945,6 +4001,11 @@ body.light-theme .admin-step-item {
 
 /* Badges de tecnologías y librerías en el panel de administración */
 .tech-badge-btn {
+  /* inline-flex porque adentro hay un <svg> (.pico), que es display:block:
+     en un botón de texto plano quedaría en su propio renglón. */
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.76rem;
   font-weight: 600;
   padding: 4px 10px;

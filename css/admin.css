@@ -338,6 +338,29 @@
     letter-spacing: -0.01em;
 }
 
+/* Título de sección con ícono al lado. El <svg> es display:block, así que sin
+   esto se iría a su propio renglón arriba del texto. */
+.admin-h2-ico {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.admin-h2-ico .pico { color: #fbbf24; }
+
+/* Fila de botones a la derecha de un encabezado de sección. */
+.admin-acciones-fila {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.admin-lista-resenas {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
 .admin-hint {
     font-size: 0.83rem;
     color: var(--text-muted);
@@ -345,6 +368,15 @@
 }
 
 .admin-error { color: #fca5a5; }
+
+/* Advertencia dentro de un .admin-hint. inline-flex para que el <svg> del
+   ícono no se vaya a su propio renglón. */
+.admin-hint-alerta {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #fbbf24;
+}
 
 .admin-card {
     background: var(--bg-card);
@@ -616,7 +648,15 @@
     border-radius: 16px;
 }
 
-.admin-vacio-icono { font-size: 2.4rem; margin-bottom: 10px; }
+/* El ícono de "no hay nada acá". Antes era un emoji y lo centraba el
+   text-align del contenedor; ahora es un <svg> display:block, que el
+   text-align no toca: lo centra el flex. */
+.admin-vacio-icono {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+    color: var(--text-muted);
+}
 
 .admin-vacio-titulo {
     font-family: var(--font-heading);
@@ -1005,8 +1045,6 @@
     border-radius: 50%;
     display: grid;
     place-items: center;
-    font-size: 0.72rem;
-    font-weight: 700;
     margin-top: 1px;
     background: rgba(148, 163, 184, 0.16);
     color: var(--text-muted);
@@ -1314,9 +1352,9 @@
 }
 
 .admin-aviso-icono {
-    font-size: 1.6rem;
-    line-height: 1;
     flex-shrink: 0;
+    margin-top: 2px;
+    color: #fbbf24;   /* el mismo ámbar del borde del cartel */
 }
 
 .admin-aviso-titulo {
@@ -1446,7 +1484,7 @@
     border-color: var(--secondary);
 }
 
-.admin-aviso-revisar-icono { font-size: 1.3rem; flex-shrink: 0; }
+.admin-aviso-revisar-icono { display: grid; place-items: center; flex-shrink: 0; }
 
 .admin-aviso-revisar span:nth-child(2) { flex: 1; }
 
@@ -1512,10 +1550,13 @@
     flex-shrink: 0;
 }
 
+/* Cinco <svg> en fila. Antes eran los caracteres ★ y ☆, que necesitaban
+   letter-spacing para no quedar pegados; ahora el aire lo da el gap. */
 .resena-admin-estrellas {
-    color: #fbbf24;
-    font-size: 0.95rem;
-    letter-spacing: 0.06em;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    vertical-align: middle;
 }
 
 .resena-admin-chip {

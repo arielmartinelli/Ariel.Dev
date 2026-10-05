@@ -25,7 +25,7 @@
 
     <main class="container" style="max-width: 600px; padding-top: 40px; padding-bottom: 60px;">
         <div class="portal-card" id="card-form-resena">
-            <h1 class="portal-h2" style="margin-bottom:8px; font-size:1.5rem; text-align:center;">⭐ Dejanos tu Reseña</h1>
+            <h1 class="portal-h2 resena-titulo"><svg class="pico pico-sm" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="none"><path d="m12 3.6 2.6 5.4 5.9.8-4.3 4.1 1.1 5.9-5.3-2.9-5.3 2.9 1.1-5.9L3.5 9.8l5.9-.8z"/></svg> Dejanos tu Reseña</h1>
             <p class="portal-muted text-center mb-4" style="font-size:0.92rem;">
                 ¡Gracias por haber trabajado conmigo! Tu opinión es fundamental para seguir mejorando y se mostrará destacada en mi sitio web.
             </p>
@@ -39,11 +39,11 @@
                 <div class="form-group" style="margin-bottom:16px;">
                     <label for="resena-estrellas" style="font-weight:700;">Calificación <span style="color:#ef4444;">*</span></label>
                     <select id="resena-estrellas" class="w-full" style="padding:12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:1rem;">
-                        <option value="5">⭐⭐⭐⭐⭐ (Excelente - 5 Estrellas)</option>
-                        <option value="4">⭐⭐⭐⭐ (Muy Bueno - 4 Estrellas)</option>
-                        <option value="3">⭐⭐⭐ (Bueno - 3 Estrellas)</option>
-                        <option value="2">⭐⭐ (Regular - 2 Estrellas)</option>
-                        <option value="1">⭐ (A mejorar - 1 Estrella)</option>
+                        <option value="5">5 — Excelente</option>
+                        <option value="4">4 — Muy bueno</option>
+                        <option value="3">3 — Bueno</option>
+                        <option value="2">2 — Regular</option>
+                        <option value="1">1 — A mejorar</option>
                     </select>
                 </div>
 
@@ -58,13 +58,13 @@
                 </div>
 
                 <button type="submit" id="btn-enviar-publico" class="btn btn-primary w-full" style="padding:14px; font-size:1rem; font-weight:700;">
-                    ⭐ Publicar mi Reseña
+                    <svg class="pico pico-sm" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="none"><path d="m12 3.6 2.6 5.4 5.9.8-4.3 4.1 1.1 5.9-5.3-2.9-5.3 2.9 1.1-5.9L3.5 9.8l5.9-.8z"/></svg> Publicar mi Reseña
                 </button>
             </form>
         </div>
 
         <div class="portal-card hidden text-center" id="card-exito-resena">
-            <div style="font-size:3.5rem; margin-bottom:12px;">🎉</div>
+            <div class="resena-exito-ico"><svg class="pico pico-lg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12.3 2.7 2.7L16 9.6"/></svg></div>
             <h2 class="portal-h2" style="margin-bottom:8px;">¡Muchas Gracias por tu Reseña!</h2>
             <p class="portal-muted mb-4" style="font-size:0.95rem;">
                 Tu comentario fue recibido correctamente. Aparecerá destacado en mi página web en <strong style="color:var(--primary);">arieldev.com.ar</strong>.

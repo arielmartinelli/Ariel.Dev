@@ -26,6 +26,7 @@ import {
 import { escapeHtml, safeUrl, sanitizeText } from "./security.js";
 import { confirmar, avisar } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
+import { estrellas as pintarEstrellas, ico } from "./iconos.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -91,7 +92,7 @@ export async function refrescarResenas() {
   if (resenas.length === 0) {
     cont.innerHTML = `
       <div class="admin-vacio">
-        <div class="admin-vacio-icono" aria-hidden="true">⭐</div>
+        <div class="admin-vacio-icono">${ico("estrella", "pico pico-lg")}</div>
         <p class="admin-vacio-titulo">Todavía no recibiste ninguna reseña</p>
         <p class="admin-hint">
           Pasale el link a un cliente con el que hayas terminado. Los botones de
@@ -116,7 +117,7 @@ function pintarBadge() {
 }
 
 function tarjeta(r) {
-  const estrellas = "★".repeat(r.rating || 5) + "☆".repeat(5 - (r.rating || 5));
+  const estrellas = pintarEstrellas(r.rating || 5);
   const url = safeUrl(r.company_url, "");
   const fecha = r.created_at
     ? new Date(r.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })

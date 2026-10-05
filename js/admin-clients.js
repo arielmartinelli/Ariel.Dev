@@ -23,6 +23,7 @@ import { escapeHtml, safeUrl, sanitizeText } from "./security.js";
 import { confirmar, avisar } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
 import { abrirDocumentoPdf } from "./pdf-helper.js";
+import { ico } from "./iconos.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -31,6 +32,12 @@ let expandido = null;    // id del cliente con la ficha abierta
 let filtro = "activos";
 
 const usd = (n) => `USD ${Number(n || 0).toLocaleString("es-AR", { maximumFractionDigits: 2 })}`;
+
+/* ¿El valor guardado es un PDF embebido o un link común?
+   Importa en el formulario: un PDF guardado mide cientos de miles de
+   caracteres y volcarlo dentro de un <input type="url"> deja el campo
+   inusable y encima lo vuelve a guardar como texto al apretar Guardar. */
+const esDato = (v) => String(v || "").startsWith("data:");
 
 /* ==========================================================================
    Arranque (una sola vez)
@@ -94,7 +101,7 @@ function pintarLista() {
   if (lista.length === 0) {
     cont.innerHTML = clientes.length === 0
       ? `<div class="admin-vacio">
-           <div class="admin-vacio-icono" aria-hidden="true">👤</div>
+           <div class="admin-vacio-icono">${ico("persona", "pico pico-lg")}</div>
            <p class="admin-vacio-titulo">Todavía no tenés clientes</p>
            <p class="admin-hint">Creá el primero con «Nuevo cliente». Te va a generar un link privado para pasarle por WhatsApp.</p>
          </div>`
@@ -161,7 +168,11 @@ function rastroDeAcceso(c) {
       ? `hace ${Math.floor(horas)} h`
       : fecha.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
 
-  const alerta = vistas > 200 ? " ⚠️ son muchas: si no las hizo el cliente, revocá el link." : "";
+  /* El texto se interpola sin escapar (sale de un número y de una fecha, no
+     de nada que escriba el cliente), así que el ícono puede ir inline. */
+  const alerta = vistas > 200
+    ? ` <span class="admin-hint-alerta">${ico("alerta", "pico pico-sm")} son muchas: si no las hizo el cliente, revocá el link.</span>`
+    : "";
 
   return `Visto ${vistas} ${vistas === 1 ? "vez" : "veces"} · última ${cuando}.${alerta}`;
 }
@@ -341,7 +352,15 @@ function bloqueFlujo(c) {
   const turno = deQuienEsElTurno(c);
   const accion = accionPrincipal(c);
 
-  const iconos = { ok: "✓", curso: "●", pendiente: "○", no: "✕" };
+  /* Un ícono por estado del paso. Antes eran glifos de texto (✓ ● ○ ✕):
+     cambiaban de grosor y de alineación vertical según la fuente instalada,
+     así que la columna de la izquierda nunca quedaba derecha. */
+  const iconos = {
+    ok:        ico("check",   "pico pico-sm"),
+    curso:     ico("punto",   "pico pico-xs"),
+    pendiente: ico("circulo", "pico pico-sm"),
+    no:        ico("cruz",    "pico pico-sm"),
+  };
   const dePelota = {
     ariel: "Te toca a vos",
     cliente: "Le toca al cliente",
@@ -447,7 +466,7 @@ function ficha(c) {
       <p class="admin-hint">
         ${c.is_active
           ? "Da acceso al panel del cliente. Pasáselo solo a él."
-          : "⚠️ Link revocado: el cliente ya no puede entrar."}
+          : `<span class="admin-hint-alerta">${ico("alerta", "pico pico-sm")} Link revocado: el cliente ya no puede entrar.</span>`}
       </p>
       <p class="admin-hint">${rastroDeAcceso(c)}</p>
       ${esUrlDePreview() ? `
@@ -470,7 +489,7 @@ function ficha(c) {
         <div class="form-group">
           <label for="ed-brief-file-${c.id}">Subir / Cambiar PDF de Descripción</label>
           <input type="file" id="ed-brief-file-${c.id}" accept="application/pdf" data-campo="brief_file">
-          ${c.brief_pdf_filename && c.brief_pdf_url ? `<button type="button" class="btn btn-sm btn-outline mt-1" data-pdf-url="${escapeHtml(c.brief_pdf_url)}" data-pdf-filename="${escapeHtml(c.brief_pdf_filename)}">📄 Ver PDF actual: ${escapeHtml(c.brief_pdf_filename)}</button>` : ""}
+          ${c.brief_pdf_filename && c.brief_pdf_url ? `<button type="button" class="btn btn-sm btn-outline mt-1" data-pdf-url="${escapeHtml(c.brief_pdf_url)}" data-pdf-filename="${escapeHtml(c.brief_pdf_filename)}">${ico("documento", "pico pico-sm")} Ver PDF actual: ${escapeHtml(c.brief_pdf_filename)}</button>` : ""}
         </div>
       </div>
 
@@ -490,7 +509,23 @@ function ficha(c) {
       <div class="form-group">
         <label for="ed-proposal-file-${c.id}">Subir / Cambiar PDF de la propuesta</label>
         <input type="file" id="ed-proposal-file-${c.id}" accept="application/pdf" data-campo="proposal_file">
-        ${c.proposal_filename && c.proposal_url ? `<button type="button" class="btn btn-sm btn-outline mt-1" data-pdf-url="${escapeHtml(c.proposal_url)}" data-pdf-filename="${escapeHtml(c.proposal_filename)}">📄 Ver PDF actual: ${escapeHtml(c.proposal_filename)}</button>` : ""}
+        ${c.proposal_filename && c.proposal_url ? `<button type="button" class="btn btn-sm btn-outline mt-1" data-pdf-url="${escapeHtml(c.proposal_url)}" data-pdf-filename="${escapeHtml(c.proposal_filename)}">${ico("documento", "pico pico-sm")} Ver PDF actual: ${escapeHtml(c.proposal_filename)}</button>` : ""}
+      </div>
+
+      <!-- Presupuesto: documento aparte de la propuesta. La propuesta cuenta
+           QUÉ se va a hacer; el presupuesto, CUÁNTO sale y con qué detalle.
+           El cliente ve los dos en el primer paso, junto al precio. -->
+      <div class="admin-form-grid">
+        <div class="form-group">
+          <label for="ed-budget-url-${c.id}">Link del presupuesto</label>
+          <input type="url" id="ed-budget-url-${c.id}" value="${escapeHtml(esDato(c.budget_pdf_url) ? "" : (c.budget_pdf_url || ""))}"
+                 placeholder="https://drive.google.com/..." data-campo="budget_pdf_url">
+        </div>
+        <div class="form-group">
+          <label for="ed-budget-file-${c.id}">Subir / Cambiar PDF del presupuesto</label>
+          <input type="file" id="ed-budget-file-${c.id}" accept="application/pdf" data-campo="budget_file">
+          ${c.budget_pdf_filename && c.budget_pdf_url ? `<button type="button" class="btn btn-sm btn-outline mt-1" data-pdf-url="${escapeHtml(c.budget_pdf_url)}" data-pdf-filename="${escapeHtml(c.budget_pdf_filename)}">${ico("documento", "pico pico-sm")} Ver PDF actual: ${escapeHtml(c.budget_pdf_filename)}</button>` : ""}
+        </div>
       </div>
 
       <div class="form-group">
@@ -516,7 +551,7 @@ function ficha(c) {
         <input type="text" class="admin-link-input" data-campo="nueva-tarea" maxlength="400"
                placeholder="Agregar una tarea…" aria-label="Nueva tarea" style="flex:1; min-width:180px;">
         <label class="btn btn-sm btn-outline" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
-          📄 Adjuntar PDF
+          ${ico("documento", "pico pico-sm")} Adjuntar PDF
           <input type="file" data-campo="nueva-tarea-pdf" accept="application/pdf" style="display:none">
         </label>
         <span data-zona="nueva-tarea-pdf-nombre" class="admin-hint" style="font-size:0.75rem; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
@@ -622,6 +657,27 @@ function conectarFicha(ficha, c, link) {
       }
     }
 
+    let budgetUrl = leer("budget_pdf_url").trim();
+    let budgetName = c.budget_pdf_filename || null;
+
+    // Si ya había un PDF guardado y el campo de link quedó vacío, se conserva
+    // el PDF: vaciar un input que nunca mostró el valor no es "borralo".
+    if (!budgetUrl && esDato(c.budget_pdf_url)) budgetUrl = c.budget_pdf_url;
+
+    const budgetFileEl = ficha.querySelector('[data-campo="budget_file"]');
+    if (budgetFileEl && budgetFileEl.files && budgetFileEl.files[0]) {
+      try {
+        const resPdf = await leerArchivoPdf(budgetFileEl.files[0]);
+        if (resPdf) {
+          budgetUrl = resPdf.data;
+          budgetName = resPdf.name;
+        }
+      } catch (err) {
+        avisar("Error de archivo", err.message, "warning");
+        return;
+      }
+    }
+
     const propFileEl = ficha.querySelector('[data-campo="proposal_file"]');
     if (propFileEl && propFileEl.files && propFileEl.files[0]) {
       try {
@@ -660,6 +716,8 @@ function conectarFicha(ficha, c, link) {
         brief_pdf_filename: briefPdfName || null,
         proposal_url: propUrl || null,
         proposal_filename: propName || null,
+        budget_pdf_url: budgetUrl || null,
+        budget_pdf_filename: budgetName || null,
         demo_url: demo || null,
         production_url: prod || null,
       });
@@ -782,7 +840,12 @@ function conectarFicha(ficha, c, link) {
   if (pdfInput && pdfNombreLabel) {
     pdfInput.addEventListener("change", () => {
       if (pdfInput.files && pdfInput.files[0]) {
-        pdfNombreLabel.textContent = `📄 ${pdfInput.files[0].name}`;
+        /* innerHTML en vez de textContent porque el ícono es un <svg>. El
+           nombre del archivo lo elige quien usa el panel, pero igual va
+           escapado: un archivo llamado `<img onerror=…>.pdf` no tiene que
+           poder ejecutar nada. */
+        pdfNombreLabel.innerHTML =
+          `${ico("documento", "pico pico-xs")} ${escapeHtml(pdfInput.files[0].name)}`;
       } else {
         pdfNombreLabel.textContent = "";
       }
@@ -993,7 +1056,8 @@ async function cargarTareas(ficha, c) {
       pdfBtn.dataset.pdfFilename = t.pdf_name || "Tarea.pdf";
       pdfBtn.className = "admin-tarea-pdf-link";
       pdfBtn.style.cssText = "font-size:0.75rem; color: #60a5fa; margin-left:8px; background:none; border:none; padding:0; cursor:pointer; display:inline-flex; align-items:center; gap:3px; font-family:inherit;";
-      pdfBtn.innerHTML = `📄 <u>${escapeHtml(t.pdf_name || "Ver PDF")}</u>`;
+      pdfBtn.innerHTML =
+        `${ico("documento", "pico pico-xs")}<u>${escapeHtml(t.pdf_name || "Ver PDF")}</u>`;
       fila.appendChild(pdfBtn);
     }
 
@@ -1124,6 +1188,22 @@ function conectarAlta() {
       }
     }
 
+    let budgetUrl = $("cli-budget-url")?.value.trim() || null;
+    let budgetName = null;
+    const budgetFileEl = $("cli-budget-file");
+    if (budgetFileEl && budgetFileEl.files && budgetFileEl.files[0]) {
+      try {
+        const pdfRes = await leerArchivoPdf(budgetFileEl.files[0]);
+        if (pdfRes) {
+          budgetUrl = pdfRes.data;
+          budgetName = pdfRes.name;
+        }
+      } catch (err) {
+        avisar("Error de PDF", err.message, "warning");
+        return;
+      }
+    }
+
     const datos = {
       clientName: sanitizeText($("cli-nombre").value, 120),
       projectName: sanitizeText($("cli-proyecto").value, 120),
@@ -1132,6 +1212,8 @@ function conectarAlta() {
       briefPdfFilename,
       proposalUrl: propUrl,
       proposalFilename: propName,
+      budgetPdfUrl: budgetUrl,
+      budgetPdfFilename: budgetName,
       demoUrl: $("cli-demo").value.trim(),
       priceUsd: Number($("cli-precio").value),
       whatsapp: sanitizeText($("cli-whatsapp").value, 30).replace(/[^\d+]/g, ""),

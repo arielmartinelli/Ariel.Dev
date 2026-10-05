@@ -24,6 +24,7 @@ import { adminTareasDeTodos, adminPagosDeTodos, adminListarClientes, adminMarcar
 import { escapeHtml, safeImageSrc } from "./security.js";
 import { configurarDialogos, confirmar, avisar } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
+import { ico } from "./iconos.js";
 import { iniciarSeccionClientes, refrescarClientes } from "./admin-clients.js";
 import { iniciarSeccionPortfolio, refrescarPortfolio } from "./admin-portfolio.js";
 import { iniciarSeccionResenas, refrescarResenas } from "./admin-reviews.js";
@@ -382,7 +383,7 @@ function pintarAvisoEsquema() {
   aviso.className = "admin-aviso-setup";
   aviso.setAttribute("role", "alert");
   aviso.innerHTML = `
-    <div class="admin-aviso-icono" aria-hidden="true">⚙️</div>
+    <div class="admin-aviso-icono">${ico("engranaje", "pico pico-lg")}</div>
     <div>
       <p class="admin-aviso-titulo">Falta un paso para activar el sector clientes</p>
       <p class="admin-aviso-texto">
@@ -539,7 +540,7 @@ function pintarColaDeTrabajo() {
   if (visibles.length === 0) {
     cont.innerHTML = `
       <div class="admin-vacio">
-        <div class="admin-vacio-icono" aria-hidden="true">${filtroTareas === "pendientes" ? "✅" : "📭"}</div>
+        <div class="admin-vacio-icono">${ico(filtroTareas === "pendientes" ? "checkCirculo" : "bandeja", "pico pico-lg")}</div>
         <p class="admin-vacio-titulo">${
           filtroTareas === "pendientes" ? "No tenés nada pendiente" : "Todavía no hay nada acá"
         }</p>
@@ -702,7 +703,7 @@ function pintarCobros() {
   if (filas.length === 0) {
     cont.innerHTML = `
       <div class="admin-vacio">
-        <div class="admin-vacio-icono" aria-hidden="true">💸</div>
+        <div class="admin-vacio-icono">${ico("billete", "pico pico-lg")}</div>
         <p class="admin-vacio-titulo">No hay cobros con este filtro</p>
         <p class="admin-hint">Los cobros se generan solos cuando un cliente acepta pasar a producción.</p>
       </div>`;

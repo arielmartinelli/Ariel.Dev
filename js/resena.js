@@ -1,5 +1,6 @@
 import { sanitizeText } from "./security.js";
 import { avisar } from "./ui-dialogs.js";
+import { ico } from "./iconos.js";
 import { guardarResena } from "./reviews.js";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -51,7 +52,9 @@ document.addEventListener("DOMContentLoaded", () => {
       avisar("No se pudo enviar", "Ocurrió un error. Por favor probá nuevamente.", "error");
     } finally {
       btn.disabled = false;
-      btn.textContent = "⭐ Publicar mi Reseña";
+      /* innerHTML: el ícono es un <svg>, no texto. El string es literal
+         nuestro, no entra nada de afuera. */
+      btn.innerHTML = `${ico("estrella", "pico pico-sm", { relleno: true })} Publicar mi Reseña`;
     }
   });
 });
