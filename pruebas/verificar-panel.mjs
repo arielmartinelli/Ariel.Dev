@@ -2,6 +2,7 @@
    negocio: prueba que las pantallas DIBUJEN sin romperse, que es lo que se
    arriesga al tocar los iconos de cinco archivos a la vez. */
 import { chromium } from "playwright";
+import { CONTRASTE } from "./_contraste.mjs";
 
 const OPCIONES = process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {};
 const BASE = process.env.BASE || "http://127.0.0.1:4178";
@@ -112,6 +113,8 @@ for (const ancho of [390, 1280]) {
                desborde: document.documentElement.scrollWidth - document.documentElement.clientWidth };
     });
 
+    for (const c of await p.evaluate(CONTRASTE))
+      fallas.push(`${vista} @${ancho}: contraste → ${c}`);
     for (const e of r.emojis)   fallas.push(`${vista} @${ancho}: emoji visible → ${e}`);
     for (const a of r.apilados) fallas.push(`${vista} @${ancho}: ${a}`);
     if (r.desborde > 2)         fallas.push(`${vista} @${ancho}: desborde ${r.desborde}px`);

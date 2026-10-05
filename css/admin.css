@@ -28,7 +28,7 @@
     position: absolute;
     left: -9999px;
     top: 0;
-    background: var(--primary);
+    background: var(--primary-solido);
     color: #fff;
     padding: 12px 20px;
     border-radius: 0 0 10px 0;
@@ -427,7 +427,7 @@
 .admin-filtro:hover { color: var(--text-primary); }
 
 .admin-filtro.activo {
-    background: var(--primary);
+    background: var(--primary-solido);
     color: #fff;
 }
 
@@ -1267,7 +1267,7 @@
     .admin-tab:hover { background: transparent; }
 
     .admin-tab.activo {
-        background: var(--primary);
+        background: var(--primary-solido);
         color: #fff;
     }
 

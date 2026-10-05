@@ -48,7 +48,7 @@
   top: 0;
   z-index: var(--z-toast);
   padding: 10px 16px;
-  background: var(--primary);
+  background: var(--primary-solido);
   color: #fff;
   border-radius: 0 0 8px 0;
 }
@@ -335,7 +335,7 @@
 .portal-paso.hecho .portal-paso-t { color: var(--text-secondary); }
 
 .portal-paso.activo .portal-paso-n {
-  background: var(--primary);
+  background: var(--primary-solido);
   border-color: transparent;
   color: #fff;
   /* Halo suave: marca donde esta parado sin agrandar el circulo y romper la
@@ -473,20 +473,33 @@
   word-break: break-all;
 }
 
+/* Esta clase la usan <a> Y <button>, y eso tiene una trampa.
+   Un <button> sin `background` NO es transparente: el navegador le pone
+   `buttonface`, que es gris claro (#efefef). Con el `color` casi blanco de
+   acá arriba daba texto blanco sobre gris claro — ilegible, contraste 1.1:1.
+   Los botones de "Ver la propuesta / el presupuesto / la descripción" se
+   veían como dos cajas borrosas y vacías.
+   Tampoco hereda la tipografía ni ocupa el ancho del panel.
+   Por eso van los cuatro reseteos de abajo. */
 .portal-resumen-link {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  width: 100%;
   min-height: 42px;
   margin-top: 10px;
   padding: 0 14px;
   border-radius: 10px;
   border: 1px solid var(--border-hover);
+  background: none;
   color: var(--text-primary);
+  font-family: inherit;
   font-size: 0.85rem;
   font-weight: 600;
+  text-align: center;
   text-decoration: none;
+  cursor: pointer;
   transition: border-color 0.18s, background 0.18s;
 }
 .portal-resumen-link:hover {
@@ -522,14 +535,12 @@
 
 /* justify-content a flex-start, no center como el resto de los links: acá hay
    dos renglones de texto, y centrados quedan desalineados entre botones. */
+/* El fondo, la tipografía y el ancho ya los arregla .portal-resumen-link.
+   Acá solo lo propio del recibo: dos renglones alineados a la izquierda. */
 .portal-recibo-btn {
   justify-content: flex-start;
-  width: 100%;
   min-height: 48px;   /* 44px es el minimo tactil de WCAG 2.5.5 */
   padding: 8px 12px;
-  background: none;
-  cursor: pointer;
-  font-family: inherit;
   text-align: left;
 }
 .portal-recibo-btn:disabled { opacity: 0.6; cursor: default; }
@@ -638,7 +649,7 @@
 .portal-body .btn:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; }
 .portal-body .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
 
-.portal-body .btn-primary { background: var(--primary); color: #fff; }
+.portal-body .btn-primary { background: var(--primary-solido); color: #fff; }
 .portal-body .btn-primary:hover { background: #5457e5; }
 
 .portal-body .btn-outline { background: transparent; border-color: var(--border-hover); color: var(--text-primary); }

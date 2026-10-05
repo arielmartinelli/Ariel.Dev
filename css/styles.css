@@ -11,6 +11,15 @@
     --primary: #6366f1;
     --primary-glow: rgba(99, 102, 241, 0.15);
     --primary-light: #818cf8;
+
+    /* El mismo violeta, un toque mas oscuro, para cuando lleva texto BLANCO
+       encima (botones solidos, el chip del paso activo, el skip-link).
+       #6366f1 con blanco da 4.47:1 y el minimo de WCAG AA para texto normal
+       es 4.5:1 — pasaba raspando por abajo. Este da 5.05:1.
+       A simple vista es el mismo color; la diferencia es de un 6%.
+       --primary queda igual porque tambien se usa como COLOR DE TEXTO sobre
+       el fondo oscuro, y ahi oscurecerlo empeoraria el contraste. */
+    --primary-solido: #5b5fe0;
     --secondary: #06b6d4;
     --secondary-glow: rgba(6, 182, 212, 0.15);
     --accent: #d946ef;

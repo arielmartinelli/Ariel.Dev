@@ -2,6 +2,7 @@
    tarjeta distinta, así que una sola pasada no alcanza para decir que no
    quedó ningún emoji ni ningún ícono apilado. */
 import { chromium } from "playwright";
+import { CONTRASTE } from "./_contraste.mjs";
 
 /* En un entorno con Chromium ya instalado aparte, se le pasa la ruta con
    CHROMIUM=/ruta/al/binario. Sin eso usa el que bajo `npx playwright
@@ -104,6 +105,8 @@ for (const ancho of [390, 1280]) {
         etapaVisible: (document.getElementById("pc-etapa")?.textContent || "").trim().slice(0, 42) };
     });
 
+    for (const c of await p.evaluate(CONTRASTE))
+      problemas.push(`${nombre} @${ancho}: contraste → ${c}`);
     for (const e of r.emojis)   problemas.push(`${nombre} @${ancho}: emoji → ${e}`);
     for (const a of r.apilados) problemas.push(`${nombre} @${ancho}: ícono apilado → ${a}`);
     for (const c of r.chicos)   problemas.push(`${nombre} @${ancho}: ícono sin tamaño → ${c}`);

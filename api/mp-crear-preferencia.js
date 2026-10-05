@@ -133,9 +133,19 @@ export default async function handler(req, res) {
 
       // CUOTAS
       // `installments` es el MÁXIMO de cuotas que Mercado Pago le ofrece al
-      // cliente. Para el plan de 3 cuotas se fija en 3 y se desactiva el
-      // dinero en cuenta: pagar con saldo no se puede financiar, y si queda
-      // habilitado el cliente elige esa opción y se le cobra todo junto.
+      // cliente, y `default_installments` la que viene preseleccionada.
+      //
+      // ACÁ NO VA excluded_payment_types CON account_money.
+      // Lo intenté para forzar el pago con tarjeta (el saldo en cuenta no se
+      // puede financiar en cuotas) y Mercado Pago rechaza la preferencia
+      // entera con «account_money cannot be excluded». No es un permiso que
+      // falte ni una cuenta mal configurada: la documentación dice que el
+      // dinero en cuenta NO se puede excluir, punto.
+      // https://www.mercadopago.com.ar/developers/es/docs/checkout-pro-preferences/additional-settings/payment-methods
+      //
+      // Y está bien que sea así: si el cliente prefiere pagar todo junto con
+      // su saldo, cobrás lo mismo y antes. Las cuotas las elige él en la
+      // pantalla de Mercado Pago, con la tarjeta.
       //
       // OJO: que las cuotas sean SIN INTERÉS no se decide acá. Eso se
       // configura en la cuenta de Mercado Pago (Tu negocio → Costos →
@@ -145,7 +155,6 @@ export default async function handler(req, res) {
       payment_methods: {
         installments: CUOTAS[kind] || 1,
         default_installments: CUOTAS[kind] || 1,
-        excluded_payment_types: CUOTAS[kind] ? [{ id: "account_money" }] : [],
       },
       back_urls: {
         success: `${volver}?pago=ok`,
