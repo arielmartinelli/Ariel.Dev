@@ -23,20 +23,7 @@
 
 .hidden { display: none !important; }
 
-/* Enlace de salto, visible solo con teclado. */
-.skip-link {
-    position: absolute;
-    left: -9999px;
-    top: 0;
-    background: var(--primary-solido);
-    color: #fff;
-    padding: 12px 20px;
-    border-radius: 0 0 10px 0;
-    z-index: var(--z-dialog);
-    font-weight: 600;
-}
-
-.skip-link:focus { left: 0; }
+/* .skip-link ahora esta en styles.css, que cargan las cuatro pantallas. */
 
 /* ==========================================================================
    LOGIN

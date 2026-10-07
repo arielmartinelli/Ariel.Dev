@@ -157,6 +157,29 @@ img {
 .opacity-80 { opacity: 0.8; }
 .text-sm { font-size: 0.875rem; }
 
+/* Enlace de salto: invisible hasta que alguien llega con el teclado.
+   --------------------------------------------------------------------------
+   Vive aca y no en portal.css / admin.css porque styles.css la cargan las
+   cuatro pantallas. Estaba definido solo en esas dos, asi que en la pagina
+   de proyectos salia como texto suelto arriba de todo, a la vista de
+   cualquiera. Un `.skip-link` sin reglas no se esconde: es un <a> comun.
+
+   left:-9999px y no display:none — con display:none el lector de pantalla y
+   el tabulador tampoco lo encuentran, que es justamente para quien existe. */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 9999;
+    padding: 12px 20px;
+    background: var(--primary-solido);
+    color: #fff;
+    border-radius: 0 0 10px 0;
+    font-weight: 600;
+    text-decoration: none;
+}
+.skip-link:focus { left: 0; }
+
 /* ==========================================================================
    Iconos (js/iconos.js)
    --------------------------------------------------------------------------
@@ -1077,7 +1100,7 @@ body.light-theme .avatar-inner {
 }
 
 .filter-btn.active {
-    background-color: var(--primary);
+    background-color: var(--primary-solido);
     color: #ffffff;
     box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
 }
@@ -2816,6 +2839,49 @@ body.light-theme .mobile-dot.active {
 }
 
 /* Dots de navegación para Slider Móvil */
+/* ==========================================================================
+   «Ver todos los proyectos» — cierre de la sección del landing
+   --------------------------------------------------------------------------
+   El landing muestra 5; el resto está en /proyectos. Este botón es el puente.
+   ========================================================================== */
+.ver-todos-caja {
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
+}
+.ver-todos-caja[hidden] { display: none; }
+
+.ver-todos-btn {
+    gap: 12px;
+    /* Las tarjetas de arriba son position:sticky y se van apilando. Sin un
+       z-index propio, la última tarjeta pasa POR ENCIMA del botón al llegar
+       al final del scroll y lo deja inclickeable. */
+    position: relative;
+    z-index: 20;
+}
+
+.ver-todos-cuenta {
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: var(--primary-glow);
+    color: var(--primary-light);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.ver-todos-flecha {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.2s ease;
+}
+.ver-todos-btn:hover .ver-todos-flecha { transform: translateX(4px); }
+
+@media (prefers-reduced-motion: reduce) {
+    .ver-todos-flecha { transition: none; }
+    .ver-todos-btn:hover .ver-todos-flecha { transform: none; }
+}
+
 .projects-mobile-dots {
     display: none;
     justify-content: center;
@@ -4099,4 +4165,202 @@ body.light-theme .admin-step-item {
 @keyframes blinkCursor {
   from { opacity: 1; }
   to { opacity: 0; }
+}
+
+/* ==========================================================================
+   Página /proyectos — todos los trabajos en grilla
+   --------------------------------------------------------------------------
+   El landing muestra 5 con el efecto de tarjetas apiladas; acá entran todos.
+   Grilla y no stack a propósito: quien entró a "ver todos" quiere comparar
+   de un vistazo, y 20 tarjetas apiladas serían el mismo problema mudado de
+   lugar.
+   ========================================================================== */
+.proyectos-main {
+    padding-top: 120px;   /* el header es fijo */
+    padding-bottom: 90px;
+    min-height: 70vh;
+    position: relative;
+    z-index: 2;
+}
+
+.volver-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 26px;
+    padding: 9px 2px;     /* alto táctil sin cambiar la alineación izquierda */
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.18s ease;
+}
+.volver-link svg { width: 17px; height: 17px; }
+.volver-link:hover { color: var(--text-primary); }
+
+.proyectos-header { margin-bottom: 30px; }
+.proyectos-header .section-title { margin-bottom: 10px; }
+
+.proyectos-filtros { margin-bottom: 40px; }
+.proyectos-filtros[hidden] { display: none; }
+
+/* El número al lado del nombre de la categoría. Le dice al visitante cuánto
+   hay antes de tocar, que es justo lo que uno quiere saber al filtrar. */
+.filter-cuenta {
+    margin-left: 7px;
+    padding: 1px 7px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.09);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+.filter-btn.active .filter-cuenta { background: rgba(255, 255, 255, 0.22); }
+.light-theme .filter-cuenta { background: rgba(15, 23, 42, 0.08); }
+.light-theme .filter-btn.active .filter-cuenta { background: rgba(255, 255, 255, 0.28); }
+
+/* auto-fill + minmax: las columnas las decide el ancho disponible, no un
+   breakpoint. Así no hay un ancho intermedio donde quedan dos tarjetas
+   estiradas o tres apretadas. */
+.proyectos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 26px;
+}
+
+@media (max-width: 480px) {
+    /* Debajo de 480px, minmax(310px) deja la tarjeta más ancha que la
+       pantalla y aparece scroll horizontal. Una sola columna. */
+    .proyectos-grid { grid-template-columns: 1fr; gap: 20px; }
+    .proyectos-main { padding-top: 100px; }
+}
+
+.proyectos-aviso {
+    grid-column: 1 / -1;
+    padding: 46px 22px;
+    border: 1px dashed var(--border-hover);
+    border-radius: 20px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+.proyectos-aviso a { color: var(--primary-light); font-weight: 600; }
+
+/* ---- La tarjeta ---- */
+.pcard {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+a.pcard:hover {
+    transform: translateY(-5px);
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-md);
+}
+a.pcard:focus-visible {
+    outline: 2px solid var(--primary-light);
+    outline-offset: 3px;
+}
+
+.pcard-img-box {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(6, 182, 212, 0.1));
+    overflow: hidden;
+}
+
+.pcard-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+}
+a.pcard:hover .pcard-img { transform: scale(1.04); }
+
+/* Si la imagen no carga, el onerror la saca y marca la caja: queda el
+   degradé en vez de un ícono de imagen rota. */
+.pcard-img-box.sin-imagen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(6, 182, 212, 0.12));
+}
+
+.pcard-tag {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 1;
+    padding: 5px 11px;
+    border-radius: 99px;
+    /* Fondo oscuro propio y no translúcido del tema: va encima de una foto
+       cualquiera y tiene que leerse sobre claro y sobre oscuro. */
+    background: rgba(8, 10, 20, 0.78);
+    backdrop-filter: blur(6px);
+    color: #f3f4f6;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.pcard-cuerpo {
+    display: flex;
+    flex-direction: column;
+    flex: 1;            /* iguala el alto de las tarjetas de una misma fila */
+    gap: 10px;
+    padding: 20px 22px 22px;
+}
+
+.pcard-titulo {
+    font-family: var(--font-heading);
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0;
+}
+
+.pcard-desc {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.6;
+    /* Tres líneas y corta. Las descripciones las escribís vos y varían mucho
+       de largo; sin esto, una de diez líneas desalinea toda la fila. */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.pcard-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 2px;
+}
+
+.pcard-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: auto;    /* siempre abajo, aunque el texto sea corto */
+    padding-top: 12px;
+    color: var(--primary-light);
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+.pcard-link svg { width: 16px; height: 16px; transition: transform 0.2s ease; }
+a.pcard:hover .pcard-link svg { transform: translateX(4px); }
+
+@media (prefers-reduced-motion: reduce) {
+    .pcard, .pcard-img, .pcard-link svg { transition: none; }
+    a.pcard:hover { transform: none; }
+    a.pcard:hover .pcard-img { transform: none; }
+    a.pcard:hover .pcard-link svg { transform: none; }
 }

@@ -9,6 +9,9 @@
   (hallazgo SEO-01 de SEO.md).
 
   Actualizar <lastmod> cuando cambie el contenido de una página.
+
+  /proyectos va con changefreq weekly y no monthly: es la unica pagina cuyo
+  contenido cambia cada vez que se carga un trabajo nuevo desde el panel.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
@@ -17,6 +20,13 @@
     <lastmod>2026-08-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://arieldev.com/proyectos</loc>
+    <lastmod>2026-10-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
   </url>
 
   <url>

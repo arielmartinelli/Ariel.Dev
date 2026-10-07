@@ -19,6 +19,10 @@
     {
       "source": "/resena",
       "destination": "/resena.html"
+    },
+    {
+      "source": "/proyectos",
+      "destination": "/proyectos.html"
     }
   ],
 

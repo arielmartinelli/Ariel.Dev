@@ -186,6 +186,19 @@ document.addEventListener("DOMContentLoaded", () => {
     // ==========================================================================
     const currentDesignMode = "stage";
 
+    /**
+     * Cuántos proyectos se muestran en el landing.
+     *
+     * El resto vive en /proyectos. La razón es el efecto de tarjetas
+     * apiladas: cada tarjeta se fija y se apila con el scroll, así que la
+     * sección mide ALTO × cantidad. Con 5 el efecto luce; con 20 el visitante
+     * tiene que scrollear varios metros para pasar de largo y llegar al
+     * cotizador, que es donde se convierte.
+     *
+     * Cargar proyectos nuevos ya no alarga el landing.
+     */
+    const PROYECTOS_EN_PORTADA = 5;
+
     async function renderPortfolio(filter = "all") {
         const container = document.getElementById("projects-stack-container");
         if (!container) return;
@@ -245,7 +258,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 return;
             }
 
-            filteredProjects.forEach((proj, i) => {
+            // Solo los primeros. El orden es el que arrastrás en el panel
+            // (getProjects ya devuelve ordenado por `position`), así que
+            // "los primeros cinco" son los cinco que vos pusiste arriba.
+            const visibles = filteredProjects.slice(0, PROYECTOS_EN_PORTADA);
+            const hayMas = filteredProjects.length - visibles.length;
+
+            visibles.forEach((proj, i) => {
                 const card = document.createElement("div");
                 // Todo dato de proyecto proviene de la base y debe tratarse como
                 // no confiable: se escapa en contexto HTML y se validan los esquemas de URL.
@@ -302,9 +321,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             if (dotsContainer) {
-                if (filteredProjects.length > 1) {
+                if (visibles.length > 1) {
                     dotsContainer.style.display = "";
-                    dotsContainer.innerHTML = filteredProjects.map((_, idx) => `
+                    dotsContainer.innerHTML = visibles.map((_, idx) => `
                         <button class="mobile-dot ${idx === 0 ? 'active' : ''}" data-index="${idx}" aria-label="Ver proyecto ${idx + 1}"></button>
                     `).join("");
 
@@ -341,6 +360,45 @@ document.addEventListener("DOMContentLoaded", () => {
                     container.addEventListener("scroll", syncMobileDots, { passive: true });
                 } else {
                     dotsContainer.style.display = "none";
+                }
+            }
+
+            // «Ver todos los proyectos».
+            //
+            // Vive FUERA de #projects-stack-container a propósito: ese
+            // contenedor se vacía entero en cada pintado y las tarjetas de
+            // adentro son `position: sticky` con z-index calculado. Un botón
+            // ahí adentro se borraría en el próximo render y, mientras tanto,
+            // quedaría tapado por la pila.
+            //
+            // Se crea una sola vez y después solo se muestra o se esconde: si
+            // se recreara en cada pintado, el visitante que está justo sobre
+            // el botón lo vería desaparecer y volver bajo el cursor.
+            let verTodos = document.getElementById("ver-todos-proyectos");
+            if (!verTodos && container.parentNode) {
+                verTodos = document.createElement("div");
+                verTodos.id = "ver-todos-proyectos";
+                verTodos.className = "ver-todos-caja";
+                container.parentNode.appendChild(verTodos);
+            }
+            if (verTodos) {
+                if (hayMas > 0) {
+                    verTodos.hidden = false;
+                    verTodos.innerHTML = `
+                        <a href="/proyectos" class="btn btn-outline btn-lg ver-todos-btn">
+                            Ver todos los proyectos
+                            <span class="ver-todos-cuenta">${hayMas} más</span>
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="ver-todos-flecha"
+                                 fill="none" stroke="currentColor" stroke-width="2"
+                                 stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                            </svg>
+                        </a>`;
+                } else {
+                    // Con 5 o menos no hay nada más que ver: un botón que
+                    // lleva a la misma lista es una promesa incumplida.
+                    verTodos.hidden = true;
+                    verTodos.innerHTML = "";
                 }
             }
 

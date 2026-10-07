@@ -46,6 +46,11 @@ function rutasLimpias() {
       req.url = '/resena.html';
     }
 
+    // /proyectos — el listado completo, al que lleva el boton del landing
+    if (/^\/proyectos\/?$/.test(url)) {
+      req.url = '/proyectos.html';
+    }
+
     next();
   };
 
@@ -83,6 +88,10 @@ export default defineConfig({
         // descargar el ABM de proyectos, clientes ni cobros.
         admin: resolve(__dirname, 'admin.html'),
         resena: resolve(__dirname, 'resena.html'),
+
+        // Listado completo de proyectos. Aparte del landing a proposito: no
+        // baja el cotizador, ni el PDF, ni Lenis, ni los efectos de scroll.
+        proyectos: resolve(__dirname, 'proyectos.html'),
 
         landing: resolve(__dirname, 'ventajas-landing.html'),
         ecommerce: resolve(__dirname, 'ventajas-ecommerce.html'),

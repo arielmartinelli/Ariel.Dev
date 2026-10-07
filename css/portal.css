@@ -42,17 +42,7 @@
 
 .hidden { display: none !important; }
 
-.skip-link {
-  position: absolute;
-  left: -9999px;
-  top: 0;
-  z-index: var(--z-toast);
-  padding: 10px 16px;
-  background: var(--primary-solido);
-  color: #fff;
-  border-radius: 0 0 8px 0;
-}
-.skip-link:focus { left: 0; }
+/* .skip-link ahora esta en styles.css, que cargan las cuatro pantallas. */
 
 /* Los íconos (.pico, .pico-sm…) están en styles.css, que cargan las tres
    pantallas. Acá abajo solo van las piezas propias del portal. */

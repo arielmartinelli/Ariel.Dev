@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Proyectos | Ariel.Dev — Desarrollo Web Freelance Córdoba</title>
+    <meta name="description" content="Todos los trabajos de Ariel.Dev: landing pages, tiendas online, portfolios e invitaciones digitales desarrollados a medida en Córdoba, Argentina.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://arieldev.com/proyectos">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Proyectos | Ariel.Dev">
+    <meta property="og:description" content="Todos los trabajos: landing pages, tiendas online, portfolios e invitaciones digitales.">
+    <meta property="og:url" content="https://arieldev.com/proyectos">
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/css/styles.css">
+
+    <!--
+      El tema se aplica ANTES de pintar nada, en un script bloqueante y chico.
+      Si se dejara para el módulo (que es defer), la página arrancaría en
+      oscuro y saltaría a claro una vez cargado el JS: el "flash" blanco que
+      se ve al entrar. Esto es de las pocas veces que un script bloqueante en
+      el <head> es lo correcto.
+    -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("theme") || "dark";
+          document.documentElement.dataset.temaInicial = t;
+        } catch (e) { /* almacenamiento bloqueado: queda el oscuro por defecto */ }
+      })();
+    </script>
+</head>
+<body class="dark-theme">
+
+    <a href="#listado" class="skip-link">Ir a los proyectos</a>
+
+    <div class="bg-gradient-shapes" aria-hidden="true">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <header class="header">
+        <div class="header-container">
+            <a href="/" class="logo">
+                <span class="logo-accent">&lt;</span>Ariel<span class="logo-accent">.Dev /&gt;</span>
+            </a>
+
+            <nav class="nav-menu">
+                <a href="/" class="nav-link">Inicio</a>
+                <a href="/proyectos" class="nav-link active" aria-current="page">Proyectos</a>
+                <a href="/#cotizador" class="nav-link">Cotizador</a>
+                <a href="/#contacto" class="nav-link">Contacto</a>
+            </nav>
+
+            <div class="header-actions">
+                <button id="theme-toggle" class="icon-btn" aria-label="Cambiar tema">
+                    <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                    <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                </button>
+                <a href="/#cotizador" class="btn btn-primary btn-sm hide-mobile">Cotizar Web</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="proyectos-main">
+        <div class="container">
+
+            <a href="/#portfolio" class="volver-link">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>
+                </svg>
+                Volver al inicio
+            </a>
+
+            <div class="section-header proyectos-header">
+                <span class="section-tag">Mis Trabajos</span>
+                <h1 class="section-title">Todos los proyectos</h1>
+                <p class="section-desc" id="proyectos-conteo">Cargando…</p>
+            </div>
+
+            <!--
+              role="group" y no "radiogroup": son botones que filtran una
+              lista, no una elección que se envía en un formulario.
+            -->
+            <div class="filter-wrapper proyectos-filtros" id="filter-wrapper"
+                 role="group" aria-label="Filtrar proyectos por categoría"></div>
+
+            <div class="proyectos-grid" id="listado" aria-live="polite" aria-busy="true">
+                <p class="proyectos-aviso">Cargando proyectos…</p>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-content">
+            <p>&copy; 2026 Ariel.Dev. Todos los derechos reservados.</p>
+            <div class="social-links">
+                <a href="https://www.instagram.com/arielmartinelli.dev/" target="_blank" rel="noopener" aria-label="Instagram">Instagram</a>
+                <a href="/#contacto">Contacto</a>
+            </div>
+        </div>
+    </footer>
+
+    <script type="module" src="/js/proyectos.js"></script>
+</body>
+</html>
