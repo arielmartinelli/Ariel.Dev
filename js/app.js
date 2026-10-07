@@ -1364,7 +1364,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 </div>
                                 ${(r.company_url && r.company_url.trim().length > 0) ? `
                                     <a href="${safeUrl(r.company_url, '#')}" target="_blank" rel="noopener noreferrer" class="resena-company-link">
-                                        Ver página ↗
+                                        Ver página <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-left: 2px;"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
                                     </a>
                                 ` : ''}
                             </div>

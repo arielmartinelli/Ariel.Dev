@@ -719,7 +719,7 @@ const ETAPAS_HISTORIAL = {
             ↺ Retomar proyecto desde la Demo
           </button>
           <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
-            ← Volver al paso en curso
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Volver al paso en curso
           </button>
         </div>`,
     });
@@ -754,7 +754,7 @@ const ETAPAS_HISTORIAL = {
             ↺ Retomar paso de Anticipo
           </button>
           <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
-            ← Volver al paso en curso
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Volver al paso en curso
           </button>
         </div>`,
     });
@@ -788,7 +788,7 @@ const ETAPAS_HISTORIAL = {
             ↺ Retomar paso de Cambios
           </button>
           <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
-            ← Volver al paso en curso
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Volver al paso en curso
           </button>
         </div>`,
     });
@@ -819,7 +819,7 @@ const ETAPAS_HISTORIAL = {
             ↺ Retomar paso de Dominio
           </button>
           <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
-            ← Volver al paso en curso
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Volver al paso en curso
           </button>
         </div>`,
     });
