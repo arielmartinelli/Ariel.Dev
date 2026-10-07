@@ -1949,6 +1949,10 @@ body.light-theme .admin-category-item {
 }
 
 @media (max-width: 768px) {
+    :root {
+        --glass-blur: blur(8px);
+    }
+
     section {
         padding: 60px 0;
     }

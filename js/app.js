@@ -1446,7 +1446,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ==========================================================================
-    // Preloader con Logo Tipeándose (Diseño elegante y velocidad adaptada)
+    // Preloader con Logo Tipeándose (Optimizado para carga ultra rápida en móvil/iOS)
     // ==========================================================================
     function initPreloader() {
         const loader = document.getElementById("page-loader");
@@ -1456,7 +1456,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const fullText = "Ariel.Dev";
         let charIdx = 0;
         const startTime = Date.now();
-        const MIN_DISPLAY_TIME = 3200; // 3.2 segundos mínimos para dar tiempo a la carga de proyectos
+        const isMobile = esMovil();
+        const MIN_DISPLAY_TIME = isMobile ? 500 : 700; // 0.5s en móvil / 0.7s en desktop (evita demoras artificiales en iOS)
 
         const typeInterval = setInterval(() => {
             if (charIdx <= fullText.length) {
@@ -1465,7 +1466,7 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 clearInterval(typeInterval);
             }
-        }, 220); // El doble de tiempo por carácter para una tipeada pausada y elegante
+        }, isMobile ? 60 : 80);
 
         return {
             finish: () => {
@@ -1497,21 +1498,20 @@ document.addEventListener("DOMContentLoaded", () => {
         initStackingProjectsScroll();
         renderizarResenasPublicas();
 
-        // Los datos van en paralelo: el portfolio y la cotización del dólar no
-        // dependen entre sí, y esperarlos en fila duplica el tiempo de carga.
-        // Cada uno atrapa su propio error para que uno caído no tumbe al otro.
-        await Promise.all([
-            (async () => {
-                cachedCategories = await getCategories();
-                await renderFilters();
-                await renderPortfolio();
-            })().catch((e) => console.error("No se pudo cargar el portfolio:", e?.message || e)),
+        // Cotización del dólar en segundo plano sin demorar la aparición inicial
+        fetchDollarRate().catch((e) => console.error("No se pudo cotizar el dólar:", e?.message || e));
 
-            fetchDollarRate().catch((e) => console.error("No se pudo cotizar el dólar:", e?.message || e)),
-        ]);
-
-        // Finalizar pantalla de carga al terminar el renderizado
-        preloader.finish();
+        // Carga de categorías y proyectos del portfolio
+        try {
+            cachedCategories = await getCategories();
+            await renderFilters();
+            await renderPortfolio();
+        } catch (e) {
+            console.error("No se pudo cargar el portfolio:", e?.message || e);
+        } finally {
+            // Finalizar pantalla de carga tan pronto como el contenido esté listo
+            preloader.finish();
+        }
 
         // Redirección de "Beneficios de Tener"
         const btnVerVentajas = document.getElementById("btn-ver-ventajas");
