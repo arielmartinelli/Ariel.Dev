@@ -1976,47 +1976,47 @@ body.light-theme .admin-category-item {
         justify-content: center;
     }
 
-    /* Cuadrícula 2x2 en vista móvil para "Qué puedo desarrollar para ti" */
+    /* Tarjetas horizontales a lo largo en vista móvil para "Qué puedo desarrollar para ti" */
     .services-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+        grid-template-columns: 1fr;
+        gap: 16px;
     }
 
     .service-card {
-        padding: 20px 12px;
+        padding: 24px 20px;
     }
 
     .service-icon-box {
-        width: 42px;
-        height: 42px;
-        margin-bottom: 12px;
-        border-radius: 10px;
+        width: 48px;
+        height: 48px;
+        margin-bottom: 14px;
+        border-radius: 12px;
     }
 
     .service-icon-box svg {
-        width: 20px;
-        height: 20px;
+        width: 24px;
+        height: 24px;
     }
 
     .service-card h3 {
-        font-size: 1rem;
-        margin-bottom: 6px;
+        font-size: 1.15rem;
+        margin-bottom: 8px;
     }
 
     .service-card p {
-        font-size: 0.78rem;
-        line-height: 1.35;
-        margin-bottom: 10px;
+        font-size: 0.88rem;
+        line-height: 1.45;
+        margin-bottom: 14px;
     }
 
     .service-features {
-        padding-top: 10px;
-        gap: 4px;
-        font-size: 0.72rem;
+        padding-top: 12px;
+        gap: 6px;
+        font-size: 0.82rem;
     }
 
     .service-features li {
-        gap: 4px;
+        gap: 6px;
     }
 
     .hide-mobile {
