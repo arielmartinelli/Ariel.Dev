@@ -470,15 +470,19 @@ body.light-theme .form-group textarea {
     width: 100%;
     z-index: var(--z-header);
     transition: var(--transition);
-    border-bottom: 1px solid transparent;
-}
-
-.header.scrolled {
-    background-color: var(--bg-surface);
+    background-color: rgba(7, 9, 19, 0.85);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border-bottom: 1px solid var(--border);
-    padding: 12px 0;
+}
+
+body.light-theme .header {
+    background-color: rgba(243, 244, 246, 0.85);
+}
+
+.header.scrolled {
+    padding: 2px 0;
+    box-shadow: var(--shadow-sm);
 }
 
 .header-container {
@@ -1075,34 +1079,56 @@ body.light-theme .avatar-inner {
    Portfolio Section
    ========================================================================== */
 .filter-wrapper {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
     background-color: var(--bg-card);
-    padding: 6px;
-    border-radius: 12px;
+    padding: 6px 8px;
+    border-radius: 999px;
     border: 1px solid var(--border);
+    max-width: 100%;
+}
+
+.filter-wrapper::-webkit-scrollbar {
+    display: none;
 }
 
 .filter-btn {
-    padding: 8px 18px;
-    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 20px;
+    border-radius: 999px;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     cursor: pointer;
     background: transparent;
-    border: none;
-    transition: var(--transition);
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .filter-btn:hover {
     color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+body.light-theme .filter-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .filter-btn.active {
-    background-color: var(--primary-solido);
+    background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
     color: #ffffff;
-    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+    font-weight: 700;
+    border-color: transparent;
+    box-shadow: 0 4px 15px -3px rgba(99, 102, 241, 0.45);
 }
 
 .projects-grid {

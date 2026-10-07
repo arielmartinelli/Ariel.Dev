@@ -203,18 +203,29 @@ async function iniciar() {
     return;
   }
 
-  pintarFiltros();
-  pintarGrilla();
-
-  // Delegación: los botones se vuelven a dibujar, así que escuchar en el
-  // contenedor evita tener que recolgar los listeners cada vez.
-  $("filter-wrapper")?.addEventListener("click", (ev) => {
-    const btn = ev.target.closest(".filter-btn");
-    if (!btn || btn.dataset.filter === filtroActivo) return;
-    filtroActivo = btn.dataset.filter;
     pintarFiltros();
     pintarGrilla();
-  });
+
+    // Scroll del header
+    window.addEventListener("scroll", () => {
+      const header = document.querySelector(".header");
+      if (!header) return;
+      if (window.scrollY > 20) {
+        header.classList.add("scrolled");
+      } else {
+        header.classList.remove("scrolled");
+      }
+    }, { passive: true });
+
+    // Delegación: los botones se vuelven a dibujar, así que escuchar en el
+    // contenedor evita tener que recolgar los listeners cada vez.
+    $("filter-wrapper")?.addEventListener("click", (ev) => {
+      const btn = ev.target.closest(".filter-btn");
+      if (!btn || btn.dataset.filter === filtroActivo) return;
+      filtroActivo = btn.dataset.filter;
+      pintarFiltros();
+      pintarGrilla();
+    });
 }
 
 iniciar();

@@ -203,37 +203,22 @@ document.addEventListener("DOMContentLoaded", () => {
         const container = document.getElementById("projects-stack-container");
         if (!container) return;
 
-        container.style.opacity = "0";
-        container.style.transition = "opacity 0.2s ease";
-
-        setTimeout(async () => {
-            container.innerHTML = "";
-            container.className = `w-full relative mb-20`;
-
-            // BUG CORREGIDO: la opacidad se ponía en 0 y solo volvía a 1 al
-            // terminar de pintar. Si Supabase tardaba o no respondía, el bloque
-            // quedaba INVISIBLE y en blanco, sin ninguna señal de que algo
-            // estaba pasando: parecía que el portfolio no existía.
-            //
-            // El aviso se pone AHORA, de forma síncrona, y no con un
-            // setTimeout: si el visitante toca dos filtros seguidos, la
-            // segunda pasada limpia el contenedor y un aviso diferido de la
-            // primera nunca llegaría a mostrarse, dejando el hueco vacío.
+        if (!container.innerHTML.trim() || !container.querySelector(".project-stage-card")) {
             container.innerHTML = `
                 <div class="glass text-center w-full" style="padding: 40px; border-radius: 28px;">
                     <p style="color: var(--text-secondary);">Cargando proyectos…</p>
                 </div>`;
-            container.style.opacity = "1";
+        }
 
-            let projects;
-            try {
-                projects = await getProjects();
-            } catch (err) {
-                console.error("No se pudieron cargar los proyectos:", err?.message || err);
-                projects = [];
-            }
+        let projects;
+        try {
+            projects = await getProjects();
+        } catch (err) {
+            console.error("No se pudieron cargar los proyectos:", err?.message || err);
+            projects = [];
+        }
 
-            container.innerHTML = "";
+        container.innerHTML = "";
 
             if (!Array.isArray(projects) || projects.length === 0) {
                 container.innerHTML = `
@@ -417,7 +402,6 @@ document.addEventListener("DOMContentLoaded", () => {
             // vacío, así que su lista de tarjetas quedó en cero y el efecto de
             // apilado no se aplicaba nunca. Hay que volver a leerla acá.
             recachearApilado();
-        }, 200);
     }
 
     function getCategoryLabel(catId) {
