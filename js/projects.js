@@ -85,9 +85,9 @@ const CLAVE_CATEGORIAS = "portfolio_categories";
 const CLAVE_ORDEN_PROYECTOS = "portfolio_projects_order";
 
 /* ==========================================================================
-   Cache en memoria (evita pedir lo mismo 4 veces en el mismo render)
+   Cache en memoria (evita pedir lo mismo varias veces) + Estrategia SWR (0ms)
    ========================================================================== */
-const TTL_CACHE_MS = 10_000;
+const TTL_CACHE_MS = 60_000;
 const cache = { projects: null, projectsAt: 0, categories: null, categoriesAt: 0 };
 
 export function invalidarCache() {
@@ -159,16 +159,44 @@ function mapProjectToDB(p, incluirPosicion = true) {
 }
 
 /* ==========================================================================
-   1. Lectura de proyectos
+   1. Lectura de proyectos (Carga instantánea en 0ms mediante SWR)
    ========================================================================== */
 export async function getProjects({ forzar = false } = {}) {
+  // 1. Memoria vigente
   if (!forzar && cache.projects && cacheVigente(cache.projectsAt)) {
     return cache.projects;
   }
 
+  // 2. Respuesta instantánea desde LocalStorage (0ms)
+  if (!forzar && !cache.projects) {
+    const localGuardado = leerLocal(CLAVE_PROYECTOS, null);
+    if (Array.isArray(localGuardado) && localGuardado.length > 0) {
+      cache.projects = localGuardado;
+      cache.projectsAt = Date.now();
+      // Revalidación asíncrona en segundo plano sin bloquear la vista
+      setTimeout(() => revalidarProyectosEnSegundoPlano(), 50);
+      return cache.projects;
+    }
+  }
+
+  // 3. Primera visita o forzado: consulta directa a Supabase
+  return await fetchProyectosDeSupabase();
+}
+
+async function revalidarProyectosEnSegundoPlano() {
+  try {
+    const actualizados = await fetchProyectosDeSupabase();
+    if (actualizados && Array.isArray(actualizados)) {
+      window.dispatchEvent(new CustomEvent("projects-updated", { detail: actualizados }));
+    }
+  } catch (e) {
+    console.debug("Revalidación asíncrona en segundo plano omitida:", e?.message || e);
+  }
+}
+
+async function fetchProyectosDeSupabase() {
   try {
     let data, error;
-    // Intentar ordenar por la columna 'position' si existe en la base
     const resPos = await supabase
       .from("projects")
       .select("*")
@@ -176,7 +204,6 @@ export async function getProjects({ forzar = false } = {}) {
       .order("created_at", { ascending: true });
 
     if (resPos.error) {
-      // Si la columna position aún no se migró en la base, cae a created_at
       const resFallback = await supabase
         .from("projects")
         .select("*")
@@ -190,7 +217,6 @@ export async function getProjects({ forzar = false } = {}) {
 
     if (error) throw error;
 
-    // Tabla vacia: sembrar los ejemplos, pero solo si hay sesion de admin.
     if (!data || data.length === 0) {
       const { data: sesion } = await supabase.auth.getSession();
       if (sesion?.session) {
@@ -202,8 +228,11 @@ export async function getProjects({ forzar = false } = {}) {
         const listos = (nuevos || []).map(mapProjectFromDB);
         cache.projects = listos;
         cache.projectsAt = Date.now();
+        escribirLocal(CLAVE_PROYECTOS, listos);
         return listos;
       }
+      cache.projects = DEFAULT_PROJECTS;
+      cache.projectsAt = Date.now();
       return DEFAULT_PROJECTS;
     }
 
@@ -218,7 +247,7 @@ export async function getProjects({ forzar = false } = {}) {
 
     cache.projects = listos;
     cache.projectsAt = Date.now();
-    escribirLocal(CLAVE_PROYECTOS, listos); // respaldo para modo offline
+    escribirLocal(CLAVE_PROYECTOS, listos);
     return listos;
   } catch (e) {
     console.error("Supabase no disponible, se usa el respaldo local:", e?.message || e);
@@ -237,13 +266,27 @@ export async function getProjects({ forzar = false } = {}) {
 }
 
 /* ==========================================================================
-   2. Lectura de categorias
+   2. Lectura de categorias (Carga instantánea en 0ms mediante SWR)
    ========================================================================== */
 export async function getCategories({ forzar = false } = {}) {
   if (!forzar && cache.categories && cacheVigente(cache.categoriesAt)) {
     return cache.categories;
   }
 
+  if (!forzar && !cache.categories) {
+    const localGuardado = leerLocal(CLAVE_CATEGORIAS, null);
+    if (Array.isArray(localGuardado) && localGuardado.length > 0) {
+      cache.categories = localGuardado;
+      cache.categoriesAt = Date.now();
+      setTimeout(() => fetchCategoriasDeSupabase(), 50);
+      return cache.categories;
+    }
+  }
+
+  return await fetchCategoriasDeSupabase();
+}
+
+async function fetchCategoriasDeSupabase() {
   try {
     const { data, error } = await supabase
       .from("categories")
@@ -260,10 +303,14 @@ export async function getCategories({ forzar = false } = {}) {
           .from("categories")
           .select("*")
           .order("created_at", { ascending: true });
-        cache.categories = nuevas || DEFAULT_CATEGORIES;
+        const listos = nuevas || DEFAULT_CATEGORIES;
+        cache.categories = listos;
         cache.categoriesAt = Date.now();
-        return cache.categories;
+        escribirLocal(CLAVE_CATEGORIAS, listos);
+        return listos;
       }
+      cache.categories = DEFAULT_CATEGORIES;
+      cache.categoriesAt = Date.now();
       return DEFAULT_CATEGORIES;
     }
 
@@ -273,10 +320,6 @@ export async function getCategories({ forzar = false } = {}) {
     return data;
   } catch (e) {
     console.error("Supabase no disponible (categorías), respaldo local:", e?.message || e);
-    // El resultado del respaldo tambien se cachea. Sin esto, cada llamada
-    // vuelve a intentar contra un servidor que no responde y se paga el
-    // timeout completo otra vez: con dos llamadas seguidas, el visitante
-    // espera el doble para ver una pagina que ya podria estar pintada.
     const respaldo = leerLocal(CLAVE_CATEGORIAS, DEFAULT_CATEGORIES);
     cache.categories = respaldo;
     cache.categoriesAt = Date.now();

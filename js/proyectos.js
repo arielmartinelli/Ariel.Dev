@@ -206,6 +206,14 @@ async function iniciar() {
     pintarFiltros();
     pintarGrilla();
 
+    window.addEventListener("projects-updated", (ev) => {
+      if (Array.isArray(ev.detail) && ev.detail.length > 0) {
+        proyectos = ev.detail;
+        pintarFiltros();
+        pintarGrilla();
+      }
+    });
+
     // Scroll del header
     window.addEventListener("scroll", () => {
       const header = document.querySelector(".header");
