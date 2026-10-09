@@ -161,7 +161,7 @@ function tarjeta(p, i, enTodos) {
 
   // La tarjeta entera es el link cuando hay demo. Un <article> con un link
   // chiquito adentro obliga a apuntar; así el objetivo táctil es la tarjeta.
-  const destacada = enTodos && POSICIONES_DESTACADAS.includes(i) ? " pcard-destacada" : "";
+  const destacada = Boolean(p.isFeatured) ? " pcard-destacada" : "";
 
   const abre = tieneDemo
     ? `<a class="pcard${destacada}" href="${escapeHtml(demo)}" target="_blank" rel="noopener noreferrer">`
@@ -227,11 +227,9 @@ function pintarGrilla() {
     return;
   }
 
-  const enTodos = filtroActivo === "all";
-  /* El mosaico necesita al menos una fila completa después de los
-     destacados; con menos, se arma solo y queda peor que la grilla pareja. */
-  grilla.classList.toggle("con-destacados", enTodos && lista.length >= 5);
-  grilla.innerHTML = lista.map((p, i) => tarjeta(p, i, enTodos)).join("");
+  const hayDestacados = lista.some((p) => Boolean(p.isFeatured));
+  grilla.classList.toggle("con-destacados", hayDestacados);
+  grilla.innerHTML = lista.map((p, i) => tarjeta(p, i, filtroActivo === "all")).join("");
 }
 
 /* ==========================================================================

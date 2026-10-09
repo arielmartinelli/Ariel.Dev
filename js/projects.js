@@ -39,6 +39,7 @@ const DEFAULT_PROJECTS = [
     image: "/images/aura-store.webp",
     tags: ["HTML5", "CSS Grid", "JS Vanilla", "E-commerce"],
     demoUrl: "https://aura-store-demo.example.com",
+    isFeatured: true,
   },
   {
     id: "proj-2",
@@ -49,6 +50,7 @@ const DEFAULT_PROJECTS = [
     image: "/images/apex-landing.webp",
     tags: ["Landing Page", "CSS Flexbox", "Intersection Observer"],
     demoUrl: "https://apex-saas-demo.example.com",
+    isFeatured: false,
   },
   {
     id: "proj-3",
@@ -59,6 +61,7 @@ const DEFAULT_PROJECTS = [
     image: "/images/lens-light.webp",
     tags: ["Portfolio", "Masonry CSS", "Animations", "Modal Gallery"],
     demoUrl: "https://lens-light-demo.example.com",
+    isFeatured: true,
   },
   {
     id: "proj-4",
@@ -69,6 +72,7 @@ const DEFAULT_PROJECTS = [
     image: "/images/taskflow.webp",
     tags: ["Custom App", "Drag & Drop", "Charts", "Local Storage"],
     demoUrl: "https://taskflow-demo.example.com",
+    isFeatured: false,
   },
 ];
 
@@ -138,6 +142,7 @@ function mapProjectFromDB(p) {
     tags: Array.isArray(p.tags) ? p.tags : [],
     demoUrl: p.demo_url || "#",
     position: typeof p.position === "number" ? p.position : 0,
+    isFeatured: p.is_featured !== undefined ? Boolean(p.is_featured) : Boolean(p.isFeatured),
     createdAt: p.created_at || null,
   };
 }
@@ -151,6 +156,7 @@ function mapProjectToDB(p, incluirPosicion = true) {
     image: p.image,
     tags: p.tags,
     demo_url: p.demoUrl,
+    is_featured: Boolean(p.isFeatured),
   };
   if (incluirPosicion && typeof p.position === "number") {
     item.position = p.position;

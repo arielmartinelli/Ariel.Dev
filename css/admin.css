@@ -1147,6 +1147,26 @@
 .admin-icon-btn.mover:hover { color: #6366f1; }
 .admin-icon-btn.editar:hover { color: var(--secondary); }
 .admin-icon-btn.borrar:hover { color: #ef4444; }
+.admin-icon-btn.destacar:hover { color: #fbbf24; background: rgba(251, 191, 36, 0.12); }
+.admin-icon-btn.destacar.activo {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.18);
+}
+
+.admin-badge-destacado {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 99px;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    margin-left: 6px;
+    vertical-align: middle;
+}
 
 .admin-icon-btn:disabled {
     opacity: 0.25;

@@ -99,7 +99,8 @@ async function guardarProyecto(e) {
   }
   if (!image) image = portadaGenerada(title);
 
-  const datos = { title, description, category, image, tags, demoUrl };
+  const isFeatured = $("proj-featured") ? $("proj-featured").checked : false;
+  const datos = { title, description, category, image, tags, demoUrl, isFeatured };
 
   boton.disabled = true;
   const textoOriginal = boton.textContent;
@@ -226,6 +227,7 @@ function entrarEnEdicion(proyecto) {
   $("proj-demo").value = proyecto.demoUrl === "#" ? "" : proyecto.demoUrl;
   $("proj-tags").value = (proyecto.tags || []).join(", ");
   $("proj-desc").value = proyecto.description;
+  if ($("proj-featured")) $("proj-featured").checked = Boolean(proyecto.isFeatured);
   actualizarEstadoBadgeTech();
 
   imagenBase64 = proyecto.image;
@@ -247,6 +249,7 @@ function salirDeEdicion() {
   imagenBase64 = "";
 
   $("form-proyecto").reset();
+  if ($("proj-featured")) $("proj-featured").checked = false;
   actualizarEstadoBadgeTech();
   $("image-preview").classList.add("hidden");
   $("image-preview").src = "";
@@ -366,7 +369,10 @@ async function pintarProyectos({ forzar = true } = {}) {
     const meta = document.createElement("div");
     meta.className = "admin-proyecto-meta";
     meta.innerHTML = `
-      <div class="admin-proyecto-nombre">${escapeHtml(p.title)}</div>
+      <div class="admin-proyecto-nombre">
+        ${escapeHtml(p.title)}
+        ${p.isFeatured ? `<span class="admin-badge-destacado">⭐ Grande</span>` : ""}
+      </div>
       <div class="admin-proyecto-cat">${escapeHtml(etiquetaCategoria(p.category))}</div>`;
 
     const subir = document.createElement("button");
@@ -387,6 +393,14 @@ async function pintarProyectos({ forzar = true } = {}) {
     bajar.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
     bajar.addEventListener("click", () => moverOrden(proyectos, idx, idx + 1));
 
+    const destacar = document.createElement("button");
+    destacar.type = "button";
+    destacar.className = `admin-icon-btn destacar ${p.isFeatured ? "activo" : ""}`;
+    destacar.title = p.isFeatured ? "Quitar destaque (Vista normal)" : "Destacar en portfolio (Vista grande)";
+    destacar.setAttribute("aria-label", p.isFeatured ? "Quitar destaque" : "Destacar en portfolio");
+    destacar.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="${p.isFeatured ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
+    destacar.addEventListener("click", () => toggleDestacado(p));
+
     const editar = document.createElement("button");
     editar.type = "button";
     editar.className = "admin-icon-btn editar";
@@ -403,11 +417,22 @@ async function pintarProyectos({ forzar = true } = {}) {
 
     const acciones = document.createElement("div");
     acciones.className = "admin-proyecto-acciones";
-    acciones.append(subir, bajar, editar, borrar);
+    acciones.append(subir, bajar, destacar, editar, borrar);
 
     item.append(meta, acciones);
     cont.appendChild(item);
   });
+}
+
+async function toggleDestacado(proyecto) {
+  const nuevoEstado = !proyecto.isFeatured;
+  const res = await updateProject({ ...proyecto, isFeatured: nuevoEstado });
+  await refrescarPortfolio({ forzar: false });
+  if (res.ok) {
+    anunciar(nuevoEstado ? `"${proyecto.title}" se marcó como Tarjeta Grande.` : `"${proyecto.title}" volvió a Vista Normal.`);
+  } else {
+    avisar("No se pudo cambiar el destaque", res.error || "Intentá de nuevo.", "error");
+  }
 }
 
 async function moverOrden(proyectos, fromIndex, toIndex) {
