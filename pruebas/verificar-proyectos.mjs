@@ -61,7 +61,13 @@ for (const ancho of [390, 1280]) {
 
   /* ---------- Landing ---------- */
   for (const [cantidad, botonEsperado] of [[3, false], [5, false], [20, true]]) {
-    const p = await conDatos(ctx, cantidad);
+    /* Contexto NUEVO por escenario. projects.js guarda los proyectos en
+       localStorage como respaldo offline, y el localStorage vive en el
+       contexto: reusandolo, el escenario de 5 veia los 3 del anterior y la
+       prueba reportaba "3 tarjetas, se esperaban 5" — una falla que no
+       existia en el sitio. */
+    const ctxEsc = await nav.newContext({ viewport:{ width: ancho, height: 1000 } });
+    const p = await conDatos(ctxEsc, cantidad);
     await p.goto(`${BASE}/index.html`, { waitUntil: "networkidle" });
 
     /* El preloader (#page-loader) es position:fixed con z-index 99999 y
@@ -72,6 +78,21 @@ for (const ancho of [390, 1280]) {
        responsable. */
     await p.waitForSelector("#page-loader.hidden-loader", { timeout: 15000 })
            .catch(() => {});
+
+    /* OJO: que el preloader se vaya YA NO significa que el portfolio este
+       pintado. Desde que la pantalla de carga dejo de esperar los datos
+       (es a proposito: la pagina abre a los 2 s y el portfolio se completa a
+       la vista), esperar solo al loader deja medir a mitad del pintado.
+       Esta prueba llego a reportar "3 tarjetas, se esperaban 5" por esto.
+       Hay que esperar a que las tarjetas existan de verdad. */
+    await p.waitForFunction(
+      () => {
+        const c = document.getElementById("projects-stack-container");
+        if (!c) return false;
+        const hayTarjetas = c.querySelectorAll(".stage-card").length > 0;
+        const cartel = c.textContent.includes("Cargando proyectos");
+        return hayTarjetas || (!cartel && c.children.length > 0);
+      }, { timeout: 15000 }).catch(() => {});
     await p.waitForTimeout(900);
 
     /* El scroll va en un paso aparte y con espera: la pagina usa Lenis
@@ -128,7 +149,7 @@ for (const ancho of [390, 1280]) {
       fallas.push(`landing @${ancho} con ${cantidad}: desborde ${r.desborde}px`);
 
     console.log(`  landing ${String(cantidad).padStart(2)} proyectos · ${r.tarjetas} tarjetas · boton: ${r.hayBoton ? `«${r.texto}»` : "no"}${r.clickeable === true ? " (clickeable)" : ""}`);
-    await p.close();
+    await ctxEsc.close();
   }
 
   /* ---------- /proyectos ---------- */

@@ -61,6 +61,22 @@ function iniciarTema() {
 const etiquetaCategoria = (id) =>
   categorias.find((c) => c.id === id)?.label || "Web";
 
+/**
+ * El dominio que se muestra en la barra del marco de navegador.
+ * Sin "https://" ni "www.", que es lo que uno lee en una barra real.
+ * Si la URL no es válida devuelve cadena vacía y la barra queda sin texto,
+ * que es mejor que mostrar "#" o "undefined".
+ */
+function dominioDe(url) {
+  try {
+    const u = new URL(String(url));
+    if (!/^https?:$/.test(u.protocol)) return "";
+    return u.hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
 /** Los que se ven con el filtro puesto. */
 const visibles = () =>
   filtroActivo === "all" ? proyectos : proyectos.filter((p) => p.category === filtroActivo);
@@ -104,7 +120,33 @@ function pintarFiltros() {
 /* ==========================================================================
    Grilla
    ========================================================================== */
-function tarjeta(p) {
+/**
+ * Qué posiciones ocupan el doble de ancho en la grilla.
+ *
+ * Los elegís vos arrastrando en el panel: son el 1.º y el 3.º de tu orden.
+ * No hace falta ningún campo nuevo en la base ni una casilla más que tildar.
+ *
+ * POR QUE EL 1.º Y EL 3.º, Y NO LOS DOS PRIMEROS.
+ * Con 3 columnas, una tarjeta doble ocupa 2 y deja 1 libre. Si las dos
+ * dobles van seguidas, la segunda no entra en lo que queda de la primera
+ * fila y se va a la siguiente: queda un hueco vacío arriba a la derecha.
+ * Intercalando una normal entre las dos, cada fila cierra justa:
+ *
+ *     [ ███ doble ███ ][ una ]
+ *     [ ███ doble ███ ][ una ]
+ *     [ una ][ una ][ una ]
+ *
+ * Se podría resolver con grid-auto-flow: dense, pero eso reordena lo que se
+ * ve sin reordenar el HTML: el tabulador salta en un orden distinto al
+ * visual. Acomodar las posiciones no tiene ese costo.
+ *
+ * Solo aplica con el filtro en "Todos": dentro de una categoría, destacar
+ * dos al azar no significa nada.
+ */
+const POSICIONES_DESTACADAS = [0, 2];
+const DESTACADOS = POSICIONES_DESTACADAS.length;
+
+function tarjeta(p, i, enTodos) {
   // Todo esto sale de la base y se trata como no confiable: se escapa en
   // contexto HTML y se validan los esquemas de las URL.
   const img = escapeHtml(safeImageSrc(p.image));
@@ -119,18 +161,34 @@ function tarjeta(p) {
 
   // La tarjeta entera es el link cuando hay demo. Un <article> con un link
   // chiquito adentro obliga a apuntar; así el objetivo táctil es la tarjeta.
+  const destacada = enTodos && POSICIONES_DESTACADAS.includes(i) ? " pcard-destacada" : "";
+
   const abre = tieneDemo
-    ? `<a class="pcard" href="${escapeHtml(demo)}" target="_blank" rel="noopener noreferrer">`
-    : `<article class="pcard pcard-sin-demo">`;
+    ? `<a class="pcard${destacada}" href="${escapeHtml(demo)}" target="_blank" rel="noopener noreferrer">`
+    : `<article class="pcard pcard-sin-demo${destacada}">`;
   const cierra = tieneDemo ? "</a>" : "</article>";
 
   return `
     ${abre}
       <div class="pcard-img-box">
-        ${img
-          ? `<img src="${img}" alt="${titulo}" class="pcard-img" loading="lazy" decoding="async"
-                  onerror="this.closest('.pcard-img-box').classList.add('sin-imagen'); this.remove();">`
-          : ""}
+        <!-- Marco de navegador. Ver .marco-nav en styles.css: va en CSS y no
+             quemado en el .webp para que valga también para los proyectos que
+             subas mañana desde el panel, sin reprocesar nada. -->
+        <div class="marco-nav">
+          <div class="marco-nav-barra" aria-hidden="true">
+            <span class="marco-nav-punto"></span>
+            <span class="marco-nav-punto"></span>
+            <span class="marco-nav-punto"></span>
+            <span class="marco-nav-url">${escapeHtml(dominioDe(p.demoUrl))}</span>
+          </div>
+          <div class="marco-nav-pantalla">
+            ${img
+              ? `<img src="${img}" alt="Captura del sitio ${titulo}" class="pcard-img"
+                      width="1376" height="768" loading="lazy" decoding="async"
+                      onerror="this.closest('.pcard-img-box').classList.add('sin-imagen'); this.remove();">`
+              : ""}
+          </div>
+        </div>
         <span class="pcard-tag">${escapeHtml(etiquetaCategoria(p.category))}</span>
       </div>
       <div class="pcard-cuerpo">
@@ -169,7 +227,11 @@ function pintarGrilla() {
     return;
   }
 
-  grilla.innerHTML = lista.map(tarjeta).join("");
+  const enTodos = filtroActivo === "all";
+  /* El mosaico necesita al menos una fila completa después de los
+     destacados; con menos, se arma solo y queda peor que la grilla pareja. */
+  grilla.classList.toggle("con-destacados", enTodos && lista.length >= 5);
+  grilla.innerHTML = lista.map((p, i) => tarjeta(p, i, enTodos)).join("");
 }
 
 /* ==========================================================================

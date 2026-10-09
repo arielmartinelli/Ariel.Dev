@@ -4370,6 +4370,49 @@ body.light-theme .admin-step-item {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
     gap: 26px;
+    /* start y no el stretch por defecto: con el mosaico, una tarjeta normal
+       al lado de una destacada se estiraba hasta el alto de la destacada y
+       le quedaban ~300px de vacío abajo, adentro de la tarjeta. Así cada una
+       mide lo que necesita. */
+    align-items: start;
+}
+
+/* ---- Mosaico editorial ----
+   Los dos primeros (los que ponés arriba de todo en el panel) ocupan dos
+   columnas y son más altos. Rompe la cuadrícula pareja, que es lo que hace
+   que una grilla se lea como catálogo en vez de como portfolio: lo primero
+   que mira el visitante deja de ser "cuántos hay" y pasa a ser "cuál es el
+   mejor".
+
+   Solo se aplica cuando hay 3 columnas DE VERDAD. Con dos, una tarjeta de
+   ancho doble es la fila entera: no destaca, solo ocupa.
+   El número sale de la cuenta de la grilla, no del ojo: 3 × 310px de columna
+   + 2 × 26px de separación + 48px de padding del contenedor = 1030px. A
+   1024px todavía hay 2 columnas — lo verifiqué, y con el corte anterior en
+   980px el destacado ocupaba la fila completa justo ahí. */
+@media (min-width: 1060px) {
+    .proyectos-grid.con-destacados .pcard-destacada {
+        grid-column: span 2;
+    }
+    /* La imagen crece; el texto no. Una descripción de tres líneas estirada
+       a 700px de ancho se vuelve incómoda de leer. */
+    /* Más panorámica, no más alta: el doble de ancho ya la destaca. Con una
+       proporción alta la tarjeta se come la pantalla y deja a las vecinas
+       como notas al pie. */
+    .proyectos-grid.con-destacados .pcard-destacada .pcard-img-box {
+        aspect-ratio: 16 / 7;
+    }
+    .proyectos-grid.con-destacados .pcard-destacada .pcard-titulo {
+        font-size: 1.42rem;
+    }
+    .proyectos-grid.con-destacados .pcard-destacada .pcard-desc {
+        max-width: 60ch;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+    }
+    .proyectos-grid.con-destacados .pcard-destacada .pcard-cuerpo {
+        padding: 24px 28px 26px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -4412,6 +4455,10 @@ a.pcard:focus-visible {
 }
 
 .pcard-img-box {
+    /* La variable se declara acá, en el ancestro común del marco y del chip:
+       el chip es HERMANO de .marco-nav, así que no heredaría una variable
+       declarada sobre .marco-nav. */
+    --alto-barra: 26px;
     position: relative;
     aspect-ratio: 16 / 10;
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(6, 182, 212, 0.1));
@@ -4436,9 +4483,12 @@ a.pcard:hover .pcard-img { transform: scale(1.04); }
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(6, 182, 212, 0.12));
 }
 
+/* El chip se apoya DEBAJO de la barra del marco. Antes estaba a 12px del
+   borde y se montaba sobre los tres puntitos y el dominio: medido, se pisaban
+   en los cuatro anchos probados. */
 .pcard-tag {
     position: absolute;
-    top: 12px;
+    top: calc(var(--alto-barra, 26px) + 10px);
     left: 12px;
     z-index: 1;
     padding: 5px 11px;
@@ -4508,4 +4558,120 @@ a.pcard:hover .pcard-link svg { transform: translateX(4px); }
     a.pcard:hover { transform: none; }
     a.pcard:hover .pcard-img { transform: none; }
     a.pcard:hover .pcard-link svg { transform: none; }
+}
+
+/* ==========================================================================
+   Marco de navegador para las capturas
+   --------------------------------------------------------------------------
+   POR QUÉ EN CSS Y NO QUEMADO EN EL .WEBP
+   Se podría abrir cada captura, pegarle un marco y volver a guardarla. No se
+   hizo, por tres motivos:
+
+     1. El marco valdría solo para las capturas de hoy. Cada proyecto nuevo
+        que subas desde el panel saldría sin marco, y habría que acordarse de
+        procesarlo a mano cada vez.
+     2. Volver a guardar un .webp lo vuelve a comprimir: se pierde calidad
+        sin ganar nada.
+     3. Cambiar el estilo del marco obligaría a reprocesar todas las imágenes
+        otra vez. Acá es tocar un par de líneas.
+
+   El resultado en pantalla es el mismo; lo que cambia es que esto se mantiene
+   solo.
+   ========================================================================== */
+.marco-nav {
+    /* El alto de la barra es una variable porque lo necesita también el chip
+       de categoría, que se apoya justo debajo. Con dos números sueltos, uno
+       de los dos se queda viejo. */
+    --alto-barra: 26px;
+
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #11141f;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.9);
+}
+
+.light-theme .marco-nav {
+    background: #e9ebf0;
+    border-color: rgba(15, 23, 42, 0.12);
+    box-shadow: 0 18px 40px -24px rgba(15, 23, 42, 0.45);
+}
+
+/* La barra de arriba. flex-shrink: 0 para que no se aplaste cuando la tarjeta
+   es baja — sin eso, en el mosaico la barra desaparecía y quedaban tres
+   puntitos cortados por la mitad. */
+.marco-nav-barra {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: var(--alto-barra);
+    padding: 0 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.light-theme .marco-nav-barra {
+    background: rgba(15, 23, 42, 0.05);
+    border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
+.marco-nav-punto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    flex-shrink: 0;
+}
+.light-theme .marco-nav-punto { background: rgba(15, 23, 42, 0.16); }
+
+/* La "barra de direcciones". Lleva el dominio real del proyecto: es el detalle
+   que convierte una captura en "esto está publicado y lo podés visitar". */
+.marco-nav-url {
+    flex: 1;
+    margin-left: 6px;
+    padding: 2px 10px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    font-size: 0.64rem;
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.light-theme .marco-nav-url { background: rgba(15, 23, 42, 0.05); }
+
+/* La "pantalla". min-height: 0 porque es un hijo de flex: sin eso se niega a
+   achicarse por debajo del alto de la imagen y desborda el marco. */
+.marco-nav-pantalla {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(6, 182, 212, 0.09));
+}
+
+/* object-position: top — una captura de un sitio se lee desde arriba. Al
+   recortar por el centro se pierde el encabezado, que es justo donde está el
+   logo y el menú del cliente. */
+.marco-nav-pantalla img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+}
+
+@media (max-width: 560px) {
+    /* En pantallas chicas la barra se come demasiado alto de la tarjeta. */
+    .marco-nav, .pcard-img-box { --alto-barra: 20px; }
+    .marco-nav-barra { padding: 0 8px; gap: 5px; }
+    .marco-nav-punto { width: 6px; height: 6px; }
+    .marco-nav-url { font-size: 0.58rem; padding: 1px 8px; }
 }

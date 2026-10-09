@@ -281,7 +281,20 @@ document.addEventListener("DOMContentLoaded", () => {
                             ${demoLinkHTML}
                         </div>
                         <div class="stage-img-box">
-                            <img src="${safeImgSrc}" alt="${safeTitle}" class="stage-img" loading="lazy" decoding="async" onerror="this.style.display='none'">
+                            <!-- Marco de navegador: ver .marco-nav en styles.css. -->
+                            <div class="marco-nav">
+                                <div class="marco-nav-barra" aria-hidden="true">
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-url">${escapeHtml(dominioDeUrl(proj.demoUrl))}</span>
+                                </div>
+                                <div class="marco-nav-pantalla">
+                                    <img src="${safeImgSrc}" alt="Captura del sitio ${safeTitle}" class="stage-img"
+                                         width="1376" height="768" loading="lazy" decoding="async"
+                                         onerror="this.style.display='none'">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -402,6 +415,21 @@ document.addEventListener("DOMContentLoaded", () => {
             // vacío, así que su lista de tarjetas quedó en cero y el efecto de
             // apilado no se aplicaba nunca. Hay que volver a leerla acá.
             recachearApilado();
+    }
+
+    /**
+     * El dominio que se muestra en la barra del marco de navegador.
+     * Sin "https://" ni "www.", como se lee en una barra de verdad. Si la URL
+     * no sirve devuelve vacío: mejor una barra sin texto que una que diga "#".
+     */
+    function dominioDeUrl(url) {
+        try {
+            const u = new URL(String(url));
+            if (!/^https?:$/.test(u.protocol)) return "";
+            return u.hostname.replace(/^www\./, "");
+        } catch {
+            return "";
+        }
     }
 
     function getCategoryLabel(catId) {
@@ -1438,30 +1466,64 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!loader || !typewriterEl) return { finish: () => {} };
 
         const fullText = "Ariel.Dev";
-        let charIdx = 0;
-        const startTime = Date.now();
-        const isMobile = esMovil();
-        const MIN_DISPLAY_TIME = isMobile ? 500 : 700; // 0.5s en móvil / 0.7s en desktop (evita demoras artificiales en iOS)
 
-        const typeInterval = setInterval(() => {
-            if (charIdx <= fullText.length) {
-                typewriterEl.textContent = fullText.slice(0, charIdx);
-                charIdx++;
-            } else {
-                clearInterval(typeInterval);
-            }
-        }, isMobile ? 60 : 80);
+        /**
+         * DOS SEGUNDOS EN TOTAL, contados desde que el visitante pidió la
+         * página — no desde que arrancó este JavaScript.
+         *
+         * La diferencia no es un detalle. Date.now() mide desde que corre
+         * esta función, que es ~600 ms después de la navegación; con
+         * performance.now() los 2000 son 2000 de verdad.
+         */
+        const DURACION_TOTAL = 2000;
 
-        return {
-            finish: () => {
-                const elapsed = Date.now() - startTime;
-                const remaining = Math.max(0, MIN_DISPLAY_TIME - elapsed);
+        // Quien pidió menos movimiento ve el nombre completo, sin tipeo.
+        const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-                setTimeout(() => {
-                    loader.classList.add("hidden-loader");
-                }, remaining);
-            }
+        if (sinMovimiento) {
+            typewriterEl.textContent = fullText;
+        } else {
+            /* 105 ms por carácter. El cálculo: el tipeo arranca a los ~550 ms
+               (lo que tarda en bajar y ejecutarse este módulo), 9 caracteres
+               × 105 ms son ~950 ms, así que el nombre queda completo cerca de
+               los 1,5 s y se lee entero medio segundo antes de que la
+               pantalla se vaya. */
+            let charIdx = 0;
+            const typeInterval = setInterval(() => {
+                if (charIdx <= fullText.length) {
+                    typewriterEl.textContent = fullText.slice(0, charIdx);
+                    charIdx++;
+                } else {
+                    clearInterval(typeInterval);
+                }
+            }, 105);
+        }
+
+        let programado = false;
+
+        /**
+         * Cierra a los 2 s desde el inicio de la navegación — nunca antes.
+         *
+         * El piso vive ACÁ y no en quien llama, porque hay dos caminos que
+         * cierran el loader (init() al terminar, y el temporizador de
+         * seguridad) y los dos tienen que respetarlo.
+         */
+        const cerrar = () => {
+            if (programado) return;
+            programado = true;
+            setTimeout(() => loader.classList.add("hidden-loader"),
+                       Math.max(0, DURACION_TOTAL - performance.now()));
         };
+
+        /* RED DE SEGURIDAD: se cierra solo, pase lo que pase.
+           Medido: con Supabase sin responder, la versión anterior dejaba la
+           pantalla de carga PARA SIEMPRE. No alcanzaba con tener el
+           finish() en un `finally`, porque una petición que queda colgada no
+           resuelve ni falla: el `finally` nunca llega a ejecutarse.
+           Una pantalla de carga no puede depender de que la red conteste. */
+        cerrar();
+
+        return { finish: cerrar };
     }
 
     // ==========================================================================
@@ -1485,6 +1547,17 @@ document.addEventListener("DOMContentLoaded", () => {
         // Cotización del dólar en segundo plano sin demorar la aparición inicial
         fetchDollarRate().catch((e) => console.error("No se pudo cotizar el dólar:", e?.message || e));
 
+        /* La pantalla de carga YA NO ESPERA a que lleguen los proyectos.
+           Esperarlos era el error de fondo: la sección de portfolio tiene su
+           propio cartel de «Cargando proyectos…», así que tapar la página
+           entera mientras tanto no le ahorraba nada al visitante — le
+           escondía el hero, el cotizador y el contacto, que ya estaban
+           listos. Medido con Supabase a 1500 ms: el logo tapaba la página
+           hasta los 3542 ms, con la página pintada desde los 732 ms.
+           Ahora la página aparece a los 2 s y el portfolio se completa a la
+           vista. */
+        preloader.finish();
+
         // Carga de categorías y proyectos del portfolio
         try {
             cachedCategories = await getCategories();
@@ -1492,9 +1565,6 @@ document.addEventListener("DOMContentLoaded", () => {
             await renderPortfolio();
         } catch (e) {
             console.error("No se pudo cargar el portfolio:", e?.message || e);
-        } finally {
-            // Finalizar pantalla de carga tan pronto como el contenido esté listo
-            preloader.finish();
         }
 
         // Redirección de "Beneficios de Tener"
@@ -1885,10 +1955,42 @@ document.addEventListener("DOMContentLoaded", () => {
         // 2. Efecto de aparición al hacer scroll (Intersection Observer)
         const revealElements = document.querySelectorAll('.reveal-on-scroll');
         
+        /**
+         * Suelta la capa de GPU de un elemento cuando termina de aparecer.
+         *
+         * `.reveal-on-scroll` declara `will-change: opacity, transform`, que
+         * le pide al navegador una capa dedicada. La clase nunca se saca, así
+         * que esas capas quedaban reservadas PARA SIEMPRE: medido, 19
+         * elementos las sostenían con la página quieta. will-change es una
+         * pista para una animación que está por pasar, no un ajuste
+         * permanente; sostenerla gasta memoria de video sin dar nada a cambio
+         * y en un celular de gama media se nota.
+         *
+         * Se libera en `transitionend` y no al agregar la clase: si se
+         * quitara en ese momento, se estaría sacando la capa justo cuando
+         * empieza la animación, que es cuando sirve.
+         *
+         * El temporizador es por si `transitionend` no llega nunca — pasa
+         * cuando el elemento está oculto, cuando la persona pidió menos
+         * movimiento, o si alguien cambia la duración de la transición. Sin
+         * él, esos elementos se quedarían con la capa igual que antes.
+         */
+        const liberarCapa = (el) => {
+            let hecho = false;
+            const soltar = () => {
+                if (hecho) return;
+                hecho = true;
+                el.style.willChange = 'auto';
+            };
+            el.addEventListener('transitionend', soltar, { once: true });
+            setTimeout(soltar, 1200);   // la transición dura 0,8 s
+        };
+
         scrollRevealObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('revealed');
+                    liberarCapa(entry.target);
                     
                     // Si es un stat-item, disparar el conteo
                     if (entry.target.classList.contains('stat-item')) {
