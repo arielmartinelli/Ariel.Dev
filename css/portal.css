@@ -1391,3 +1391,168 @@
 .portal-pago-nom { display: grid; line-height: 1.25; min-width: 0; }
 .portal-pago-nom small { font-size: 0.72rem; color: var(--text-muted); }
 .portal-pago b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ==========================================================================
+   Dashboard con pestañas (migración 15)
+   --------------------------------------------------------------------------
+   Celular: la barra es una fila de pestañas que se desliza de costado,
+   pegada arriba mientras se scrollea, y el contenido va debajo.
+   Desde 900px: barra lateral fija a la izquierda y el contenido al lado.
+   ========================================================================== */
+.portal-dash { display: block; }
+
+.portal-nav {
+  position: sticky;
+  top: 60px;
+  z-index: 5;
+  margin: 0 -20px;
+  padding: 8px 20px;
+  background: var(--bg-dark);
+  border-bottom: 1px solid var(--border);
+}
+
+.portal-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.portal-nav ul::-webkit-scrollbar { display: none; }
+.portal-nav li { flex: 0 0 auto; scroll-snap-align: start; }
+
+.portal-nav-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;          /* minimo tactil holgado */
+  padding: 6px 14px 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.portal-nav-btn:hover { background: rgba(255, 255, 255, 0.04); color: var(--text-primary); }
+.portal-nav-btn:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; }
+
+.portal-nav-btn.activo {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.55);
+  color: var(--text-primary);
+}
+
+.portal-nav-ico {
+  display: grid;
+  place-items: center;
+  width: 32px; height: 32px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.portal-nav-btn.activo .portal-nav-ico { background: var(--primary-glow); color: var(--primary-light); }
+
+.portal-nav-txt { display: grid; line-height: 1.2; min-width: 0; }
+.portal-nav-txt b { font-size: 0.9rem; font-weight: 600; white-space: nowrap; }
+.portal-nav-txt small {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+/* Candado: se ve, se puede tocar (explica por qué está cerrada), pero apagada. */
+/* El gris va en --text-secondary y no en --text-muted: este último no
+   llega a 4.5:1 sobre el fondo oscuro. Lo "apagado" lo da el ícono. */
+.portal-nav-btn.bloqueada { color: var(--text-secondary); }
+.portal-nav-btn.bloqueada .portal-nav-ico { opacity: 0.7; }
+
+/* Puntito de "te toca": algo para hacer en esa pestaña. */
+.portal-nav-aviso {
+  position: absolute;
+  top: 7px;
+  left: 33px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px var(--bg-dark);
+}
+
+.portal-panel { outline: none; min-width: 0; }
+.portal-panel > .portal-etapa:first-child { margin-top: var(--e4); }
+
+/* El resumen de la cuenta, dentro de Pagos, va debajo de la tarjeta de pago
+   y sin el sticky que tenía cuando era una columna aparte. */
+.portal-panel .portal-resumen { position: static; }
+.portal-panel .portal-resumen-caja { margin: 0 0 var(--e6); }
+
+.portal-brief {
+  white-space: pre-wrap;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-bottom: var(--e4);
+  max-width: 64ch;
+}
+
+.portal-adjuntar { cursor: pointer; gap: 6px; }
+.portal-adjunto-nombre {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 1em;
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.portal-adjunto-nombre:empty { display: none; }
+
+.portal-cambio .pilar-pdf-chip { margin-top: 6px; }
+
+@media (min-width: 900px) {
+  .portal-main { max-width: 1160px; }
+
+  .portal-dash {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+    margin-top: var(--e3);
+  }
+
+  .portal-nav {
+    top: 84px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+  }
+
+  .portal-nav ul { flex-direction: column; overflow: visible; gap: 4px; }
+  .portal-nav-btn { width: 100%; min-height: 56px; padding: 8px 12px; border-color: transparent; }
+  .portal-nav-btn.activo { border-color: rgba(99, 102, 241, 0.45); }
+  .portal-nav-txt small { max-width: 160px; }
+
+  .portal-panel > .portal-etapa:first-child { margin-top: 0; }
+}
+
+body.light-theme .portal-nav { background: var(--bg-dark); }
+body.light-theme .portal-nav-btn:hover { background: rgba(15, 23, 42, 0.04); }
+body.light-theme .portal-nav-ico { background: rgba(15, 23, 42, 0.05); }
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-nav-btn { transition: none; }
+}
+
+/* Una nota (por ejemplo "ya descontamos tu reserva") justo antes de las
+   opciones de pago quedaba pegada a la primera opción. */
+.portal-etapa-cuerpo .portal-nota + .portal-ops,
+.portal-etapa-cuerpo .portal-nota + .portal-datos { margin-top: var(--e4); }

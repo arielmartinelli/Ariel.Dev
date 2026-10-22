@@ -82,13 +82,21 @@ export default async function handler(req, res) {
     //    service_role, porque la clave publica no tiene acceso a esta tabla.
     const { data: cliente, error: errCliente } = await db
       .from("clients")
-      .select("id, client_name, project_name, price_usd, domain_extra_usd, domain_choice, payment_plan, status, is_active")
+      .select("id, client_name, project_name, price_usd, domain_extra_usd, domain_choice, payment_plan, metodos_pago, status, is_active")
       .eq("access_token", token)
       .maybeSingle();
 
     if (errCliente) throw errCliente;
     if (!cliente || !cliente.is_active) {
       return json(res, 401, { error: "Link inválido o vencido." });
+    }
+
+    // 1b. Ariel puede apagar Mercado Pago para un cliente (migración 15).
+    //     El portal ya no muestra el botón, pero esto es lo que lo hace
+    //     cumplir: el botón se puede forzar desde la consola del navegador.
+    const medios = Array.isArray(cliente.metodos_pago) ? cliente.metodos_pago : null;
+    if (medios && !medios.includes("mercadopago")) {
+      return json(res, 403, { error: "Este proyecto se paga por transferencia. Escribime si necesitás otra opción." });
     }
 
     // 2. El pago tiene que existir y estar pendiente. Esto evita cobrar dos
@@ -100,7 +108,7 @@ export default async function handler(req, res) {
     //    El cliente nunca elige cuál: siempre se paga en orden.
     const { data: filas, error: errPago } = await db
       .from("payments")
-      .select("id, kind, amount_usd, status, concepto")
+      .select("id, kind, amount_usd, status, concepto, cuotas_mp")
       .eq("client_id", cliente.id)
       .eq("kind", kind)
       .order("created_at", { ascending: true });
@@ -116,6 +124,14 @@ export default async function handler(req, res) {
     if (!Number.isFinite(montoUsd) || montoUsd <= 0) {
       return json(res, 409, { error: "El monto de este pago no está definido. Escribime por WhatsApp." });
     }
+
+    // Cuotas: las que fijó Ariel en ese cobro (migración 15) o, si no fijó
+    // nada, las del plan.
+    const cuotasFijadas = Number(pago.cuotas_mp);
+    const cuotasDelPago = pago.cuotas_mp != null && Number.isInteger(cuotasFijadas)
+      && cuotasFijadas >= 1 && cuotasFijadas <= 24
+      ? cuotasFijadas
+      : cuotasPara(kind, cliente.payment_plan);
 
     const cotizacion = await cotizacionUsdArs(cfg.usdArsFallback);
     const montoArs = Math.round(montoUsd * cotizacion);
@@ -164,8 +180,8 @@ export default async function handler(req, res) {
       // promoción activa, Mercado Pago igual ofrece 3 cuotas pero CON
       // interés para el cliente. Ver MANTENIMIENTO.md.
       payment_methods: {
-        installments: cuotasPara(kind, cliente.payment_plan),
-        default_installments: cuotasPara(kind, cliente.payment_plan),
+        installments: cuotasDelPago,
+        default_installments: cuotasDelPago,
       },
       back_urls: {
         success: `${volver}?pago=ok`,

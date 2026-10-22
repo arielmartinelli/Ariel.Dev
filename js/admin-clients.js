@@ -18,6 +18,7 @@ import {
   adminListarTareas, adminAgregarTarea, adminMarcarTarea, adminEliminarTarea,
   adminListarPagos, adminConfigurarPlan, adminRecalcularSaldo,
   adminCrearCobro, adminEditarCobro, adminEliminarCobro,
+  adminGuardarCondiciones, adminGuardarSecciones,
   urlPortal, esUrlDePreview, sitioPublico, ESTADOS, ORDEN_ETAPAS, SIGUIENTE_PASO, ETIQUETA_PAGO,
   PLANES, KINDS_A_CUENTA,
 } from "./clients.js";
@@ -225,6 +226,8 @@ function deQuienEsElTurno(c) {
   if (hayComprobante(c) && ["anticipo_pendiente", "saldo_pendiente"].includes(c.status)) {
     return "ariel";
   }
+  // Una pestaña que el cliente necesita y sigue cerrada: te toca abrirla.
+  if (queTraba(c).tono === "falta") return "ariel";
   return ESTADOS[c.status]?.pelota || "nadie";
 }
 
@@ -285,7 +288,7 @@ function pasosDelFlujo(c) {
         ? "Saldo cobrado y link final a la vista del cliente."
         : c.status === "saldo_pendiente" ? "Esperando el pago del saldo."
         : c.status === "publicando" ? "Te toca subir la página y conectar el dominio."
-        : "El link final aparece cuando se cobra el saldo.",
+        : "El link final lo ve cuando le abrís la pestaña Producción.",
     },
   ];
 }
@@ -298,6 +301,21 @@ function pasosDelFlujo(c) {
  * y "te falta hacer algo" se ven distinto y se actúa distinto.
  */
 function queTraba(c) {
+  // Las pestañas del link las abrís a mano (migración 15). Si el cliente
+  // tiene que hacer algo en una pestaña que sigue cerrada, eso es lo que
+  // frena el proyecto, y te toca a vos.
+  const abierta = (k) => Boolean(c.secciones && c.secciones[k]);
+  if (c.secciones && typeof c.secciones === "object") {
+    const falta = {
+      anticipo_pendiente: !abierta("pagos") && "El cliente aceptó, pero la pestaña Pagos está cerrada: abrísela para que pueda pagar.",
+      en_produccion: !abierta("tareas") && "La pestaña Tareas está cerrada: abrísela para que el cliente pueda cargar sus cambios.",
+      dominio: !abierta("dominio") && "La pestaña Dominio está cerrada: abrísela para que el cliente elija la dirección.",
+      saldo_pendiente: !abierta("pagos") && "La pestaña Pagos está cerrada: abrísela para que el cliente pague el saldo.",
+      finalizado: !abierta("produccion") && "Proyecto cerrado, pero la pestaña Producción está cerrada: abrísela para que vea su página.",
+    }[c.status];
+    if (falta) return { tono: "falta", texto: falta };
+  }
+
   const T = {
     rechazado: ["espera", "El cliente dijo que no continúa. Si se arrepintió, reabrí la decisión acá abajo y volvé a enviarle la demo."],
     demo_pendiente: ["falta", c.demo_url
@@ -480,6 +498,8 @@ function ficha(c) {
         </p>` : ""}
     </div>
 
+    ${bloquePestanas(c)}
+
     ${bloqueFlujo(c)}
 
     <div class="admin-bloque">
@@ -573,6 +593,7 @@ function ficha(c) {
     </div>`;
 
   conectarFicha(cont, c, link);
+  conectarPestanas(cont, c);
   cargarTareas(cont, c);
   cargarPagos(cont, c);
   return cont;
@@ -1033,12 +1054,35 @@ const MEDIO_PAGO = {
   otro: "Otro",
 };
 
-/* Los tres tipos que se cargan a mano. Anticipo, pago total y saldo los
-   genera el plan solo: crearlos a mano duplicaría lo que ya hace la base. */
-const TIPOS_MANUALES = {
-  reserva: "Plata a cuenta del precio, cobrada antes de arrancar. Se descuenta sola del anticipo o del pago total.",
-  cuota: "Una parte del precio. Para armar un plan personalizado (por ejemplo 3 cuotas por transferencia).",
-  otro: "Algo fuera del presupuesto: una sección extra, un logo, un mes de mantenimiento.",
+/* Todos los tipos de cobro, en el orden en que aparecen en el formulario.
+   Anticipo, pago total y saldo normalmente los arma el plan solo, pero se
+   pueden crear o cambiar a mano: es la salida para cualquier acuerdo que
+   no entre en un plan. La base admite UNO de cada uno por cliente. */
+const TIPOS_COBRO = {
+  reserva:  { label: "Reserva — a cuenta del precio",
+              ayuda: "Plata cobrada antes de arrancar. Se descuenta sola del anticipo o del pago total." },
+  anticipo: { label: "Anticipo — para arrancar",
+              ayuda: "El primer pago del plan mitad y mitad. Uno por cliente." },
+  total:    { label: "Pago total — el proyecto completo",
+              ayuda: "El pago único del plan «pago total» o «3 cuotas». Uno por cliente." },
+  cuota:    { label: "Cuota — parte del precio",
+              ayuda: "Para planes acordados a medida, por ejemplo 3 cuotas por transferencia." },
+  saldo:    { label: "Saldo final — lo que falta",
+              ayuda: "El último pago. Uno por cliente: «Recalcular el saldo final» lo arma solo." },
+  otro:     { label: "Extra — fuera del presupuesto",
+              ayuda: "Una sección extra, un logo, un mes de mantenimiento. Se suma aparte del precio." },
+};
+
+/* Cuotas que se le ofrecen al cliente en Mercado Pago. Vacío = las del plan. */
+const OPCIONES_CUOTAS = ["", "1", "3", "6", "9", "12"];
+
+/* Pestañas del link del cliente que abre Ariel a mano (migración 15).
+   Inicio no está: siempre está abierta. */
+const PESTANAS = {
+  tareas:     { label: "Tareas",     ayuda: "La lista de cambios: el cliente puede cargar los suyos." },
+  pagos:      { label: "Pagos",      ayuda: "Plan, cobros pendientes y comprobantes." },
+  dominio:    { label: "Dominio",    ayuda: "Elegir la dirección: la de la demo o un dominio propio." },
+  produccion: { label: "Producción", ayuda: "El link final de la página publicada." },
 };
 
 const dosDigitos = (n) => String(n).padStart(2, "0");
@@ -1062,10 +1106,42 @@ function bloqueCobros(c) {
       ? "Fijado por vos: el cliente lo ve en su link y no puede elegir otro."
       : "Lo eligió el cliente al aceptar la demo.";
 
+  const medios = Array.isArray(c.metodos_pago) ? c.metodos_pago : ["mercadopago", "transferencia"];
+
   return `
     <div class="admin-bloque admin-cobros">
       <label class="admin-bloque-label">Cobros</label>
       <div class="cobros-resumen" data-zona="cobros-resumen" aria-live="polite"></div>
+
+      <div class="cobros-plan cobros-condiciones">
+        <div class="admin-form-grid">
+          <div class="form-group">
+            <label for="cb-precio-${c.id}">Precio del proyecto (USD)</label>
+            <input type="number" id="cb-precio-${c.id}" min="0" step="1" inputmode="decimal"
+                   value="${Number(c.price_usd) || 0}" data-campo="cb-precio">
+          </div>
+          <div class="form-group">
+            <label for="cb-dominio-${c.id}">Dominio propio (USD)</label>
+            <input type="number" id="cb-dominio-${c.id}" min="0" step="1" inputmode="decimal"
+                   value="${Number(c.domain_extra_usd ?? 10)}" data-campo="cb-dominio">
+          </div>
+        </div>
+        <fieldset class="cobros-medios">
+          <legend>Medios de pago que ve el cliente</legend>
+          <label class="cobros-check">
+            <input type="checkbox" data-campo="cb-medio" value="mercadopago" ${medios.includes("mercadopago") ? "checked" : ""}>
+            <span>Mercado Pago</span>
+          </label>
+          <label class="cobros-check">
+            <input type="checkbox" data-campo="cb-medio" value="transferencia" ${medios.includes("transferencia") ? "checked" : ""}>
+            <span>Transferencia</span>
+          </label>
+        </fieldset>
+        <div class="cobros-plan-pie">
+          <p class="admin-hint">Cambiar el precio no toca los cobros ya creados: después usá «Aplicar plan» o «Recalcular el saldo final».</p>
+          <button type="button" class="btn btn-sm btn-outline" data-accion="guardar-condiciones">Guardar condiciones</button>
+        </div>
+      </div>
 
       <div class="cobros-plan">
         <div class="form-group">
@@ -1154,7 +1230,8 @@ function filaCobro(c, p) {
         ? "El cliente abrió el link de Mercado Pago"
         : p.status === "en_revision"
           ? "Subió el comprobante: revisalo en la pestaña Cobros"
-          : `Generado el ${fechaCorta(p.created_at)}`;
+          : `Generado el ${fechaCorta(p.created_at)}${
+              p.cuotas_mp ? ` · MP: ${p.cuotas_mp === 1 ? "1 pago" : `hasta ${p.cuotas_mp} cuotas`}` : ""}`;
 
   fila.innerHTML = `
     <div class="admin-pago-info">
@@ -1210,6 +1287,7 @@ async function dialogoCobro(c, { pago = null, marcarPagado = false } = {}) {
   if (!Swal) return;
 
   const nuevo = !pago;
+  const kindInicial = pago?.kind || "reserva";
   const estadoInicial = marcarPagado ? "pagado" : pago?.status || "pagado";
   const estados = ["pendiente", "pagado"].concat(
     pago && !["pendiente", "pagado"].includes(pago.status) ? [pago.status] : []);
@@ -1229,17 +1307,15 @@ async function dialogoCobro(c, { pago = null, marcarPagado = false } = {}) {
     width: 520,
     html: `
       <div class="cobro-form">
-        ${nuevo ? `
-          <label class="cobro-campo">
-            <span>Tipo</span>
-            <select id="cf-kind">
-              <option value="reserva">Reserva — a cuenta del precio</option>
-              <option value="cuota">Cuota — parte del precio</option>
-              <option value="otro">Extra — fuera del presupuesto</option>
-            </select>
-          </label>
-          <p class="cobro-form-ayuda" id="cf-kind-ayuda">${escapeHtml(TIPOS_MANUALES.reserva)}</p>`
-        : `<p class="cobro-form-tipo">${escapeHtml(ETIQUETA_PAGO[pago.kind] || pago.kind)} · ${escapeHtml(c.project_name)}</p>`}
+        ${nuevo ? "" : `<p class="cobro-form-tipo">${escapeHtml(c.project_name)}</p>`}
+        <label class="cobro-campo">
+          <span>Tipo</span>
+          <select id="cf-kind">${Object.entries(TIPOS_COBRO).map(([k, t]) =>
+            `<option value="${k}" ${k === kindInicial ? "selected" : ""}>${escapeHtml(t.label)}</option>`).join("")}
+            ${TIPOS_COBRO[kindInicial] ? "" : `<option value="${escapeHtml(kindInicial)}" selected>${escapeHtml(ETIQUETA_PAGO[kindInicial] || kindInicial)}</option>`}
+          </select>
+        </label>
+        <p class="cobro-form-ayuda" id="cf-kind-ayuda">${escapeHtml(TIPOS_COBRO[kindInicial]?.ayuda || "")}</p>
 
         <label class="cobro-campo">
           <span>Concepto <small>(lo ve el cliente)</small></span>
@@ -1270,6 +1346,14 @@ async function dialogoCobro(c, { pago = null, marcarPagado = false } = {}) {
             <input id="cf-fecha" type="date" value="${fechaDeIso(pago?.paid_at)}" max="${aInputFecha(new Date())}">
           </label>
         </div>
+
+        <label class="cobro-campo">
+          <span>Cuotas en Mercado Pago</span>
+          <select id="cf-cuotas">${OPCIONES_CUOTAS.map((n) =>
+            `<option value="${n}" ${String(pago?.cuotas_mp ?? "") === n ? "selected" : ""}>${
+              n === "" ? "Las del plan (3 en «3 cuotas», 1 en el resto)" : n === "1" ? "1 pago" : `Hasta ${n} cuotas`}</option>`).join("")}
+          </select>
+        </label>
         ${aviso}
       </div>`,
     showCancelButton: true,
@@ -1283,10 +1367,11 @@ async function dialogoCobro(c, { pago = null, marcarPagado = false } = {}) {
       const sincronizar = () => { datos.hidden = estado.value !== "pagado"; };
       estado.addEventListener("change", sincronizar);
       kind?.addEventListener("change", () => {
-        ayuda.textContent = TIPOS_MANUALES[kind.value];
-        // Una reserva casi siempre se carga cuando ya entró la plata; una
-        // cuota o un extra, cuando todavía hay que cobrarlos.
-        estado.value = kind.value === "reserva" ? "pagado" : "pendiente";
+        ayuda.textContent = TIPOS_COBRO[kind.value]?.ayuda || "";
+        // Solo al CREAR: una reserva casi siempre se carga cuando ya entró la
+        // plata; el resto, cuando todavía hay que cobrarlo. Al editar, cambiar
+        // el tipo no toca el estado que ya tenía.
+        if (nuevo) estado.value = kind.value === "reserva" ? "pagado" : "pendiente";
         sincronizar();
       });
       sincronizar();
@@ -1305,6 +1390,7 @@ async function dialogoCobro(c, { pago = null, marcarPagado = false } = {}) {
         estado: document.getElementById("cf-estado").value,
         medio: document.getElementById("cf-medio").value,
         fecha: document.getElementById("cf-fecha").value,
+        cuotas: document.getElementById("cf-cuotas").value,
       };
     },
   });
@@ -1315,11 +1401,12 @@ async function dialogoCobro(c, { pago = null, marcarPagado = false } = {}) {
     ? await adminCrearCobro(c.id, {
         kind: value.kind, concepto: value.concepto, montoUsd: value.monto,
         pagado: value.estado === "pagado", method: value.medio, fecha: value.fecha,
+        cuotasMp: value.cuotas,
       })
     : await adminEditarCobro(pago, {
-        montoUsd: value.monto, status: value.estado, concepto: value.concepto,
+        kind: value.kind, montoUsd: value.monto, status: value.estado, concepto: value.concepto,
         method: value.estado === "pagado" ? value.medio : (value.estado === "pendiente" ? null : pago.method),
-        fecha: value.fecha,
+        fecha: value.fecha, cuotasMp: value.cuotas,
       });
 
   if (!res.ok) {
@@ -1327,7 +1414,10 @@ async function dialogoCobro(c, { pago = null, marcarPagado = false } = {}) {
     return;
   }
 
-  const avisos = value.kind === "reserva" ? await recalcularInicio(c) : [];
+  // Una reserva cambia el monto del cobro inicial: se recalcula. Si se
+  // convirtió una reserva en otra cosa (o al revés), también.
+  const tocoReserva = value.kind === "reserva" || pago?.kind === "reserva";
+  const avisos = tocoReserva ? await recalcularInicio(c) : [];
   await recargar();
 
   const texto = nuevo
@@ -1363,8 +1453,105 @@ async function eliminarCobro(c, p) {
     avisos.length ? "info" : "success");
 }
 
+/* ==========================================================================
+   Pestañas del link del cliente (migración 15)
+   --------------------------------------------------------------------------
+   El portal del cliente es un dashboard con cinco pestañas: Inicio, Tareas,
+   Pagos, Dominio y Producción. Inicio está siempre abierta; las otras cuatro
+   las abrís vos acá, cuando corresponde. Mientras están cerradas el cliente
+   las ve con candado.
+
+   Cada interruptor guarda al instante: no hace falta «Guardar cambios».
+   ========================================================================== */
+const seccionesDe = (c) => ({
+  tareas: false, pagos: false, dominio: false, produccion: false,
+  ...(c.secciones && typeof c.secciones === "object" ? c.secciones : {}),
+});
+
+function bloquePestanas(c) {
+  const s = seccionesDe(c);
+  return `
+    <div class="admin-bloque admin-pestanas">
+      <label class="admin-bloque-label">Pestañas del link del cliente</label>
+      <p class="admin-hint">Inicio (demo, propuesta y presupuesto) siempre está abierta. Las demás las abrís vos: mientras tanto el cliente las ve con candado.</p>
+      <div class="pestanas-lista">
+        ${Object.entries(PESTANAS).map(([k, p]) => `
+          <label class="pestana-switch">
+            <input type="checkbox" role="switch" data-pestana="${k}" ${s[k] ? "checked" : ""}
+                   aria-describedby="pst-${k}-${c.id}">
+            <span class="pestana-switch-ui" aria-hidden="true"></span>
+            <span class="pestana-switch-txt">
+              <b>${escapeHtml(p.label)}</b>
+              <small id="pst-${k}-${c.id}">${escapeHtml(p.ayuda)}</small>
+            </span>
+          </label>`).join("")}
+      </div>
+    </div>`;
+}
+
+function conectarPestanas(ficha, c) {
+  ficha.querySelectorAll("[data-pestana]").forEach((input) => {
+    input.addEventListener("change", async () => {
+      const nuevas = { ...seccionesDe(c), [input.dataset.pestana]: input.checked };
+      const lista = ficha.querySelectorAll("[data-pestana]");
+      lista.forEach((i) => { i.disabled = true; });
+
+      const res = await adminGuardarSecciones(c.id, nuevas);
+      lista.forEach((i) => { i.disabled = false; });
+
+      if (!res.ok) {
+        input.checked = !input.checked;   // la base no lo guardó: se vuelve atrás
+        avisar("No se pudo cambiar", res.error, "error");
+        return;
+      }
+      c.secciones = nuevas;
+      const nombre = PESTANAS[input.dataset.pestana].label;
+      // Sin cartel modal: el interruptor ya muestra el estado, y abrir tres
+      // pestañas seguidas no tiene por qué costar tres clicks de "OK".
+      anunciar(`${nombre} ${input.checked ? "habilitada" : "bloqueada"} para el cliente.`);
+      const txt = input.closest(".pestana-switch")?.querySelector("small");
+      if (txt) {
+        txt.textContent = input.checked ? "Abierta: el cliente ya la ve." : "Con candado para el cliente.";
+        setTimeout(() => { txt.textContent = PESTANAS[input.dataset.pestana].ayuda; }, 2500);
+      }
+    });
+  });
+}
+
 function conectarCobros(ficha, c) {
   const accion = (n) => ficha.querySelector(`[data-accion="${n}"]`);
+
+  accion("guardar-condiciones").addEventListener("click", async (e) => {
+    const precio = Number(ficha.querySelector('[data-campo="cb-precio"]').value);
+    const dominio = Number(ficha.querySelector('[data-campo="cb-dominio"]').value);
+    const metodos = [...ficha.querySelectorAll('[data-campo="cb-medio"]:checked')].map((i) => i.value);
+
+    if (!Number.isFinite(precio) || precio < 0 || !Number.isFinite(dominio) || dominio < 0) {
+      avisar("Revisá los montos", "El precio y el dominio tienen que ser números mayores o iguales a cero.", "warning");
+      return;
+    }
+    if (metodos.length === 0) {
+      avisar("Elegí un medio de pago", "El cliente tiene que tener al menos una forma de pagar.", "warning");
+      return;
+    }
+
+    const b = e.currentTarget;
+    b.disabled = true;
+    const res = await adminGuardarCondiciones(c.id, { precioUsd: precio, dominioUsd: dominio, metodos });
+    b.disabled = false;
+    if (!res.ok) {
+      avisar("No se pudo guardar", res.error, "error");
+      return;
+    }
+    await recargar();
+
+    const cambioPrecio = Number(c.price_usd) !== precio || Number(c.domain_extra_usd ?? 10) !== dominio;
+    avisar("Condiciones guardadas",
+      cambioPrecio
+        ? "Los cobros que ya existían no cambiaron. Para que tomen el precio nuevo usá «Aplicar plan» (cobro inicial) o «Recalcular el saldo final», o editalos a mano."
+        : "El cliente ya ve los medios de pago nuevos en su link.",
+      cambioPrecio ? "info" : "success");
+  });
 
   accion("aplicar-plan").addEventListener("click", async (e) => {
     const plan = ficha.querySelector('[data-campo="plan"]').value;

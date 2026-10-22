@@ -102,7 +102,7 @@ for (const ancho of [390, 1280]) {
       return { ...malos,
         iconos: document.querySelectorAll("svg.pico").length,
         desborde: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        etapaVisible: (document.getElementById("pc-etapa")?.textContent || "").trim().slice(0, 42) };
+        etapaVisible: (document.getElementById("pc-panel")?.textContent || "").trim().slice(0, 42) };
     });
 
     for (const c of await p.evaluate(CONTRASTE))

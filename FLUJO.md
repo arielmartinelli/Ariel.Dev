@@ -505,3 +505,72 @@ plan.
   del resumen del panel, que «Agregar» y «Editar» manden a la base exactamente
   lo cargado, y los cinco casos nuevos del portal.
 - `pruebas/verificar-mp.mjs`: 3 cuotas para `cuotas3`, 1 pago para `unico`.
+
+---
+
+## Link del cliente en pestañas (migración 15)
+
+Correr `supabase/migracion-15-portal-pestanas.sql` **después** de la 14. Tiene
+que devolver **9 ✅**. Se puede correr dos veces: la segunda no pisa las
+pestañas que abriste o cerraste a mano.
+
+### Qué ve el cliente
+
+Un dashboard: arriba el saludo y el avance, abajo una barra con cinco
+pestañas (al costado en la computadora, arriba y deslizable en el celular).
+
+| Pestaña | Qué tiene | ¿Quién la abre? |
+|---|---|---|
+| **Inicio** | en qué está el proyecto, la demo, propuesta, presupuesto y descripción | siempre abierta |
+| **Tareas** | la lista de cambios y el campo para sumar (con PDF) | vos, a mano |
+| **Pagos** | lo que hay que pagar ahora, la cuenta completa, «Tus pagos» y comprobantes | vos, a mano |
+| **Dominio** | elegir o corregir la dirección | vos, a mano |
+| **Producción** | el link final de la página | vos, a mano |
+
+Una pestaña cerrada se ve con **candado** y «Próximamente»; si la toca, le
+explica qué va a encontrar ahí y que le avisás cuando la abras. Un puntito
+naranja marca la pestaña donde tiene algo para hacer, y el portal abre
+directo esa. `#pagos`, `#tareas`, etc. al final del link abren esa pestaña.
+
+### Qué manejás desde el panel
+
+- **Pestañas del link del cliente**: cuatro interruptores, guardan al tocar.
+- **Condiciones** (en Cobros): precio, costo del dominio propio y **medios de
+  pago** que ve el cliente (Mercado Pago, transferencia o los dos).
+- **Cada cobro**: tipo (reserva, anticipo, pago total, cuota, saldo o extra),
+  concepto, monto, estado, medio, fecha y **cuotas de Mercado Pago** (1 a 12;
+  vacío = las del plan).
+
+### Solo a mano, a propósito
+
+Nada abre una pestaña solo: si el cliente paga el anticipo un domingo a la
+noche, el proyecto pasa a producción pero **Tareas sigue cerrada** hasta que
+la abras. Para que no se te pase, el bloque «Flujo del proyecto» te avisa en
+ámbar («te toca a vos») cuando el cliente necesita una pestaña que sigue
+cerrada.
+
+Los proyectos que ya estaban en marcha al correr la migración arrancan con
+las pestañas de su etapa abiertas, para que nadie pierda lo que ya veía.
+
+### Lo hace cumplir la base, no la pantalla
+
+- Cargar un cambio exige **Tareas** abierta (`portal_pedir_cambio`).
+- Elegir el dominio exige **Dominio** abierta (`portal_elegir_dominio`). Si la
+  abriste antes de tiempo, elegir guarda la dirección pero **no** saltea la
+  producción: el flujo pasa a «publicando» solo desde la etapa «dominio».
+- El link final viaja solo con **Producción** abierta o el proyecto
+  finalizado (`portal_obtener`).
+- Con Mercado Pago apagado para ese cliente, `api/mp-crear-preferencia`
+  responde 403 aunque alguien fuerce el botón desde la consola.
+
+### Qué se verificó
+
+- Postgres 16 con las 15 migraciones: los candados de cada acción, que elegir
+  dominio durante la producción no salte etapas, que el link final aparezca
+  recién con Producción abierta y que no se pueda dejar a un cliente sin
+  ningún medio de pago.
+- Chromium a 390 y 1280 px (`pruebas/verificar-pagos.mjs`): diez casos del
+  portal (incluidos candado, tocar una pestaña, solo transferencia, dominio
+  elegido y link final) y, en el panel, que los interruptores y los medios de
+  pago manden a la base exactamente lo elegido.
+- `pruebas/verificar-mp.mjs`: cuotas fijadas en el cobro y 403 con MP apagado.

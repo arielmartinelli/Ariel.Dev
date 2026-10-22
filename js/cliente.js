@@ -12,10 +12,15 @@
  *  - Todo lo que se muestra viene de funciones RPC que validan el token en el
  *    servidor. El navegador no filtra nada: no tiene acceso a filtrar.
  *
- * ESTRUCTURA: UNA TARJETA POR ETAPA
- * ---------------------------------
- * El portal muestra el saludo, el avance, el riel de 5 pasos y UNA sola
- * tarjeta: la de la etapa en la que esta el proyecto. Nada mas.
+ * ESTRUCTURA: UN DASHBOARD CON PESTAÑAS (migración 15)
+ * ----------------------------------------------------
+ * Arriba el saludo y el avance. Abajo, una barra lateral con cinco
+ * pestañas — Inicio, Tareas, Pagos, Dominio y Producción — y el contenido
+ * de la elegida. Inicio está siempre abierta; las otras cuatro las habilita
+ * Ariel A MANO desde su panel, y mientras tanto se ven con candado.
+ *
+ * Dentro de cada pestaña sigue valiendo la regla de antes: cada pieza
+ * devuelve su propio HTML entero (ver ETAPAS).
  *
  * Antes todos los bloques vivian en el HTML y se mostraban u ocultaban con
  * `hidden`. Con 9 etapas eso se vuelve inmanejable: cada bloque nuevo hay que
@@ -103,7 +108,7 @@ let datos = null;            // ultimo estado traido del servidor
 let comprobanteBase64 = "";  // imagen ya comprimida, lista para enviar
 let metodoElegido = "mercadopago";
 let cotizacionDolar = 1350;  // respaldo por si falla la red
-let pasoVista = null;        // null = ver paso activo en vivo; number (0-4) = inspeccionar historial
+let pestanaActiva = null;    // la que eligió el cliente; null = la que corresponde a la etapa
 
 async function cargarCotizacionDolar() {
   try {
@@ -146,56 +151,6 @@ function mostrarVista(cual) {
    SVG dibujados, no emojis: un emoji cambia de forma en cada sistema
    operativo y no hereda el color del texto.
    ========================================================================== */
-
-/* ==========================================================================
-   El riel de 5 pasos
-   ========================================================================== */
-const PASOS = ["Demo", "Anticipo", "Cambios", "Dominio", "Entrega"];
-
-/** En qué paso del riel cae cada una de las 9 etapas. */
-const PASO_DE = {
-  demo_pendiente: 0,
-  demo_lista: 0,
-  anticipo_pendiente: 1,
-  en_produccion: 2,
-  dominio: 3,
-  publicando: 4,
-  saldo_pendiente: 4,
-  finalizado: 4,
-  rechazado: -1,
-};
-
-function pintarPasos(status) {
-  const activo = PASO_DE[status] ?? -1;
-  const terminado = status === "finalizado";
-  const pasoVisualizado = pasoVista !== null ? pasoVista : (terminado ? 4 : activo);
-
-  $("pc-pasos").innerHTML = PASOS.map((t, i) => {
-    const hecho = terminado || (activo >= 0 && i < activo);
-    const esPasoActivoReal = !terminado && i === activo;
-    const esSeleccionado = i === pasoVisualizado;
-
-    const esClickeable = i <= activo || hecho;
-    const claseHecho = hecho ? "hecho" : "";
-    const claseActivo = esSeleccionado ? "activo" : "";
-    const claseClickeable = esClickeable ? "clickeable" : "";
-
-    const marca = hecho ? ico("check", "pico pico-sm") : String(i + 1);
-
-    const subTexto = esPasoActivoReal && pasoVista !== null && pasoVista !== activo
-      ? `<small class="paso-nota paso-nota-curso">${ico("punto", "pico pico-xs")} en curso</small>`
-      : hecho && !esSeleccionado
-      ? `<small class="paso-nota paso-nota-listo">${ico("check", "pico pico-xs")} listo</small>`
-      : '';
-
-    return `<li class="portal-paso ${claseHecho} ${claseActivo} ${claseClickeable}"
-                ${esSeleccionado ? 'aria-current="step"' : ""}
-                ${esClickeable ? `data-accion="ver-paso" data-paso="${i}" role="button" tabindex="0" title="Tocá para ver ${t}"` : ""}>
-              <span class="portal-paso-n">${marca}</span>
-              <span class="portal-paso-t">${t}${subTexto}</span>
-            </li>`;
-  }).join("");
-}
 
 /* ==========================================================================
    Documentos del proyecto
@@ -360,7 +315,11 @@ function tarjetaPago({ kind, titulo, bajada, monto, detalle, pago }) {
     });
   }
 
-  const esTransferencia = metodoElegido === "transferencia";
+  // Medios que Ariel habilitó para este cliente (migración 15). Si hay uno
+  // solo, no se ofrece elegir: se muestra directamente ese.
+  const medios = metodosDe(datos);
+  const soloUno = medios.length === 1;
+  const esTransferencia = soloUno ? medios[0] === "transferencia" : metodoElegido === "transferencia";
 
   return tarjeta({
     icono: "tarjeta", titulo, bajada,
@@ -374,7 +333,7 @@ function tarjetaPago({ kind, titulo, bajada, monto, detalle, pago }) {
           </p>
         </div>`}
 
-      <div class="portal-ops" role="radiogroup" aria-label="Forma de pago">
+      ${soloUno ? "" : `<div class="portal-ops" role="radiogroup" aria-label="Forma de pago">
         <label class="portal-op">
           <input type="radio" name="metodo" value="mercadopago" data-accion="metodo" ${esTransferencia ? "" : "checked"}>
           <span class="portal-op-marca" aria-hidden="true"></span>
@@ -387,7 +346,7 @@ function tarjetaPago({ kind, titulo, bajada, monto, detalle, pago }) {
           <span class="portal-op-txt"><b>Transferencia Bancaria / Mercado Pago</b>
             <small>Transferís en pesos (${escapeHtml(ars(monto))}) o USD y subís la foto del comprobante.</small></span>
         </label>
-      </div>
+      </div>`}
 
       ${esTransferencia
         ? bloqueTransferencia(kind, monto)
@@ -485,8 +444,6 @@ function cobroInicial(d) {
   return pagoDe(["cuotas3", "unico"].includes(plan) ? "total" : "anticipo");
 }
 
-/** Cobros pendientes que no son el de la etapa: cuotas, extras. */
-const KINDS_SUELTOS = ["cuota", "otro", "reserva", "dominio", "anticipo", "total"];
 
 /* ==========================================================================
    Una función por etapa
@@ -629,6 +586,9 @@ const ETAPAS = {
     const totalUsd = Number(d.total_usd) || 0;
     const reserva = pagadoDe(["reserva"]);
     const enCuotas = plan === "cuotas3" && pago.kind === "total";
+    // Cuotas de MP: las que fijó Ariel en el cobro o, si no, las del plan.
+    const nCuotas = Number(pago.cuotas_mp) || (enCuotas ? 3 : 1);
+    const conMp = metodosDe(d).includes("mercadopago");
 
     const titulo =
       pago.kind === "anticipo" ? "Anticipo para arrancar"
@@ -659,7 +619,7 @@ const ETAPAS = {
             ≡ ${escapeHtml(ars(monto))}
             <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); margin-left: 6px;">(Cotización Dólar hoy: $${cotizacionDolar.toLocaleString("es-AR")} ARS/USD)</span>
           </p>
-          ${enCuotas ? `<p class="portal-cuotas-hint">3 cuotas de ${escapeHtml(usd(monto / 3))} · ${escapeHtml(ars(monto / 3))} cada una</p>` : ""}
+          ${conMp && nCuotas > 1 ? `<p class="portal-cuotas-hint">Con tarjeta en Mercado Pago: hasta ${nCuotas} cuotas de ${escapeHtml(usd(monto / nCuotas))} · ${escapeHtml(ars(monto / nCuotas))}</p>` : ""}
         </div>
         ${reserva > 0 ? nota(`Ya descontamos tu reserva de <strong>${escapeHtml(usd(reserva))}</strong>.`, "ok", "check") : ""}`,
       pago,
@@ -713,8 +673,10 @@ const ETAPAS = {
 
     return tarjeta({
       icono: "globo",
-      titulo: "Elegí la dirección de tu página",
-      bajada: "Ya están todos los cambios hechos. Falta decidir con qué dirección va a quedar publicada.",
+      titulo: d.domain_choice ? "La dirección de tu página" : "Elegí la dirección de tu página",
+      bajada: d.domain_choice
+        ? `Elegiste ${propio ? `<strong>${escapeHtml(dominioActual || "un dominio propio")}</strong>` : "la dirección que ya tiene"}. Si querés cambiarla, elegí otra y confirmá.`
+        : "Decidí con qué dirección va a quedar publicada tu página.",
       cuerpo: `
         <div class="portal-ops" role="radiogroup" aria-label="Dirección de la página">
           <label class="portal-op">
@@ -844,7 +806,9 @@ const ETAPAS = {
             <div><b>${escapeHtml(visible)}</b><small>Publicada y funcionando</small></div>
             <a class="btn btn-exito" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">Abrir mi página</a>
           </div>` : ""}
-        ${nota(`Pagos al día: ${escapeHtml(usd(cobrado))} (${ars(cobrado)}) de ${escapeHtml(usd(d.total_usd))}.`, "ok", "check")}
+        ${(d.pagos || []).some((p) => p.status !== "pagado")
+          ? nota(`Pagaste ${escapeHtml(usd(cobrado))} (${ars(cobrado)}). Te queda un pago pendiente en la pestaña Pagos.`, "warn", "alerta")
+          : nota(`Pagos al día: ${escapeHtml(usd(cobrado))} (${ars(cobrado)}).`, "ok", "check")}
         ${nota("¿Querés sumar algo más adelante? Escribime y lo vemos.", "", "wa")}`,
     });
   },
@@ -862,171 +826,6 @@ const ETAPAS = {
         </a>
       </div>`,
   }),
-};
-
-/* ==========================================================================
-   Historial navegable de pasos anteriores
-   --------------------------------------------------------------------------
-   Permite al cliente hacer clic en cualquier paso completado (Demo, Anticipo,
-   Cambios, Dominio, Entrega) para consultar su historial, recuperar el enlace
-   de la demo, verificar que el anticipo figura pagado, etc.
-   ========================================================================== */
-const ETAPAS_HISTORIAL = {
-  // Paso 0: Demo
-  0: (d) => {
-    const link = safeUrl(d.demo_url, "");
-    return tarjeta({
-      icono: "ojo", tono: "listo",
-      titulo: "Paso 1: Demo del proyecto (Aprobada)",
-      bajada: "Esta fue la versión previa de prueba que revisaste y confirmaste.",
-      cuerpo: `
-        ${link ? `
-          <div class="portal-acciones">
-            <a class="btn btn-outline" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">
-              ${ico("ojo", "pico pico-sm")} Ver la demo
-            </a>
-          </div>
-          <p class="portal-url">${escapeHtml(d.demo_url || "")}</p>` : ""}
-        ${nota("Demo aprobada y confirmada. El proyecto continuó a la fase de desarrollo.", "ok", "check")}
-        <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
-          <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="reabrir_demo" data-nombre-paso="Demo">
-            ↺ Retomar proyecto desde la Demo
-          </button>
-          <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Volver al paso en curso
-          </button>
-        </div>`,
-    });
-  },
-
-  // Paso 1: Pago inicial (anticipo, pago total, reserva o primera cuota)
-  1: (d) => {
-    const iniciales = (d.pagos || []).filter((p) => A_CUENTA.includes(p.kind) && p.status === "pagado");
-    const monto = iniciales.reduce((a, p) => a + Number(p.amount_usd || 0), 0);
-    const ultimo = iniciales[iniciales.length - 1];
-    const fechaPago = ultimo?.paid_at ? fecha(ultimo.paid_at) : "registrado";
-    const nombres = iniciales.map(nombrePago).join(" + ") || "Pago inicial";
-
-    return tarjeta({
-      icono: "tarjeta", tono: "listo",
-      titulo: "Paso 2: Pago inicial (Pagado)",
-      bajada: "El pago para arrancar fue recibido y confirmado correctamente.",
-      cuerpo: `
-        <div class="portal-espera" style="border-color: rgba(34, 197, 94, 0.35); background: rgba(34, 197, 94, 0.06); text-align: left; padding: 20px 24px; justify-content: space-between; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 16px;">
-          <div>
-            <strong class="portal-hito-ok">${ico("checkCirculo", "pico")} ${escapeHtml(nombres)} acreditado</strong>
-            <small style="color: var(--text-secondary); font-size: 0.92rem; margin-top: 4px; display: block;">
-              ${usd(monto)} (${ars(monto)}) · Acreditado (${fechaPago})
-            </small>
-          </div>
-          <span style="background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 5px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700;">
-            Pagado
-          </span>
-        </div>
-        ${nota("Pago registrado correctamente. Con este paso abonado se habilitó el desarrollo y la lista de cambios.", "ok", "check")}
-        <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
-          <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="volver_anticipo" data-nombre-paso="Anticipo">
-            ↺ Retomar paso de Anticipo
-          </button>
-          <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Volver al paso en curso
-          </button>
-        </div>`,
-    });
-  },
-
-  // Paso 2: Cambios
-  2: (d) => {
-    const tareas = d.tareas || [];
-    const hechas = tareas.filter((t) => t.done).length;
-
-    const lista = tareas.length
-      ? `<ul class="portal-cambios">
-          ${tareas.map((t) => `
-            <li class="portal-cambio ok">
-              <span class="portal-cambio-est">${ico("check", "pico pico-sm")}</span>
-              <div><p>${escapeHtml(t.title)}</p>
-                <small>Listo${t.source === "cliente" ? " · lo pediste vos" : ""}</small></div>
-            </li>`).join("")}
-        </ul>`
-      : `<p class="portal-vacio">Se completó la producción del proyecto sin cambios pendientes.</p>`;
-
-    return tarjeta({
-      icono: "lista", tono: "listo",
-      titulo: "Paso 3: Lista de Cambios (Completados)",
-      bajada: `Resumen de las ${hechas} tareas ajustadas y completadas en tu página.`,
-      cuerpo: `
-        ${lista}
-        ${nota("Todos los cambios fueron completados y validados satisfactoriamente.", "ok", "check")}
-        <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
-          <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="volver_cambios" data-nombre-paso="Cambios">
-            ↺ Retomar paso de Cambios
-          </button>
-          <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Volver al paso en curso
-          </button>
-        </div>`,
-    });
-  },
-
-  // Paso 3: Dominio
-  3: (d) => {
-    const propio = d.domain_choice === "propio";
-    const nombreDom = d.domain_name || "";
-    const demoUrl = (d.demo_url || "").replace(/^https?:\/\//, "");
-
-    return tarjeta({
-      icono: "globo", tono: "listo",
-      titulo: "Paso 4: Dirección web (Confirmada)",
-      bajada: "Dirección seleccionada y configurada para publicar tu sitio.",
-      cuerpo: `
-        <div class="portal-datos" style="margin-bottom: 16px;">
-          <div class="portal-dato">
-            <span><small>Modalidad</small><b>${propio ? "Dominio Propio" : "Dirección incluida"}</b></span>
-          </div>
-          <div class="portal-dato">
-            <span><small>Dirección configurada</small><b style="color: #4ade80;">${escapeHtml(propio ? nombreDom : demoUrl)}</b></span>
-          </div>
-        </div>
-        ${nota("Dirección confirmada y lista para la publicación.", "ok", "check")}
-        <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
-          <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="volver_dominio" data-nombre-paso="Dominio">
-            ↺ Retomar paso de Dominio
-          </button>
-          <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg> Volver al paso en curso
-          </button>
-        </div>`,
-    });
-  },
-
-  // Paso 4: Entrega
-  4: (d) => {
-    const pago = pagoDe("saldo");
-    const pagado = pago?.status === "pagado" || d.status === "finalizado";
-    const prod = safeUrl(d.production_url, "");
-
-    if (pagado && prod) {
-      return ETAPAS.finalizado(d);
-    }
-
-    if (pago?.status === "pagado") {
-      return tarjeta({
-        icono: "check", tono: "listo",
-        titulo: "Paso 5: Saldo del proyecto (Abonado)",
-        bajada: "El pago del saldo final fue acreditado correctamente.",
-        cuerpo: `
-          ${nota(`Saldo pagado: ${escapeHtml(usd(pago.amount_usd))} (${ars(pago.amount_usd)}).`, "ok", "check")}
-          <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
-            <button type="button" class="btn btn-primary btn-sm" data-accion="volver-paso-actual">
-              ← Volver al paso en curso
-            </button>
-          </div>`,
-      });
-    }
-
-    return ETAPAS[d.status] ? ETAPAS[d.status](d) : ETAPAS.saldo_pendiente(d);
-  },
 };
 
 /* ==========================================================================
@@ -1106,9 +905,6 @@ function panelResumen(d) {
   const resta = Math.max(0, total - pagado);
   const plan = PLAN_TXT[d.payment_plan];
 
-  const demo = safeUrl(d.demo_url, "");
-  const prod = safeUrl(d.production_url, "");
-
   const filas = [
     { label: extras > 0 ? "Presupuesto + extras" : "Presupuesto", usdVal: usd(total), arsVal: ars(total) },
     { label: "Pagado", usdVal: usd(pagado), arsVal: ars(pagado) },
@@ -1124,7 +920,7 @@ function panelResumen(d) {
 
   return `
     <div class="portal-resumen-caja">
-      <h3>Tu proyecto</h3>
+      <h3>Tu cuenta</h3>
       <p class="portal-resumen-nombre">${escapeHtml(d.project_name || "")}</p>
 
       <dl class="portal-resumen-datos">
@@ -1143,152 +939,346 @@ function panelResumen(d) {
 
       ${listaDePagos(pagos)}
 
-      ${prod ? `
-        <a class="portal-resumen-link" href="${escapeHtml(prod)}" target="_blank" rel="noopener noreferrer">
-          ${ico("globo", "pico pico-sm")} Ver mi página
-        </a>` : demo ? `
-        <a class="portal-resumen-link" href="${escapeHtml(demo)}" target="_blank" rel="noopener noreferrer">
-          ${ico("ojo", "pico pico-sm")} Ver la demo
-        </a>` : ""}
-
-      ${botonDocumento(d, "propuesta", "portal-resumen-link")}
-      ${botonDocumento(d, "presupuesto", "portal-resumen-link")}
-      ${botonDocumento(d, "descripcion", "portal-resumen-link")}
-
       ${bloqueComprobantes(d)}
 
-      <a class="portal-resumen-link solo-ancho" target="_blank" rel="noopener noreferrer"
-         href="${escapeHtml(enlaceWhatsApp(`Hola Ariel! Te escribo por "${d.project_name || "mi proyecto"}".`))}">
-        ${ico("wa", "pico pico-sm")} Escribirme
-      </a>
     </div>`;
 }
 
-function panelPilares(d) {
-  const demoUrl = safeUrl(d.demo_url, "");
-  const brief = d.project_brief || "";
-  const tareas = d.tareas || [];
-  const hechas = tareas.filter((t) => t.done).length;
-  const pct = tareas.length ? Math.round((hechas / tareas.length) * 100) : 0;
-
-  // 1. Tarjeta Demo
-  const cardDemo = `
-    <div class="pilar-card">
-      <div class="pilar-card-head">
-        <span class="pilar-ico pilar-ico-demo">${ico("ojo")}</span>
-        <div>
-          <h3 class="pilar-card-tit">Demo en Vivo</h3>
-          <span class="pilar-card-sub">${demoUrl ? "Versión preliminar interactiva" : "En desarrollo"}</span>
-        </div>
-      </div>
-      <div class="pilar-card-body">
-        ${demoUrl ? `
-          <p class="pilar-desc">Podés revisar el diseño, animación y estructura de tu página en vivo:</p>
-          <a class="btn btn-primary btn-block" href="${escapeHtml(demoUrl)}" target="_blank" rel="noopener noreferrer" style="margin-top:10px;">
-            ${ico("ojo", "pico pico-sm")} Abrir la demo
-          </a>
-          <span class="pilar-url">${escapeHtml(d.demo_url || "")}</span>
-        ` : `
-          <p class="pilar-desc">Tu demo está en preparación. Apenas la publique vas a poder probarla directamente desde acá.</p>
-          <div class="pilar-badge-espera">${ico("reloj", "pico pico-sm")} En proceso de armado</div>
-        `}
-      </div>
-    </div>`;
-
-  // 2. Tarjeta Propuesta y Descripción del Proyecto
-
-  const cardPropuesta = `
-    <div class="pilar-card">
-      <div class="pilar-card-head">
-        <span class="pilar-ico pilar-ico-propuesta">${ico("lista")}</span>
-        <div>
-          <h3 class="pilar-card-tit">Propuesta y Descripción</h3>
-          <span class="pilar-card-sub">Alcance, brief y especificaciones</span>
-        </div>
-      </div>
-      <div class="pilar-card-body">
-        ${brief ? `
-          <div class="pilar-brief-box" style="margin-bottom: 12px;">
-            <p style="font-weight:600; color:var(--text-primary); margin-bottom:4px;">Descripción del proyecto:</p>
-            <p style="white-space:pre-wrap;">${escapeHtml(brief)}</p>
-          </div>
-        ` : ""}
-
-        <div class="pilar-docs">
-          ${botonDocumento(d, "propuesta", "btn btn-outline btn-block")}
-          ${botonDocumento(d, "presupuesto", "btn btn-outline btn-block")}
-          ${botonDocumento(d, "descripcion", "btn btn-outline btn-block")}
-        </div>
-
-        ${!brief && !hayDocumento(d, "propuesta") && !hayDocumento(d, "presupuesto") && !hayDocumento(d, "descripcion")
-          ? `<p class="pilar-desc">Propuesta general acordada para el desarrollo de tu sitio web.</p>` : ""}
-      </div>
-    </div>`;
-
-  // 3. Tarjeta Tareas (Cuadradito de Tareas)
-  const puedePedirCambio = ["en_produccion", "dominio"].includes(d.status);
-
-  const listaTareasHtml = tareas.length
-    ? `<ul class="pilar-tareas-list">
-        ${tareas.map((t) => `
-          <li class="pilar-tarea-item ${t.done ? "hecha" : ""}">
-            <span class="pilar-tarea-icon">${ico(t.done ? "check" : "reloj", "pico pico-sm")}</span>
-            <div class="pilar-tarea-info">
-              <span class="pilar-tarea-txt">${escapeHtml(t.title)}</span>
-              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:2px;">
-                <small class="pilar-tarea-sub">${t.done ? "Listo" : "Pendiente"}${t.source === "cliente" ? " · tu pedido" : ""}</small>
-                ${t.tiene_pdf ? `
-                  <button type="button" class="pilar-pdf-chip" data-doc="tarea" data-doc-tarea="${escapeHtml(String(t.id))}" data-doc-nombre="${escapeHtml(t.pdf_name || "Tarea.pdf")}">
-                    ${ico("documento", "pico pico-sm")} ${escapeHtml(t.pdf_name || "Ver PDF adjunto")}
-                  </button>
-                ` : ""}
-              </div>
-            </div>
-          </li>
-        `).join("")}
-      </ul>
-      <div class="portal-avance" style="margin-top:14px;">
-        <b>${hechas} de ${tareas.length} completadas</b>
-        <span class="portal-avance-barra"><i style="transform:scaleX(${pct / 100})"></i></span>
-        <b>${pct}%</b>
-      </div>`
-    : `<p class="portal-vacio">Aún no hay tareas cargadas en la lista.</p>`;
-
-  const cardTareas = `
-    <div class="pilar-card pilar-card-tareas">
-      <div class="pilar-card-head">
-        <span class="pilar-ico pilar-ico-tareas">${ico("check")}</span>
-        <div>
-          <h3 class="pilar-card-tit">Cuadradito de Tareas</h3>
-          <span class="pilar-card-sub">${tareas.length ? `${hechas} de ${tareas.length} completadas (${pct}%)` : "Alcance del proyecto"}</span>
-        </div>
-      </div>
-      <div class="pilar-card-body">
-        ${listaTareasHtml}
-
-        ${puedePedirCambio ? `
-          <div class="pilar-nuevo-cambio-wrap" style="margin-top:16px; padding-top:14px; border-top:1px solid var(--border);">
-            <p style="font-size:0.85rem; font-weight:600; color:var(--text-primary); margin-bottom:8px;">Sumar un nuevo cambio o pedido:</p>
-            <div class="portal-fila-campo" style="flex-wrap:wrap; gap:8px;">
-              <input type="text" id="pc-pilar-cambio" maxlength="400" placeholder="Ej: cambiar el color del botón de contacto" style="flex:1; min-width:180px;">
-              <label class="btn btn-outline btn-sm" style="cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
-                ${ico("documento", "pico pico-sm")} PDF
-                <input type="file" id="pc-pilar-pdf" accept="application/pdf" style="display:none">
-              </label>
-              <button type="button" class="btn btn-primary btn-sm" data-accion="agregar-cambio-pilar">Agregar</button>
-            </div>
-            <span id="pc-pilar-pdf-nombre" class="admin-hint" style="font-size:0.75rem; margin-top:4px; display:block;"></span>
-          </div>
-        ` : ""}
-      </div>
-    </div>`;
-
-  return cardDemo + cardPropuesta + cardTareas;
-}
 
 /* ==========================================================================
    Render
    ========================================================================== */
+/* ==========================================================================
+   Pestañas (migración 15)
+   --------------------------------------------------------------------------
+   El link del cliente es un dashboard: barra lateral con cinco pestañas y el
+   contenido de la elegida al lado (o debajo, en el celular).
+
+     Inicio      demo, propuesta, presupuesto y en qué está el proyecto
+     Tareas      la lista de cambios
+     Pagos       plan, lo que hay que pagar, historial y comprobantes
+     Dominio     elegir la dirección de la página
+     Producción  el link final
+
+   Inicio está siempre abierta. Las otras las abre Ariel A MANO desde su
+   panel (clients.secciones). Una pestaña cerrada se ve con candado y, si
+   el cliente la toca, le explica que se habilita más adelante.
+
+   La base es la que hace cumplir el candado (cargar cambios, elegir dominio
+   y ver el link final se rechazan del lado del servidor con la pestaña
+   cerrada). Esto es solo cómo se ve.
+   ========================================================================== */
+const PESTANAS = {
+  inicio:     { label: "Inicio",     icono: "casa" },
+  tareas:     { label: "Tareas",     icono: "lista" },
+  pagos:      { label: "Pagos",      icono: "tarjeta" },
+  dominio:    { label: "Dominio",    icono: "globo" },
+  produccion: { label: "Producción", icono: "cohete" },
+};
+
+const BLOQUEO = {
+  tareas: "Acá vas a cargar los cambios que quieras en tu página. Te la habilito cuando arranquemos con la producción.",
+  pagos: "Acá vas a ver tu plan de pagos, lo que tenés que abonar y tus comprobantes. Te la habilito cuando haya algo para pagar.",
+  dominio: "Acá vas a elegir con qué dirección queda publicada tu página. Te la habilito cuando terminemos los cambios.",
+  produccion: "Acá vas a tener el link final de tu página publicada. Te la habilito apenas esté en línea.",
+};
+
+/**
+ * ¿Está abierta esa pestaña?
+ * Si la base todavía no tiene la migración 15 (no viene `secciones`), se
+ * abren según la etapa, como antes: así el portal no queda todo con
+ * candado entre que se sube el código y se corre el SQL.
+ */
+function seccionAbierta(d, k) {
+  if (k === "inicio") return true;
+  if (d?.secciones && typeof d.secciones === "object") return d.secciones[k] === true;
+  const orden = ["demo_pendiente", "demo_lista", "anticipo_pendiente", "en_produccion",
+                 "dominio", "publicando", "saldo_pendiente", "finalizado"].indexOf(d?.status);
+  return { tareas: orden >= 3, pagos: orden >= 2, dominio: orden >= 4, produccion: orden >= 7 }[k] || false;
+}
+
+/** Medios de pago habilitados para este cliente. Por defecto, los dos. */
+function metodosDe(d) {
+  const m = Array.isArray(d?.metodos_pago) ? d.metodos_pago.filter((x) => x === "mercadopago" || x === "transferencia") : [];
+  return m.length ? m : ["mercadopago", "transferencia"];
+}
+
+/** El próximo cobro sin pagar, en el orden en que se crearon. */
+function proximoAPagar(d) {
+  return (d?.pagos || []).find((p) => p.status !== "pagado") || null;
+}
+
+/**
+ * La pestaña que corresponde mostrar si el cliente no eligió otra: la que
+ * tiene algo para hacer.
+ */
+function pestanaSugerida(d) {
+  if (["demo_pendiente", "demo_lista", "rechazado"].includes(d.status)) return "inicio";
+  const pend = proximoAPagar(d);
+  if (seccionAbierta(d, "pagos") && pend && pend.status !== "en_revision") return "pagos";
+  if (d.status === "dominio" && seccionAbierta(d, "dominio")) return "dominio";
+  if (d.status === "en_produccion" && seccionAbierta(d, "tareas")) return "tareas";
+  if (d.status === "finalizado" && seccionAbierta(d, "produccion")) return "produccion";
+  return "inicio";
+}
+
+/** El renglón chico de cada pestaña y si hay algo que le toca al cliente. */
+function estadoPestana(d, k) {
+  if (!seccionAbierta(d, k)) return { sub: "Próximamente", aviso: false };
+
+  if (k === "inicio") {
+    return d.status === "demo_lista"
+      ? { sub: "Tu demo está lista", aviso: true }
+      : { sub: "Demo y documentos", aviso: false };
+  }
+  if (k === "tareas") {
+    const t = d.tareas || [];
+    return { sub: t.length ? `${t.filter((x) => x.done).length} de ${t.length} listas` : "Cargá tus cambios", aviso: false };
+  }
+  if (k === "pagos") {
+    const pend = proximoAPagar(d);
+    if (!pend) return { sub: "Al día", aviso: false };
+    if (pend.status === "en_revision") return { sub: "Comprobante en revisión", aviso: false };
+    return { sub: `Pendiente ${usd(pend.amount_usd)}`, aviso: true };
+  }
+  if (k === "dominio") {
+    if (d.domain_choice === "propio") return { sub: d.domain_name || "Dominio propio", aviso: false };
+    if (d.domain_choice === "vercel") return { sub: "Dirección incluida", aviso: false };
+    return { sub: "Elegí tu dirección", aviso: true };
+  }
+  if (k === "produccion") {
+    return d.production_url ? { sub: "En línea", aviso: false } : { sub: "En camino", aviso: false };
+  }
+  return { sub: "", aviso: false };
+}
+
+function pintarNav(d, activa) {
+  $("pc-nav").innerHTML = Object.entries(PESTANAS).map(([k, p]) => {
+    const abierta = seccionAbierta(d, k);
+    const { sub, aviso } = estadoPestana(d, k);
+    const actual = k === activa;
+    return `
+      <li>
+        <button type="button" class="portal-nav-btn ${actual ? "activo" : ""} ${abierta ? "" : "bloqueada"}"
+                data-accion="pestana" data-pestana="${k}" ${actual ? 'aria-current="page"' : ""}>
+          <span class="portal-nav-ico">${ico(abierta ? p.icono : "candado")}</span>
+          <span class="portal-nav-txt">
+            <b>${escapeHtml(p.label)}</b>
+            <small>${escapeHtml(sub)}</small>
+          </span>
+          ${aviso ? `<span class="portal-nav-aviso"><span class="sr-only">Tenés algo pendiente acá</span></span>` : ""}
+        </button>
+      </li>`;
+  }).join("");
+}
+
+/** Botón para saltar a otra pestaña desde el contenido (solo si está abierta). */
+const irA = (d, k, texto, clase = "btn btn-primary") => seccionAbierta(d, k)
+  ? `<button type="button" class="${clase}" data-accion="pestana" data-pestana="${k}">${escapeHtml(texto)}</button>`
+  : "";
+
+/* --------------------------------------------------------------------------
+   Contenido de cada pestaña
+   -------------------------------------------------------------------------- */
+
+/** Inicio: en qué está el proyecto + los documentos. */
+function tabInicio(d) {
+  const etapa = ["demo_pendiente", "demo_lista", "rechazado"].includes(d.status)
+    ? ETAPAS[d.status](d)
+    : tarjetaEstado(d);
+  return etapa + bloqueDocumentos(d);
+}
+
+/**
+ * En qué está el proyecto, en una tarjeta, para las etapas posteriores a la
+ * demo. Dice qué sigue y, si la pestaña para hacerlo está abierta, lleva ahí.
+ */
+function tarjetaEstado(d) {
+  const tareas = d.tareas || [];
+  const hechas = tareas.filter((t) => t.done).length;
+  const pend = proximoAPagar(d);
+  const accion = (...botones) => {
+    const b = botones.filter(Boolean).join("");
+    return b ? `<div class="portal-acciones">${b}</div>` : "";
+  };
+  const esperaHabilitar = (k) => seccionAbierta(d, k)
+    ? "" : nota("Te habilito ese paso en un rato y te aviso por WhatsApp.", "", "reloj");
+
+  const T = {
+    anticipo_pendiente: () => tarjeta({
+      icono: "tarjeta", titulo: "¡Arrancamos!",
+      bajada: "Aceptaste la propuesta. El siguiente paso es el primer pago: con eso arranco a trabajar en tu página.",
+      cuerpo: accion(irA(d, "pagos", "Ir a Pagos")) + esperaHabilitar("pagos"),
+    }),
+    en_produccion: () => tarjeta({
+      icono: "engranaje", titulo: "Estoy trabajando en tu página",
+      bajada: tareas.length
+        ? `Llevo ${hechas} de ${tareas.length} cambios hechos. Podés seguir sumando los que quieras.`
+        : "Contame qué querés ajustar: cada cambio por separado, así los voy tachando.",
+      cuerpo: accion(irA(d, "tareas", "Ver y cargar cambios")) + esperaHabilitar("tareas"),
+    }),
+    dominio: () => tarjeta({
+      icono: "globo", titulo: "Falta elegir la dirección",
+      bajada: "Los cambios están listos. Decidí con qué dirección queda publicada tu página.",
+      cuerpo: accion(irA(d, "dominio", "Elegir la dirección")) + esperaHabilitar("dominio"),
+    }),
+    publicando: () => ETAPAS.publicando(d),
+    saldo_pendiente: () => tarjeta({
+      icono: "check", tono: "listo", titulo: "Tu página está lista",
+      bajada: pend ? "Solo falta el último pago para dejarla publicada y que sea toda tuya." : "Ya está todo pago.",
+      cuerpo: accion(pend ? irA(d, "pagos", "Ir a Pagos") : "", irA(d, "produccion", "Ver mi página", "btn btn-outline")),
+    }),
+    finalizado: () => tarjeta({
+      icono: "check", tono: "listo", titulo: "Tu página está en línea",
+      bajada: "Proyecto terminado. Este link te queda para volver a mirar todo cuando quieras.",
+      cuerpo: accion(irA(d, "produccion", "Ver mi página")),
+    }),
+  };
+
+  return (T[d.status] || (() => tarjeta({
+    icono: "info", tono: "espera",
+    titulo: "Estamos trabajando en tu proyecto",
+    bajada: "Te aviso por WhatsApp en cuanto haya novedades.",
+  })))();
+}
+
+/** Demo, propuesta, presupuesto y descripción, juntos. */
+function bloqueDocumentos(d) {
+  const demo = safeUrl(d.demo_url, "");
+  const docs = ["propuesta", "presupuesto", "descripcion"].map((k) => botonDocumento(d, k)).join("");
+  const brief = d.project_brief || "";
+  if (!demo && !docs && !brief) return "";
+
+  return tarjeta({
+    icono: "documento",
+    titulo: "Tu proyecto",
+    bajada: escapeHtml(d.project_name || ""),
+    cuerpo: `
+      ${brief ? `<p class="portal-brief">${escapeHtml(brief)}</p>` : ""}
+      <div class="portal-acciones">
+        ${demo ? `<a class="btn btn-outline" href="${escapeHtml(demo)}" target="_blank" rel="noopener noreferrer">
+          ${ico("ojo", "pico pico-sm")} Ver la demo</a>` : ""}
+        ${docs}
+      </div>
+      ${demo ? `<p class="portal-url">${escapeHtml(d.demo_url || "")}</p>` : ""}`,
+  });
+}
+
+/** Tareas: la lista de cambios y, con la pestaña abierta, el campo para sumar. */
+function tabTareas(d) {
+  const tareas = d.tareas || [];
+  const hechas = tareas.filter((t) => t.done).length;
+  const pct = tareas.length ? Math.round((hechas / tareas.length) * 100) : 0;
+
+  const lista = tareas.length
+    ? `<ul class="portal-cambios">
+        ${tareas.map((t) => `
+          <li class="portal-cambio ${t.done ? "ok" : ""}">
+            <span class="portal-cambio-est">${ico(t.done ? "check" : "reloj", "pico pico-sm")}</span>
+            <div><p>${escapeHtml(t.title)}</p>
+              <small>${t.done ? "Listo" : "Pendiente"}${t.source === "cliente" ? " · lo pediste vos" : ""}</small>
+              ${t.tiene_pdf ? `
+                <button type="button" class="pilar-pdf-chip" data-doc="tarea" data-doc-tarea="${escapeHtml(String(t.id))}"
+                        data-doc-nombre="${escapeHtml(t.pdf_name || "Tarea.pdf")}">
+                  ${ico("documento", "pico pico-sm")} ${escapeHtml(t.pdf_name || "Ver PDF adjunto")}
+                </button>` : ""}
+            </div>
+          </li>`).join("")}
+      </ul>
+      <div class="portal-avance">
+        <b>${hechas} de ${tareas.length}</b>
+        <span class="portal-avance-barra"><i style="transform:scaleX(${pct / 100})"></i></span>
+        <b>${pct}%</b>
+      </div>`
+    : `<p class="portal-vacio">Todavía no hay cambios cargados. Escribí el primero acá arriba.</p>`;
+
+  return tarjeta({
+    icono: "lista",
+    titulo: "Contame qué querés cambiar",
+    bajada: "Escribí cada cambio por separado, así los voy tachando a medida que los hago. Si tenés un ejemplo o un texto, adjuntalo en PDF.",
+    cuerpo: `
+      <div class="portal-fila-campo">
+        <label class="portal-campo">
+          <span>Nuevo cambio</span>
+          <input type="text" id="pc-pilar-cambio" maxlength="400"
+                 placeholder="Ej: cambiar el color del botón de contacto">
+        </label>
+        <label class="btn btn-outline portal-adjuntar">
+          ${ico("documento", "pico pico-sm")} PDF
+          <input type="file" id="pc-pilar-pdf" accept="application/pdf" class="portal-oculto">
+        </label>
+        <button type="button" class="btn btn-primary" data-accion="agregar-cambio-pilar">Agregar</button>
+      </div>
+      <p id="pc-pilar-pdf-nombre" class="portal-adjunto-nombre"></p>
+      ${lista}`,
+  });
+}
+
+/** Pagos: lo que hay que pagar ahora + la cuenta completa. */
+function tabPagos(d) {
+  const pend = proximoAPagar(d);
+  let tarjetaActual;
+
+  if (!pend) {
+    tarjetaActual = tarjeta({
+      icono: "checkCirculo", tono: "listo",
+      titulo: (d.pagos || []).length ? "Estás al día" : "Todavía no hay pagos",
+      bajada: (d.pagos || []).length
+        ? "No tenés nada pendiente por ahora. Abajo está el detalle de todo lo que pagaste."
+        : "Cuando haya algo para pagar te aparece acá con el monto y las formas de pago.",
+    });
+  } else if (pend.kind === "saldo") {
+    tarjetaActual = ETAPAS.saldo_pendiente(d);
+  } else if (pend.kind === "anticipo" || pend.kind === "total") {
+    tarjetaActual = ETAPAS.anticipo_pendiente(d);
+  } else {
+    tarjetaActual = tarjetaPago({
+      kind: pend.kind,
+      titulo: nombrePago(pend),
+      bajada: pend.kind === "otro"
+        ? "Un adicional que acordamos aparte del presupuesto."
+        : "Uno de los pagos que acordamos.",
+      monto: Number(pend.amount_usd),
+      pago: pend,
+    });
+  }
+
+  return tarjetaActual + `<div class="portal-resumen">${panelResumen(d)}</div>`;
+}
+
+/** Dominio: elegir (o corregir) la dirección. */
+function tabDominio(d) {
+  return ETAPAS.dominio(d);
+}
+
+/** Producción: el link final, o que todavía está en camino. */
+function tabProduccion(d) {
+  const link = safeUrl(d.production_url, "");
+  if (!link) return ETAPAS.publicando(d);
+  return ETAPAS.finalizado(d);
+}
+
+/** Lo que ve el cliente si toca una pestaña con candado. */
+function tabBloqueada(k) {
+  return tarjeta({
+    icono: "candado", tono: "espera",
+    titulo: `${PESTANAS[k].label}: todavía no está habilitada`,
+    bajada: BLOQUEO[k] || "Se habilita más adelante.",
+    cuerpo: nota("No tenés que hacer nada. Cuando la habilite te aviso por WhatsApp.", "", "reloj") + `
+      <div class="portal-acciones">
+        <button type="button" class="btn btn-outline" data-accion="pestana" data-pestana="inicio">Volver al inicio</button>
+      </div>`,
+  });
+}
+
+const CONTENIDO = {
+  inicio: tabInicio,
+  tareas: tabTareas,
+  pagos: tabPagos,
+  dominio: tabDominio,
+  produccion: tabProduccion,
+};
+
 function render() {
   if (!datos) return;
 
@@ -1302,74 +1292,20 @@ function render() {
   $("pc-barra").style.transform = `scaleX(${progreso / 100})`;
   $("pc-barra-wrap").setAttribute("aria-valuenow", String(progreso));
 
-  const pasoActivo = PASO_DE[d.status] ?? -1;
-  const terminado = d.status === "finalizado";
+  // La pestaña: la que eligió el cliente (también una con candado, para
+  // que vea por qué está cerrada) o, si no eligió, la que tiene algo para hacer.
+  const activa = PESTANAS[pestanaActiva] ? pestanaActiva : pestanaSugerida(d);
 
-  // Si pasoVista está fuera de rango o apunta a un paso futuro no disponible, reseteamos a null
-  if (pasoVista !== null && !terminado && pasoVista > pasoActivo) {
-    pasoVista = null;
-  }
+  pintarNav(d, activa);
+  $("pc-panel").innerHTML = seccionAbierta(d, activa) ? CONTENIDO[activa](d) : tabBloqueada(activa);
 
-  pintarPasos(d.status);
-
-  // Si pasoVista != null y pasoVista < pasoActivo (o terminado), renderiza historial
-  let htmlEtapa = "";
-  if (pasoVista !== null && (pasoVista < pasoActivo || terminado) && ETAPAS_HISTORIAL[pasoVista]) {
-    htmlEtapa = ETAPAS_HISTORIAL[pasoVista](d);
-  } else {
-    const pintar = ETAPAS[d.status];
-    htmlEtapa = pintar
-      ? pintar(d)
-      : tarjeta({
-          icono: "info", tono: "espera",
-          titulo: "Estamos trabajando en tu proyecto",
-          bajada: "Te aviso por WhatsApp en cuanto haya novedades.",
-        });
-  }
-
-  // Una cuota o un extra pendiente fuera de las etapas de pago (por ejemplo
-  // la cuota 2 de un plan acordado, que vence durante la producción). Va
-  // debajo de la tarjeta de la etapa. Solo en la vista actual, no en el
-  // historial, y nunca en las etapas que ya son una tarjeta de pago.
-  const conTarjetaDePago = ["demo_pendiente", "demo_lista", "anticipo_pendiente", "saldo_pendiente", "rechazado"];
-  if (pasoVista === null && !conTarjetaDePago.includes(d.status)) {
-    const suelto = proximoPendiente(KINDS_SUELTOS);
-    if (suelto) {
-      htmlEtapa += tarjetaPago({
-        kind: suelto.kind,
-        titulo: `Pago pendiente: ${nombrePago(suelto)}`,
-        bajada: "Este pago quedó pendiente de lo que acordamos. Podés hacerlo cuando te quede cómodo.",
-        monto: Number(suelto.amount_usd),
-        pago: suelto,
-      });
-    }
-  }
-
-  $("pc-etapa").innerHTML = htmlEtapa;
-
-  const conResumen = ["anticipo_pendiente", "en_produccion", "dominio",
-                      "publicando", "saldo_pendiente", "finalizado"];
-  const hayResumen = conResumen.includes(d.status);
-  $("pc-resumen").innerHTML = hayResumen ? panelResumen(d) : "";
-
-  document.querySelector(".portal-columnas")
-          ?.classList.toggle("sin-resumen", !hayResumen);
-
-  const pilaresEl = $("pc-pilares");
-  if (pilaresEl) {
-    pilaresEl.innerHTML = panelPilares(d);
-
-    const pilarPdfInput = $("pc-pilar-pdf");
-    const pilarPdfNombre = $("pc-pilar-pdf-nombre");
-    if (pilarPdfInput && pilarPdfNombre) {
-      pilarPdfInput.addEventListener("change", () => {
-        if (pilarPdfInput.files && pilarPdfInput.files[0]) {
-          pilarPdfNombre.textContent = `${ico("documento", "pico pico-sm")} PDF adjunto listo: ${pilarPdfInput.files[0].name}`;
-        } else {
-          pilarPdfNombre.textContent = "";
-        }
-      });
-    }
+  const pdfInput = $("pc-pilar-pdf");
+  const pdfNombre = $("pc-pilar-pdf-nombre");
+  if (pdfInput && pdfNombre) {
+    pdfInput.addEventListener("change", () => {
+      const f = pdfInput.files?.[0];
+      pdfNombre.innerHTML = f ? `${ico("documento", "pico pico-sm")} ${escapeHtml(f.name)}` : "";
+    });
   }
 
   $("pc-wa-footer").href = enlaceWhatsApp(`Hola Ariel! Te escribo por "${d.project_name || "mi proyecto"}".`);
@@ -1419,6 +1355,9 @@ function firma(d) {
     (d.tareas || []).map((t) => [t.id, t.done]),
     d.payment_plan,
     d.plan_fijado,
+    d.secciones,
+    d.metodos_pago,
+    d.domain_name,
     (d.pagos || []).map((p) => [p.kind, p.status, p.amount_usd, p.concepto]),
   ]);
 }
@@ -1442,7 +1381,7 @@ async function revisarNovedades() {
   // Si está escribiendo algo, se espera al próximo ciclo antes de repintar.
   const foco = document.activeElement;
   const escribiendo =
-    foco && $("pc-etapa")?.contains(foco) &&
+    foco && $("pc-panel")?.contains(foco) &&
     (foco.tagName === "INPUT" || foco.tagName === "TEXTAREA") && foco.value;
   if (escribiendo) return;
 
@@ -1656,13 +1595,22 @@ const ACCIONES = {
       avisar("No se pudo confirmar", res?.error || "Probá de nuevo.", "error");
       return;
     }
+    // Si la pestaña Pagos ya está abierta, se lo lleva directo ahí.
+    pestanaActiva = null;
     await recargar();
+    const pagosAbierta = seccionAbierta(datos, "pagos");
+    if (pagosAbierta && res.status !== "en_produccion") {
+      pestanaActiva = "pagos";
+      render();
+    }
     avisar("¡Buenísimo!",
            res.status === "en_produccion"
-             ? "Con lo que ya abonaste alcanza para arrancar: ya podés cargar tus cambios."
-             : plan === "cuotas3"
-               ? "Te dejé el pago listo acá abajo. Al entrar a Mercado Pago elegí 3 cuotas."
-               : "Te dejé el primer pago listo acá abajo.",
+             ? "Con lo que ya abonaste alcanza para arrancar. Te aviso cuando te habilite la lista de cambios."
+             : !pagosAbierta
+               ? "Anotado. En un rato te habilito el pago acá mismo y te aviso por WhatsApp."
+               : plan === "cuotas3"
+                 ? "Te dejé el pago listo. Al entrar a Mercado Pago elegí las cuotas."
+                 : "Te dejé el primer pago listo.",
            "success");
   },
 
@@ -1793,7 +1741,9 @@ const ACCIONES = {
       return;
     }
     await recargar();
-    avisar("Listo", "Ya me pongo con la publicación. Te aviso apenas esté.", "success");
+    avisar("Listo", res.status === "publicando"
+      ? "Ya me pongo con la publicación. Te aviso apenas esté."
+      : "Dirección guardada. Si querés cambiarla, podés hacerlo desde acá mismo.", "success");
   },
 
   "enviar-comprobante": async (el) => {
@@ -1828,53 +1778,21 @@ const ACCIONES = {
     }
   },
 
-  "ver-paso": (el) => {
-    const p = parseInt(el.dataset.paso, 10);
-    if (isNaN(p)) return;
-    const pasoActivo = PASO_DE[datos?.status] ?? -1;
-    const terminado = datos?.status === "finalizado";
-
-    if (!terminado && p > pasoActivo) {
-      avisar("Paso pendiente", "Este paso se habilitará a medida que avances en el proyecto.", "info");
-      return;
-    }
-
-    if (p === pasoActivo && !terminado) {
-      pasoVista = null;
-    } else {
-      pasoVista = p;
-    }
+  /** Cambiar de pestaña. Queda en la URL (#pagos) para que al recargar
+      o al volver con la flecha se abra la misma. */
+  pestana: (el) => {
+    const k = el.dataset.pestana;
+    if (!PESTANAS[k]) return;
+    pestanaActiva = k;
+    try { history.replaceState(null, "", `#${k}`); } catch { /* sin historial: no pasa nada */ }
     render();
-  },
-
-  "volver-paso-actual": () => {
-    pasoVista = null;
-    render();
-  },
-
-  "reiniciar-paso": async (el) => {
-    const dec = el.dataset.decision || "reabrir_demo";
-    const nombrePaso = el.dataset.nombrePaso || "Demo";
-    const ok = await confirmar({
-      titulo: `¿Retomar el proyecto desde el paso ${nombrePaso}?`,
-      texto: `El estado del proyecto en vivo se actualizará y volverá activamente a la etapa de «${nombrePaso}».`,
-      confirmar: `Sí, volver a ${nombrePaso}`,
-      cancelar: "Volver",
-      icono: "question",
-    });
-    if (!ok) return;
-
-    el.disabled = true;
-    const res = await portalDecidir(TOKEN, dec);
-    el.disabled = false;
-
-    if (!res?.ok) {
-      avisar("No se pudo reiniciar el paso", res?.error || "Probá de nuevo.", "error");
-      return;
+    anunciar(`${PESTANAS[k].label}${seccionAbierta(datos, k) ? "" : ", todavía no habilitada"}.`);
+    const panel = $("pc-panel");
+    panel?.focus({ preventScroll: true });
+    // En el celular la barra queda arriba: se baja hasta el contenido.
+    if (window.matchMedia("(max-width: 899px)").matches) {
+      panel?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-    pasoVista = null;
-    await recargar();
-    avisar("Paso retornado", `El proyecto volvió activamente al paso de «${nombrePaso}».`, "success");
   },
 };
 
@@ -1917,22 +1835,12 @@ $("portal-contenido").addEventListener("change", (ev) => {
   if (fn) fn(el);
 });
 
-// Teclado: Enter en el campo de cambios o Enter/Espacio en el riel de pasos.
+// Teclado: Enter en el campo de cambios agrega el cambio.
 $("portal-contenido").addEventListener("keydown", (ev) => {
-  if (ev.key === "Enter" && ev.target.id === "pc-cambio") {
+  if (ev.key === "Enter" && ev.target.id === "pc-pilar-cambio") {
     ev.preventDefault();
-    const boton = document.querySelector('[data-accion="agregar-cambio"]');
-    if (boton) ACCIONES["agregar-cambio"](boton);
-    return;
-  }
-
-  if (ev.key === "Enter" || ev.key === " ") {
-    const el = ev.target.closest('[data-accion="ver-paso"]');
-    if (el) {
-      ev.preventDefault();
-      const fn = ACCIONES["ver-paso"];
-      if (fn) fn(el);
-    }
+    const boton = document.querySelector('[data-accion="agregar-cambio-pilar"]');
+    if (boton) ACCIONES["agregar-cambio-pilar"](boton);
   }
 });
 
@@ -1943,6 +1851,12 @@ $("portal-contenido").addEventListener("keydown", (ev) => {
   configurarDialogos();
 
   $("portal-wa-ayuda").href = enlaceWhatsApp("Hola Ariel, el link de mi proyecto no me funciona.");
+
+  // #pagos, #tareas…: abre directo esa pestaña (sirve para mandar el link
+  // apuntando a lo que tiene que hacer). Al volver de Mercado Pago, Pagos.
+  const deLaUrl = window.location.hash.replace("#", "");
+  if (PESTANAS[deLaUrl]) pestanaActiva = deLaUrl;
+  if (VUELVE_DE_PAGO) pestanaActiva = "pagos";
 
   if (!TOKEN || TOKEN.length < 20) {
     mostrarVista("invalido");

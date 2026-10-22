@@ -26,6 +26,7 @@ const CLIENTE = {
 };
 
 let enviado = null;
+let PAGO_CUOTAS = null;   // cuotas_mp del cobro de prueba (null = las del plan)
 globalThis.fetch = async (url, opciones = {}) => {
   const u = String(url);
   if (u.includes("/checkout/preferences")) {
@@ -42,7 +43,7 @@ globalThis.fetch = async (url, opciones = {}) => {
   let fila = [];
   if (u.includes("/clients")) fila = [CLIENTE];
   else if (u.includes("/payments")) fila = [{ id: "pago-1", client_id: CLIENTE.id, kind: "total",
-                                              amount_usd: 310, status: "pendiente" }];
+                                              amount_usd: 310, status: "pendiente", cuotas_mp: PAGO_CUOTAS }];
   else if (u.includes("/rpc/")) fila = { ok: true };
   const uno = /Accept[^,]*single|application\/vnd\.pgrst\.object/i.test(
                 JSON.stringify(opciones.headers || {}));
@@ -81,7 +82,7 @@ const sinComentarios = fuente.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/
 const fallas = [];
 if (/excluded_payment_types/.test(sinComentarios))
   fallas.push("sigue habiendo excluded_payment_types en el codigo (fuera de los comentarios)");
-if (!/installments:\s*cuotasPara\(/.test(sinComentarios))
+if (!/cuotasPara\(kind, cliente\.payment_plan\)/.test(sinComentarios) || !/installments:\s*cuotasDelPago/.test(sinComentarios))
   fallas.push("se perdio la configuracion de cuotas");
 
 if (enviado) {
@@ -102,5 +103,20 @@ try { await handler({ ...req, headers: { "x-forwarded-for": "5.6.7.8" } }, res);
 if (enviado && enviado.payment_methods?.installments !== 1)
   fallas.push(`con el plan «pago total» installments deberia ser 1 y es ${enviado.payment_methods?.installments}`);
 else if (enviado) console.log("plan «pago total»: installments = 1 ✔");
+
+/* Migración 15: Ariel fija las cuotas de un cobro y eso le gana al plan. */
+PAGO_CUOTAS = 6;
+enviado = null;
+try { await handler({ ...req, headers: { "x-forwarded-for": "9.9.9.9" } }, res); } catch (e) { console.log("el handler tiro:", e.message); }
+if (enviado && enviado.payment_methods?.installments !== 6)
+  fallas.push(`con cuotas_mp = 6 installments deberia ser 6 y es ${enviado.payment_methods?.installments}`);
+else if (enviado) console.log("cuotas fijadas en el cobro (6): installments = 6 ✔");
+
+/* Y si Ariel apagó Mercado Pago para ese cliente, no se arma preferencia. */
+CLIENTE.metodos_pago = ["transferencia"];
+enviado = null; estado = 0;
+try { await handler({ ...req, headers: { "x-forwarded-for": "8.8.8.8" } }, res); } catch (e) { console.log("el handler tiro:", e.message); }
+if (enviado || estado !== 403) fallas.push(`con MP apagado tendría que dar 403 y dio ${estado}`);
+else console.log("Mercado Pago apagado para el cliente: 403 ✔");
 
 console.log("\n" + (fallas.length ? "FALLAS:\n- " + fallas.join("\n- ") : "✔ la preferencia no excluye account_money y mantiene las 3 cuotas"));

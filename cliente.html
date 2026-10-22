@@ -58,7 +58,7 @@
     <!-- Portal -->
     <section id="portal-contenido" class="hidden">
 
-      <!-- Hero Card con Saludo + Avance + Riel de Pasos -->
+      <!-- Saludo + avance del proyecto -->
       <div class="portal-hero">
         <div class="portal-hero-fila">
           <div class="portal-hero-txt">
@@ -79,25 +79,17 @@
           <i id="pc-barra"></i>
         </div>
 
-        <div class="portal-pasos-wrapper">
-          <ol class="portal-pasos" id="pc-pasos"></ol>
-        </div>
       </div>
 
-      <!-- Columnas: Etapa actual + Resumen de proyecto -->
-      <div class="portal-columnas">
-        <!-- La tarjeta de la etapa actual. La arma cliente.js -->
-        <div id="pc-etapa"></div>
-
-        <!-- Resumen fijo del proyecto. Lo arma cliente.js -->
-        <aside id="pc-resumen" class="portal-resumen"></aside>
+      <!-- Dashboard: barra lateral de pestañas + el contenido de la elegida.
+           Las pestañas las habilita Ariel desde su panel; las cerradas se
+           ven con candado. Lo arma cliente.js. -->
+      <div class="portal-dash">
+        <nav class="portal-nav" aria-label="Secciones de tu proyecto">
+          <ul id="pc-nav"></ul>
+        </nav>
+        <div class="portal-panel" id="pc-panel" tabindex="-1"></div>
       </div>
-
-      <!-- Sección de los 3 Pilares: Demo, Propuesta y Tareas (cuadradito) -->
-      <section id="pc-recursos-wrap" class="portal-recursos-seccion">
-        <h2 class="portal-recursos-tit">Accesos y Ficha del Proyecto</h2>
-        <div class="portal-pilares-grid" id="pc-pilares"></div>
-      </section>
 
       <footer class="portal-pie">
         <div class="portal-pie-info">

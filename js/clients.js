@@ -515,8 +515,28 @@ export function fechaInputAIso(valor) {
   return new Date(a, m - 1, d, 12, 0, 0).toISOString();
 }
 
-/** Agrega un cobro a mano: reserva, cuota del proyecto o extra. */
-export async function adminCrearCobro(clientId, { kind, concepto, montoUsd, pagado, method, fecha }) {
+/** Tipos que la base admite UNO por cliente (índice único parcial). */
+const KINDS_UNICOS = ["anticipo", "saldo", "total", "dominio"];
+
+/**
+ * Error de "ya existe" traducido a algo accionable. Anticipo, pago total y
+ * saldo son uno por cliente: si ya hay uno, lo que corresponde es editarlo.
+ */
+function errorDeCobro(error, kind) {
+  if (error?.code === "23505" && KINDS_UNICOS.includes(kind)) {
+    return `Este cliente ya tiene un cobro de tipo «${ETIQUETA_PAGO[kind] || kind}». Editá ese en vez de crear otro.`;
+  }
+  return traducirError(error);
+}
+
+/** Cuotas de MP: null = las del plan; si no, un entero de 1 a 24. */
+const cuotasValidas = (n) => {
+  const v = Number(n);
+  return n === null || n === "" || n === undefined || !Number.isInteger(v) || v < 1 || v > 24 ? null : v;
+};
+
+/** Agrega un cobro a mano, de cualquier tipo. */
+export async function adminCrearCobro(clientId, { kind, concepto, montoUsd, pagado, method, fecha, cuotasMp = null }) {
   const { error } = await supabase.from("payments").insert([
     {
       client_id: clientId,
@@ -526,10 +546,28 @@ export async function adminCrearCobro(clientId, { kind, concepto, montoUsd, paga
       status: pagado ? "pagado" : "pendiente",
       method: pagado ? (method || "transferencia") : null,
       paid_at: pagado ? fechaInputAIso(fecha) : null,
+      cuotas_mp: cuotasValidas(cuotasMp),
     },
   ]);
-  if (error) return { ok: false, error: traducirError(error) };
+  if (error) return { ok: false, error: errorDeCobro(error, kind) };
   return { ok: true };
+}
+
+/**
+ * Condiciones de cobro del cliente: precio, costo del dominio propio y los
+ * medios de pago que ve en su link (migración 15).
+ */
+export async function adminGuardarCondiciones(clientId, { precioUsd, dominioUsd, metodos }) {
+  return adminActualizarCliente(clientId, {
+    price_usd: Number(precioUsd),
+    domain_extra_usd: Number(dominioUsd),
+    metodos_pago: metodos,
+  });
+}
+
+/** Qué pestañas del link del cliente están abiertas (migración 15). */
+export async function adminGuardarSecciones(clientId, secciones) {
+  return adminActualizarCliente(clientId, { secciones });
 }
 
 /**
@@ -541,14 +579,20 @@ export async function adminCrearCobro(clientId, { kind, concepto, montoUsd, paga
  * api/mp-webhook.js), así que un pago hecho con el link viejo queda para
  * revisar en vez de acreditarse solo.
  */
-export async function adminEditarCobro(pago, { montoUsd, status, method, fecha, concepto }) {
+export async function adminEditarCobro(pago, { kind, montoUsd, status, method, fecha, concepto, cuotasMp = null }) {
   const cambios = {
+    kind: kind || pago.kind,
     amount_usd: Number(montoUsd),
     concepto: concepto || null,
     status,
     method: method || null,
     paid_at: status === "pagado" ? fechaInputAIso(fecha) : null,
+    cuotas_mp: cuotasValidas(cuotasMp),
   };
+  if (Number(pago.cuotas_mp ?? 0) !== Number(cambios.cuotas_mp ?? 0)) {
+    // El link de MP ya armado tenía otras cuotas.
+    cambios.mp_preference_id = null;
+  }
 
   const cambioMonto = Number(pago.amount_usd) !== Number(montoUsd);
   if (cambioMonto || (pago.status === "en_proceso" && status !== "en_proceso")) {
@@ -557,7 +601,7 @@ export async function adminEditarCobro(pago, { montoUsd, status, method, fecha, 
   }
 
   const { error } = await supabase.from("payments").update(cambios).eq("id", pago.id);
-  if (error) return { ok: false, error: traducirError(error) };
+  if (error) return { ok: false, error: errorDeCobro(error, cambios.kind) };
   return { ok: true };
 }
 

@@ -6,12 +6,15 @@
      · que una reserva nueva dispare el recálculo del anticipo;
      · que «Editar» mande el monto y el estado nuevos.
 
-   PORTAL — dibuja los casos nuevos y mira el TEXTO que ve el cliente:
+   PORTAL — dibuja los casos y mira el TEXTO que ve el cliente:
      · plan fijado por Ariel (sin opciones para elegir);
      · anticipo con la reserva ya descontada;
      · saldo con la cuenta completa;
      · una cuota pendiente durante la producción;
-     · la lista «Tus pagos» del resumen.
+     · la lista «Tus pagos» del resumen;
+     · las pestañas (migración 15): candado, que se abra la que tiene algo
+       para hacer, tocar una pestaña, solo transferencia, dominio elegido
+       y el link final en Producción.
 
    Deja capturas en una carpeta temporal (la imprime al final).
 
@@ -42,6 +45,8 @@ const CLIENTE = {
   project_brief: "", proposal_url: null, proposal_filename: null,
   budget_pdf_url: null, budget_pdf_filename: null, brief_pdf_url: null, brief_pdf_filename: null,
   payment_plan: "mitades", plan_fijado: false, client_decision: "continuar",
+  secciones: { tareas: false, pagos: false, dominio: false, produccion: false },
+  metodos_pago: ["mercadopago", "transferencia"],
   progreso: 30, tareas_total: 0, tareas_hechas: 0, cobrado_usd: 100, pendiente_usd: 100,
   comprobantes_a_revisar: 0, last_seen_at: ahora, view_count: 4, orden: 2,
   created_at: ahora,
@@ -76,7 +81,9 @@ for (const ancho of [390, 1280]) {
       escrituras.push({ metodo: req.method(), url, cuerpo: req.postDataJSON?.() ?? req.postData() });
       const rpc = /rpc\/admin_configurar_plan/.test(url)
         ? { ok: true, plan: "mitades", status: "anticipo_pendiente", avisos: [] }
-        : /rpc\//.test(url) ? { ok: true } : [];
+        : /rpc\//.test(url) ? { ok: true }
+        : /\/clients/.test(url) ? [{ id: CID }]   // el panel exige la fila de vuelta
+        : [];
       return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(rpc) });
     }
     const filas = /v_clientes_panel|\/clients/.test(url) ? [CLIENTE]
@@ -153,6 +160,29 @@ for (const ancho of [390, 1280]) {
      `panel @${ancho}: la edición mandó otra cosa: ${JSON.stringify(edicion)}`);
   ok(edicion?.cuerpo?.amount_ars === null, `panel @${ancho}: al cambiar el monto tiene que soltar el importe en pesos de MP`);
 
+  // --- Pestañas del link (migración 15): cada interruptor guarda solo ---
+  await p.locator(".swal2-confirm").click().catch(() => {});
+  await p.waitForSelector(".swal2-container", { state: "detached", timeout: 3000 }).catch(() => {});
+  escrituras.length = 0;
+  const sw = p.locator('[data-pestana="pagos"]');
+  ok(await sw.count() === 1, `panel @${ancho}: no aparece el interruptor de la pestaña Pagos`);
+  // Como lo haría una persona: tocando la fila del interruptor.
+  await p.locator('.pestana-switch:has([data-pestana="pagos"])').click();
+  await p.waitForTimeout(500);
+  const pst = escrituras.find((e) => e.metodo === "PATCH" && /\/clients/.test(e.url));
+  ok(pst?.cuerpo?.secciones?.pagos === true && pst?.cuerpo?.secciones?.tareas === false,
+     `panel @${ancho}: abrir Pagos mandó otra cosa: ${JSON.stringify(pst?.cuerpo)}`);
+  await p.locator(".admin-pestanas").screenshot({ path: join(CAPTURAS, `panel-pestanas-${ancho}.png`) });
+
+  // --- Condiciones: apagar Mercado Pago ---
+  escrituras.length = 0;
+  await p.locator('[data-campo="cb-medio"][value="mercadopago"]').uncheck();
+  await p.locator('[data-accion="guardar-condiciones"]').click();
+  await p.waitForTimeout(500);
+  const cond = escrituras.find((e) => e.metodo === "PATCH" && /\/clients/.test(e.url));
+  ok(JSON.stringify(cond?.cuerpo?.metodos_pago) === '["transferencia"]',
+     `panel @${ancho}: los medios de pago mandaron otra cosa: ${JSON.stringify(cond?.cuerpo)}`);
+
   console.log(`  panel @${ancho}: kpis ${kpis.join(" | ")}`);
   await ctx.close();
 }
@@ -169,9 +199,13 @@ const baseCliente = {
 const reservaPagada = { kind: "reserva", concepto: "Reserva para arrancar", amount_usd: 100, status: "pagado",
                         paid_at: ahora, method: "transferencia", nro_recibo: 21, recibo_fecha: ahora };
 
+const abiertas = (o = {}) => ({ tareas: false, pagos: false, dominio: false, produccion: false, ...o });
+
+/* [nombre, datos, chequeos(texto), pestaña a abrir por URL (opcional), botón de la barra a tocar (opcional)] */
 const CASOS = [
   ["demo · plan fijado personalizado", {
     status: "demo_lista", client_decision: null, payment_plan: "personalizado", plan_fijado: true,
+    secciones: abiertas(),
     pagos: [reservaPagada,
       { kind: "cuota", concepto: "Cuota 1", amount_usd: 150, status: "pendiente" },
       { kind: "cuota", concepto: "Cuota 2", amount_usd: 150, status: "pendiente" }],
@@ -181,19 +215,20 @@ const CASOS = [
     [t.includes("Cuota 2"), "no lista las cuotas del plan acordado"],
     [t.includes("de reserva"), "no avisa la reserva ya pagada"],
   ]],
-  ["demo · el cliente elige", { status: "demo_lista", client_decision: null, payment_plan: null }, (t) => [
+  ["demo · el cliente elige", { status: "demo_lista", client_decision: null, payment_plan: null, secciones: abiertas() }, (t) => [
     [t.includes("Pago total") && t.includes("3 cuotas") && t.includes("Mitad y mitad"), "faltan opciones de plan"],
   ]],
   ["anticipo con reserva", {
-    status: "anticipo_pendiente", pagos: [reservaPagada,
-      { kind: "anticipo", amount_usd: 100, status: "pendiente" }],
+    status: "anticipo_pendiente", secciones: abiertas({ pagos: true }),
+    pagos: [reservaPagada, { kind: "anticipo", amount_usd: 100, status: "pendiente" }],
   }, (t) => [
-    [t.includes("Anticipo para arrancar"), "título del anticipo"],
+    [t.includes("Anticipo para arrancar"), "con Pagos abierta y un pago pendiente tendría que abrir en Pagos"],
     [t.includes("Ya descontamos tu reserva"), "no dice que descontó la reserva"],
-    [/tus pagos/i.test(t), "falta la lista de pagos en el resumen"],
+    [/tus pagos/i.test(t), "falta la lista de pagos"],
   ]],
   ["saldo con la cuenta", {
     status: "saldo_pendiente", domain_choice: "propio", domain_name: "yoga.com.ar", total_usd: 410,
+    secciones: abiertas({ pagos: true, tareas: true, dominio: true }),
     pagos: [reservaPagada,
       { kind: "anticipo", amount_usd: 100, status: "pagado", paid_at: ahora, nro_recibo: 22 },
       { kind: "saldo", amount_usd: 210, status: "pendiente" }],
@@ -201,30 +236,71 @@ const CASOS = [
     [t.includes("Valor del proyecto") && t.includes("Dominio propio") && t.includes("Total a pagar"), "el desglose del saldo está incompleto"],
     [t.includes("Reserva para arrancar"), "el desglose no muestra la reserva descontada"],
   ]],
-  ["producción con cuota pendiente", {
+  ["cuota pendiente en producción", {
     status: "en_produccion", payment_plan: "personalizado", plan_fijado: true,
+    secciones: abiertas({ pagos: true, tareas: true }),
     pagos: [{ kind: "cuota", concepto: "Cuota 1", amount_usd: 200, status: "pagado", paid_at: ahora },
             { kind: "cuota", concepto: "Cuota 2", amount_usd: 200, status: "pendiente" }],
   }, (t) => [
-    [t.includes("Contame qué querés cambiar"), "se perdió la tarjeta de cambios"],
-    [t.includes("Pago pendiente: Cuota 2"), "no muestra la cuota pendiente"],
+    [t.includes("Cuota 2") && t.includes("USD 200"), "Pagos no muestra la cuota pendiente"],
+  ]],
+  ["tocar la pestaña Tareas", {
+    status: "en_produccion", secciones: abiertas({ pagos: true, tareas: true }),
+    tareas: [{ id: 1, title: "Cambiar el logo", done: true, source: "cliente" }],
+  }, (t) => [
+    [t.includes("Contame qué querés cambiar") && t.includes("Cambiar el logo"), "al tocar Tareas no se ve la lista"],
+  ], null, "tareas"],
+  ["pestañas cerradas", {
+    status: "en_produccion", secciones: abiertas(),
+    pagos: [{ kind: "anticipo", amount_usd: 200, status: "pagado", paid_at: ahora }],
+  }, (t) => [
+    [t.includes("Próximamente"), "las pestañas cerradas no dicen «Próximamente»"],
+    [t.includes("todavía no está habilitada"), "una pestaña cerrada no explica por qué"],
+    [!t.includes("Contame qué querés cambiar"), "con Tareas cerrada no tendría que dejar cargar cambios"],
+  ], "tareas"],
+  ["solo transferencia", {
+    status: "anticipo_pendiente", secciones: abiertas({ pagos: true }), metodos_pago: ["transferencia"],
+    pagos: [{ kind: "anticipo", amount_usd: 200, status: "pendiente" }],
+  }, (t) => [
+    [!t.includes("Pagar con Mercado Pago"), "Mercado Pago apagado y el botón sigue"],
+    [t.includes("Alias"), "con solo transferencia tendría que mostrar los datos"],
+  ]],
+  ["dominio ya elegido", {
+    status: "en_produccion", secciones: abiertas({ dominio: true }),
+    domain_choice: "propio", domain_name: "yoga.com.ar",
+  }, (t) => [
+    [t.includes("La dirección de tu página") && t.includes("yoga.com.ar"), "no muestra el dominio elegido"],
+  ], "dominio"],
+  ["producción con link", {
+    status: "finalizado", secciones: abiertas({ pagos: true, produccion: true }),
+    production_url: "https://yoga.com.ar",
+    pagos: [{ kind: "total", amount_usd: 400, status: "pagado", paid_at: ahora }],
+  }, (t) => [
+    [t.includes("Tu página está en línea") && t.includes("Abrir mi página"), "Producción no muestra el link final"],
   ]],
 ];
 
 for (const ancho of [390, 1280]) {
   const ctx = await nav.newContext({ viewport: { width: ancho, height: 1400 } });
-  for (const [nombre, parche, chequeos] of CASOS) {
+  for (const [nombre, parche, chequeos, hash, clic] of CASOS) {
     const datos = { ...baseCliente, ...parche };
     const p = await ctx.newPage();
     p.on("pageerror", (e) => fallas.push(`portal ${nombre} @${ancho}: pageerror ${e}`));
     await p.route("**/rest/v1/**", (r) => r.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
     await p.route("**/rest/v1/rpc/portal_obtener*", (r) =>
       r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(datos) }));
-    await p.goto(`${BASE}/cliente.html?t=${"a".repeat(40)}`, { waitUntil: "networkidle" });
+    await p.goto(`${BASE}/cliente.html?t=${"a".repeat(40)}${hash ? `#${hash}` : ""}`, { waitUntil: "networkidle" });
     await p.waitForTimeout(500);
+    if (clic) {
+      await p.locator(`.portal-nav-btn[data-pestana="${clic}"]`).click();
+      await p.waitForTimeout(400);
+      ok(await p.locator(`.portal-nav-btn[data-pestana="${clic}"][aria-current="page"]`).count() === 1,
+         `portal ${nombre} @${ancho}: la pestaña tocada no queda marcada`);
+    }
 
     const texto = await p.evaluate(() => document.body.innerText);
     for (const [cond, msg] of chequeos(texto)) ok(cond, `portal ${nombre} @${ancho}: ${msg}`);
+    ok(await p.locator(".portal-nav-btn").count() === 5, `portal ${nombre} @${ancho}: la barra no tiene las 5 pestañas`);
     for (const c of await p.evaluate(CONTRASTE)) fallas.push(`portal ${nombre} @${ancho}: contraste → ${c}`);
     const desborde = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     ok(desborde <= 2, `portal ${nombre} @${ancho}: desborde ${desborde}px`);

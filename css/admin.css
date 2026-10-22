@@ -1121,7 +1121,97 @@ body.light-theme .admin-badge.en_proceso,
 body.light-theme .admin-badge.en_revision { color: #155e75; }
 body.light-theme .admin-badge.rechazado  { color: #991b1b; }
 
+/* Condiciones: precio, dominio y medios de pago */
+.cobros-medios {
+    border: none;
+    padding: 0;
+    margin: 4px 0 0;
+    display: flex;
+    gap: 6px 18px;
+    flex-wrap: wrap;
+}
+
+.cobros-medios legend {
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    width: 100%;
+}
+
+/* --- Pestañas del link del cliente: interruptores --- */
+.pestanas-lista {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.pestana-switch {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.22);
+    cursor: pointer;
+    min-height: 44px;
+    position: relative;
+}
+
+/* El checkbox real queda encima del dibujo, invisible: así el foco de
+   teclado y el lector de pantalla trabajan con el control nativo. */
+.pestana-switch input {
+    position: absolute;
+    opacity: 0;
+    width: 40px;
+    height: 24px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.pestana-switch-ui {
+    flex-shrink: 0;
+    width: 40px;
+    height: 24px;
+    border-radius: 99px;
+    background: rgba(148, 163, 184, 0.35);
+    position: relative;
+    transition: background 0.2s ease;
+}
+
+.pestana-switch-ui::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s ease;
+}
+
+.pestana-switch input:checked + .pestana-switch-ui { background: #22c55e; }
+.pestana-switch input:checked + .pestana-switch-ui::after { transform: translateX(16px); }
+.pestana-switch input:focus-visible + .pestana-switch-ui {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+}
+.pestana-switch input:disabled + .pestana-switch-ui { opacity: 0.6; }
+
+.pestana-switch-txt { display: grid; gap: 2px; min-width: 0; }
+.pestana-switch-txt small { font-size: 0.78rem; color: var(--text-secondary); }
+
+body.light-theme .pestana-switch { background: #f1f5f9; }
+body.light-theme .pestana-switch input:checked + .pestana-switch-ui { background: #15803d; }
+
+@media (prefers-reduced-motion: reduce) {
+    .pestana-switch-ui,
+    .pestana-switch-ui::after { transition: none; }
+}
+
 @media (max-width: 640px) {
+    .pestanas-lista { grid-template-columns: 1fr; }
     .cobros-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .cobro-fila { grid-template-columns: 1fr; }
     .admin-pago-botones { margin-left: 0; width: 100%; flex-wrap: nowrap; }
