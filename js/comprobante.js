@@ -244,10 +244,10 @@ function nombreArchivo(datos, pago) {
 /**
  * Arma el recibo y lo descarga.
  *
- * El nodo se monta fuera de la pantalla en vez de en un iframe: html2canvas
- * necesita que el elemento este en el documento y con estilos resueltos para
- * medirlo. `left:-10000px` lo saca de la vista sin sacarlo del layout, que es
- * lo que pasaria con display:none — ahi mediria 0x0 y el PDF saldria vacio.
+ * El nodo se monta en el documento (no en un iframe): html2canvas necesita
+ * que el elemento este en la pagina y con estilos resueltos para medirlo.
+ * Ni display:none (mediria 0x0) ni fuera de la ventana (queda fuera del
+ * lienzo): va en la esquina de la ventana, POR DETRAS de todo. Ver abajo.
  */
 export async function descargarComprobante({ pago, datos, cotizacion }) {
   if (!pago || pago.status !== "pagado") {
@@ -256,9 +256,21 @@ export async function descargarComprobante({ pago, datos, cotizacion }) {
 
   const html2pdf = await cargarHtml2Pdf();
 
+  /* EL PDF SALÍA EN BLANCO.
+     Antes el recibo se armaba en position:fixed a left:-10000px. html2canvas
+     dibuja tomando como referencia la ventana visible, y un nodo fijo a
+     diez mil píxeles de distancia queda fuera del lienzo: el PDF se
+     generaba, se descargaba, pesaba 20 kB… y era una hoja blanca. Además,
+     si el cliente había bajado en la página, el corrimiento del scroll lo
+     empujaba más afuera todavía.
+
+     Ahora el nodo va en la esquina de arriba de la VENTANA (dentro del
+     lienzo) y por DETRÁS de todo (z-index negativo): el cliente no lo ve,
+     pero html2canvas sí. Y el scroll se fija en 0 al dibujar. */
   const caja = document.createElement("div");
   caja.setAttribute("aria-hidden", "true");
-  caja.style.cssText = "position:fixed;left:-10000px;top:0;width:190mm;background:#fff;";
+  caja.style.cssText =
+    "position:fixed;left:0;top:0;width:190mm;background:#fff;z-index:-1;pointer-events:none;";
   caja.innerHTML = htmlComprobante({ pago, datos, cotizacion });
   document.body.appendChild(caja);
 
@@ -270,7 +282,11 @@ export async function descargarComprobante({ pago, datos, cotizacion }) {
         image: { type: "jpeg", quality: 0.98 },
         // scale 2 y no 3: a 3 el archivo pesa el doble y en un recibo de
         // texto plano la diferencia no se ve ni impresa.
-        html2canvas: { scale: 2, backgroundColor: "#ffffff", useCORS: true },
+        html2canvas: {
+          scale: 2, backgroundColor: "#ffffff", useCORS: true,
+          // Que el scroll de la página no corra el recibo fuera del lienzo.
+          scrollX: 0, scrollY: 0,
+        },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       })
       .from(caja.firstElementChild)
