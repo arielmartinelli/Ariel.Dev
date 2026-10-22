@@ -81,7 +81,7 @@ const sinComentarios = fuente.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/
 const fallas = [];
 if (/excluded_payment_types/.test(sinComentarios))
   fallas.push("sigue habiendo excluded_payment_types en el codigo (fuera de los comentarios)");
-if (!/installments:\s*CUOTAS\[kind\]/.test(sinComentarios))
+if (!/installments:\s*cuotasPara\(/.test(sinComentarios))
   fallas.push("se perdio la configuracion de cuotas");
 
 if (enviado) {
@@ -93,5 +93,14 @@ if (enviado) {
   if (enviado.payment_methods?.installments !== 3)
     fallas.push(`installments deberia ser 3 y es ${enviado.payment_methods?.installments}`);
 }
+
+/* Migración 14: el plan «pago total» usa el mismo tipo de cobro ('total')
+   que el de 3 cuotas, pero va en UN pago. Las cuotas las decide el plan. */
+CLIENTE.payment_plan = "unico";
+enviado = null;
+try { await handler({ ...req, headers: { "x-forwarded-for": "5.6.7.8" } }, res); } catch (e) { console.log("el handler tiro:", e.message); }
+if (enviado && enviado.payment_methods?.installments !== 1)
+  fallas.push(`con el plan «pago total» installments deberia ser 1 y es ${enviado.payment_methods?.installments}`);
+else if (enviado) console.log("plan «pago total»: installments = 1 ✔");
 
 console.log("\n" + (fallas.length ? "FALLAS:\n- " + fallas.join("\n- ") : "✔ la preferencia no excluye account_money y mantiene las 3 cuotas"));

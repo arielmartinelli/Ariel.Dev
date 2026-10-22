@@ -16,8 +16,10 @@
 import {
   adminCrearCliente, adminActualizarCliente, adminMoverFlujo, adminEliminarCliente, adminRevocarLink,
   adminListarTareas, adminAgregarTarea, adminMarcarTarea, adminEliminarTarea,
-  adminListarPagos, adminMarcarPago, adminCrearSaldoFinal, adminCrearCobroManual,
+  adminListarPagos, adminConfigurarPlan, adminRecalcularSaldo,
+  adminCrearCobro, adminEditarCobro, adminEliminarCobro,
   urlPortal, esUrlDePreview, sitioPublico, ESTADOS, ORDEN_ETAPAS, SIGUIENTE_PASO, ETIQUETA_PAGO,
+  PLANES, KINDS_A_CUENTA,
 } from "./clients.js";
 import { escapeHtml, safeUrl, sanitizeText } from "./security.js";
 import { confirmar, avisar } from "./ui-dialogs.js";
@@ -559,20 +561,7 @@ function ficha(c) {
       </div>
     </div>
 
-    <div class="admin-bloque">
-      <label class="admin-bloque-label">
-        Cobros · ${usd(c.cobrado_usd)} cobrado / ${usd(c.pendiente_usd)} pendiente
-      </label>
-      <div class="admin-pagos" data-zona="pagos"><p class="admin-hint">Cargando…</p></div>
-      <div class="admin-link-row" style="margin-top:12px">
-        <button type="button" class="btn btn-sm btn-outline" data-accion="crear-saldo">
-          Generar el saldo final
-        </button>
-        <button type="button" class="btn btn-sm btn-outline" data-accion="cobro-manual">
-          + Cobro manual
-        </button>
-      </div>
-    </div>
+    ${bloqueCobros(c)}
 
     <div class="admin-bloque admin-bloque-peligro">
       <button type="button" class="btn btn-sm btn-outline" data-accion="revocar">
@@ -888,68 +877,7 @@ function conectarFicha(ficha, c, link) {
     if (e.key === "Enter") { e.preventDefault(); crearTarea(); }
   });
 
-  // --- Saldo final ---
-  accion("crear-saldo").addEventListener("click", async () => {
-    const res = await adminCrearSaldoFinal(c.id);
-    if (!res.ok) {
-      avisar("No se pudo generar", res.error, "error");
-      return;
-    }
-    await recargar();
-    avisar("Saldo generado", "Ya le figura al cliente para abonar.", "success");
-  });
-
-  // --- Cobro manual ---
-  accion("cobro-manual").addEventListener("click", async () => {
-    const Swal = window.Swal;
-    if (!Swal) return;
-
-    const { value } = await Swal.fire({
-      title: "Cobro manual",
-      html: `
-        <input id="cm-concepto" class="swal2-input" placeholder="Concepto (ej: sección extra)" maxlength="200">
-        <input id="cm-monto" class="swal2-input" type="number" min="0" step="1" placeholder="Monto en USD">
-        <label style="display:flex;align-items:center;gap:9px;margin-top:14px;
-                      font-size:.9rem;text-align:left;cursor:pointer">
-          <input type="checkbox" id="cm-cobrado" style="width:18px;height:18px;accent-color:#22c55e">
-          Ya lo cobré (se suma al total de una vez)
-        </label>`,
-      showCancelButton: true,
-      confirmButtonText: "Agregar",
-      cancelButtonText: "Cancelar",
-      focusConfirm: false,
-      preConfirm: () => {
-        const concepto = document.getElementById("cm-concepto").value.trim();
-        const monto = Number(document.getElementById("cm-monto").value);
-        const cobrado = document.getElementById("cm-cobrado").checked;
-
-        // La validación va acá adentro: si se deja pasar y falla después,
-        // el usuario pierde lo que escribió y tiene que cargarlo de nuevo.
-        if (!Number.isFinite(monto) || monto <= 0) {
-          Swal.showValidationMessage("Ingresá un monto mayor a cero.");
-          return false;
-        }
-        return { concepto, monto, cobrado };
-      },
-    });
-
-    if (!value) return;
-
-    const res = await adminCrearCobroManual(c.id, {
-      concepto: sanitizeText(value.concepto, 200),
-      montoUsd: value.monto,
-      yaCobrado: value.cobrado,
-    });
-
-    if (!res.ok) {
-      avisar("No se pudo agregar", res.error, "error");
-      return;
-    }
-    await recargar();
-    avisar("Cobro agregado", value.cobrado
-      ? "Se sumó como cobrado."
-      : "Le va a figurar al cliente para abonar.", "success");
-  });
+  conectarCobros(ficha, c);
 
   // --- Revocar / reactivar ---
   accion("revocar").addEventListener("click", async () => {
@@ -1073,63 +1001,430 @@ async function cargarTareas(ficha, c) {
   });
 }
 
+/* ==========================================================================
+   Cobros
+   --------------------------------------------------------------------------
+   El bloque de plata de cada cliente. Antes lo único que se podía hacer era
+   «marcar pagado» y crear un cobro manual suelto: si un cliente pagaba una
+   reserva o se acordaba otra forma de pago por WhatsApp, el panel no tenía
+   dónde reflejarlo y el portal le seguía pidiendo el anticipo completo.
+
+   Ahora:
+     · el plan se puede fijar desde acá (y el cliente lo ve fijado);
+     · cada cobro se edita entero: monto, estado, medio, fecha y concepto;
+     · las reservas se descuentan solas del cobro inicial;
+     · el saldo final es siempre «lo que falta», no un 50% fijo.
+
+   Ver supabase/migracion-14-pagos-flexibles.sql y FLUJO.md.
+   ========================================================================== */
+
+const ESTADO_PAGO = {
+  pendiente: "Pendiente",
+  en_proceso: "En Mercado Pago",
+  en_revision: "Comprobante a revisar",
+  pagado: "Pagado",
+  rechazado: "Rechazado",
+};
+
+const MEDIO_PAGO = {
+  transferencia: "Transferencia",
+  mercadopago: "Mercado Pago",
+  efectivo: "Efectivo",
+  otro: "Otro",
+};
+
+/* Los tres tipos que se cargan a mano. Anticipo, pago total y saldo los
+   genera el plan solo: crearlos a mano duplicaría lo que ya hace la base. */
+const TIPOS_MANUALES = {
+  reserva: "Plata a cuenta del precio, cobrada antes de arrancar. Se descuenta sola del anticipo o del pago total.",
+  cuota: "Una parte del precio. Para armar un plan personalizado (por ejemplo 3 cuotas por transferencia).",
+  otro: "Algo fuera del presupuesto: una sección extra, un logo, un mes de mantenimiento.",
+};
+
+const dosDigitos = (n) => String(n).padStart(2, "0");
+const aInputFecha = (d) => `${d.getFullYear()}-${dosDigitos(d.getMonth() + 1)}-${dosDigitos(d.getDate())}`;
+const fechaDeIso = (iso) => (iso ? aInputFecha(new Date(iso)) : aInputFecha(new Date()));
+const fechaCorta = (iso) =>
+  new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+const redondo = (n) => Math.round(Number(n || 0) * 100) / 100;
+
+/** Precio + dominio propio. Es lo que el cliente paga por el proyecto. */
+function totalDelProyecto(c) {
+  const dominio = c.domain_choice === "propio" ? Number(c.domain_extra_usd ?? 10) : 0;
+  return redondo(Number(c.price_usd || 0) + dominio);
+}
+
+function bloqueCobros(c) {
+  const plan = c.payment_plan || "";
+  const origen = !plan
+    ? "Sin plan todavía: lo elige el cliente cuando acepta la demo, o lo fijás vos acá."
+    : c.plan_fijado
+      ? "Fijado por vos: el cliente lo ve en su link y no puede elegir otro."
+      : "Lo eligió el cliente al aceptar la demo.";
+
+  return `
+    <div class="admin-bloque admin-cobros">
+      <label class="admin-bloque-label">Cobros</label>
+      <div class="cobros-resumen" data-zona="cobros-resumen" aria-live="polite"></div>
+
+      <div class="cobros-plan">
+        <div class="form-group">
+          <label for="ed-plan-${c.id}">Plan de pago</label>
+          <select id="ed-plan-${c.id}" data-campo="plan">
+            ${plan ? "" : `<option value="" selected>Sin definir — lo elige el cliente</option>`}
+            ${Object.entries(PLANES).map(([k, p]) => `
+              <option value="${k}" ${plan === k ? "selected" : ""}>${escapeHtml(p.label)} · ${escapeHtml(p.detalle)}</option>`).join("")}
+          </select>
+        </div>
+        <label class="cobros-check">
+          <input type="checkbox" data-campo="plan-fijar" ${c.plan_fijado || !plan ? "checked" : ""}>
+          <span>Fijarlo: el cliente ve este plan en su link y no puede cambiarlo</span>
+        </label>
+        <div class="cobros-plan-pie">
+          <p class="admin-hint">${escapeHtml(origen)}</p>
+          <button type="button" class="btn btn-sm btn-outline" data-accion="aplicar-plan">Aplicar plan</button>
+        </div>
+      </div>
+
+      <div class="admin-pagos" data-zona="pagos"><p class="admin-hint">Cargando…</p></div>
+
+      <div class="admin-link-row cobros-acciones">
+        <button type="button" class="btn btn-sm btn-primary" data-accion="nuevo-cobro">+ Agregar cobro</button>
+        <button type="button" class="btn btn-sm btn-outline" data-accion="recalcular-saldo">Recalcular el saldo final</button>
+      </div>
+      <p class="admin-hint">
+        Reservas y cuotas son parte del precio; un extra se cobra aparte. El saldo
+        final siempre es lo que falta: precio + dominio − lo ya cobrado o programado.
+      </p>
+    </div>`;
+}
+
+function pintarResumenCobros(zona, c, pagos) {
+  const total = totalDelProyecto(c);
+  const suma = (lista) => redondo(lista.reduce((a, p) => a + Number(p.amount_usd || 0), 0));
+
+  const extras = suma(pagos.filter((p) => p.kind === "otro"));
+  const cobrado = suma(pagos.filter((p) => p.status === "pagado"));
+  const pendiente = suma(pagos.filter((p) => p.status !== "pagado"));
+  // 'dominio' es un cobro viejo del dominio propio aparte: ya está dentro del total.
+  const aCuenta = suma(pagos.filter((p) => KINDS_A_CUENTA.includes(p.kind) || p.kind === "dominio"));
+  const sinProgramar = redondo(total - aCuenta);
+
+  const nota = sinProgramar > 0
+    ? `<p class="cobros-nota">${escapeHtml(usd(sinProgramar))} del precio todavía no tienen cobro: se piden con el saldo final.</p>`
+    : sinProgramar < 0
+      ? `<p class="cobros-nota alerta">${ico("alerta", "pico pico-sm")} Programaste ${escapeHtml(usd(-sinProgramar))} más que el precio. Revisá los montos o subí el precio.</p>`
+      : "";
+
+  zona.innerHTML = `
+    <dl class="cobros-kpis">
+      <div><dt>Total del proyecto</dt><dd>${escapeHtml(usd(total + extras))}</dd>
+        ${extras > 0 ? `<small>incluye ${escapeHtml(usd(extras))} de extras</small>` : ""}</div>
+      <div><dt>Cobrado</dt><dd class="verde">${escapeHtml(usd(cobrado))}</dd></div>
+      <div><dt>Pendiente</dt><dd class="ambar">${escapeHtml(usd(pendiente))}</dd></div>
+      <div><dt>Sin programar</dt><dd>${escapeHtml(usd(Math.max(sinProgramar, 0)))}</dd></div>
+    </dl>
+    ${nota}`;
+}
+
 async function cargarPagos(ficha, c) {
   const zona = ficha.querySelector('[data-zona="pagos"]');
+  const resumen = ficha.querySelector('[data-zona="cobros-resumen"]');
   const pagos = await adminListarPagos(c.id);
+
+  pintarResumenCobros(resumen, c, pagos);
 
   zona.innerHTML = "";
   if (pagos.length === 0) {
-    zona.innerHTML = `<p class="admin-hint">Sin cobros generados. El anticipo se crea solo cuando el cliente acepta pasar a producción.</p>`;
+    zona.innerHTML = `<p class="admin-hint">Sin cobros todavía. Se generan solos según el plan cuando el cliente acepta la demo, o cargalos vos con «+ Agregar cobro».</p>`;
     return;
   }
 
-  pagos.forEach((p) => {
-    const fila = document.createElement("div");
-    fila.className = "admin-pago";
+  pagos.forEach((p) => zona.appendChild(filaCobro(c, p)));
+}
 
-    fila.innerHTML = `
-      <span class="admin-pago-tipo">${escapeHtml(ETIQUETA_PAGO[p.kind] || p.kind)}</span>
-      <span class="admin-pago-monto">${escapeHtml(usd(p.amount_usd))}</span>
-      <span class="admin-badge ${escapeHtml(p.status)}">${escapeHtml(p.status)}</span>`;
+function filaCobro(c, p) {
+  const fila = document.createElement("div");
+  fila.className = `admin-pago admin-pago-${p.status}`;
 
-    if (p.status === "en_revision") {
-      const aviso = document.createElement("span");
-      aviso.className = "admin-hint";
-      aviso.style.flexBasis = "100%";
-      aviso.textContent = "El cliente subió un comprobante. Revisalo desde la sección Cobros.";
-      fila.appendChild(aviso);
-    } else if (p.status !== "pagado") {
-      const porMp = p.method === "mercadopago";
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "btn btn-sm btn-outline";
-      btn.textContent = "Marcar pagado";
+  const meta =
+    p.status === "pagado"
+      ? `${MEDIO_PAGO[p.method] || "Sin medio"}${p.paid_at ? ` · ${fechaCorta(p.paid_at)}` : ""}`
+      : p.status === "en_proceso"
+        ? "El cliente abrió el link de Mercado Pago"
+        : p.status === "en_revision"
+          ? "Subió el comprobante: revisalo en la pestaña Cobros"
+          : `Generado el ${fechaCorta(p.created_at)}`;
 
-      btn.addEventListener("click", async () => {
-        // Los cobros por Mercado Pago los confirma el webhook con el dato
-        // verificado contra MP. Marcarlos a mano rompe esa cadena: se avisa.
-        const ok = await confirmar({
-          titulo: "¿Marcar como pagado?",
-          texto: porMp
-            ? "Este cobro se inició por Mercado Pago y se acredita solo cuando MP lo confirma. Marcalo a mano solo si verificaste el dinero en tu cuenta."
-            : "Confirmá que recibiste la transferencia antes de marcarlo.",
-          confirmar: "Sí, ya cobré",
-          icono: "question",
-        });
-        if (!ok) return;
+  fila.innerHTML = `
+    <div class="admin-pago-info">
+      <span class="admin-pago-tipo">${escapeHtml(ETIQUETA_PAGO[p.kind] || p.kind)}${
+        p.concepto ? ` <span class="admin-pago-concepto">· ${escapeHtml(p.concepto)}</span>` : ""}</span>
+      <span class="admin-pago-meta">${escapeHtml(meta)}</span>
+    </div>
+    <span class="admin-pago-monto">${escapeHtml(usd(p.amount_usd))}</span>
+    <span class="admin-badge ${escapeHtml(p.status)}">${escapeHtml(ESTADO_PAGO[p.status] || p.status)}</span>
+    <div class="admin-pago-botones"></div>`;
 
-        const res = await adminMarcarPago(p.id, { status: "pagado", method: p.method || "transferencia" });
-        if (!res.ok) {
-          avisar("No se pudo marcar", res.error, "error");
-          return;
-        }
-        await recargar();
+  const botones = fila.querySelector(".admin-pago-botones");
+  const boton = (texto, clase, alHacerClick, aria) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = `btn btn-sm ${clase}`;
+    b.textContent = texto;
+    if (aria) b.setAttribute("aria-label", aria);
+    b.addEventListener("click", alHacerClick);
+    botones.appendChild(b);
+  };
+
+  const nombre = `${ETIQUETA_PAGO[p.kind] || p.kind} de ${usd(p.amount_usd)}`;
+
+  if (p.status !== "pagado" && p.status !== "en_revision") {
+    boton("Marcar pagado", "btn-outline", () => dialogoCobro(c, { pago: p, marcarPagado: true }),
+      `Marcar pagado: ${nombre}`);
+  }
+  boton("Editar", "btn-outline", () => dialogoCobro(c, { pago: p }), `Editar: ${nombre}`);
+  boton("Eliminar", "admin-btn-peligro", () => eliminarCobro(c, p), `Eliminar: ${nombre}`);
+
+  return fila;
+}
+
+/**
+ * Si el cliente ya aceptó, rehace el cobro inicial con las reservas de hoy.
+ * Se llama después de tocar una reserva: sin esto el anticipo seguía con el
+ * monto viejo y el cliente veía que le pedían de más.
+ */
+async function recalcularInicio(c) {
+  if (Number(c.orden) < 2 || c.status === "finalizado" || c.payment_plan === "personalizado") return [];
+  const res = await adminConfigurarPlan(c.id, c.payment_plan || "mitades", Boolean(c.plan_fijado));
+  if (!res.ok) return [`No se pudo recalcular el anticipo: ${res.error}`];
+  return Array.isArray(res.avisos) ? res.avisos : [];
+}
+
+/**
+ * El formulario de un cobro: alta (pago = null) o edición.
+ * `marcarPagado` abre la edición con el estado ya en «pagado».
+ */
+async function dialogoCobro(c, { pago = null, marcarPagado = false } = {}) {
+  const Swal = window.Swal;
+  if (!Swal) return;
+
+  const nuevo = !pago;
+  const estadoInicial = marcarPagado ? "pagado" : pago?.status || "pagado";
+  const estados = ["pendiente", "pagado"].concat(
+    pago && !["pendiente", "pagado"].includes(pago.status) ? [pago.status] : []);
+  const medioInicial = pago?.method || "transferencia";
+
+  const opciones = (obj, elegido) => Object.entries(obj)
+    .map(([k, v]) => `<option value="${k}" ${k === elegido ? "selected" : ""}>${escapeHtml(v)}</option>`).join("");
+
+  const aviso = pago?.status === "en_proceso"
+    ? `<p class="cobro-form-aviso">El cliente abrió el link de Mercado Pago. Si cambiás el monto, ese link deja de acreditarse solo: un pago hecho con él queda para que lo revises.</p>`
+    : pago?.method === "mercadopago" && marcarPagado
+      ? `<p class="cobro-form-aviso">Este cobro se inició por Mercado Pago y se acredita solo cuando MP lo confirma. Marcalo a mano solo si viste la plata en tu cuenta.</p>`
+      : "";
+
+  const { value } = await Swal.fire({
+    title: nuevo ? "Agregar cobro" : marcarPagado ? "Marcar como pagado" : "Editar cobro",
+    width: 520,
+    html: `
+      <div class="cobro-form">
+        ${nuevo ? `
+          <label class="cobro-campo">
+            <span>Tipo</span>
+            <select id="cf-kind">
+              <option value="reserva">Reserva — a cuenta del precio</option>
+              <option value="cuota">Cuota — parte del precio</option>
+              <option value="otro">Extra — fuera del presupuesto</option>
+            </select>
+          </label>
+          <p class="cobro-form-ayuda" id="cf-kind-ayuda">${escapeHtml(TIPOS_MANUALES.reserva)}</p>`
+        : `<p class="cobro-form-tipo">${escapeHtml(ETIQUETA_PAGO[pago.kind] || pago.kind)} · ${escapeHtml(c.project_name)}</p>`}
+
+        <label class="cobro-campo">
+          <span>Concepto <small>(lo ve el cliente)</small></span>
+          <input id="cf-concepto" maxlength="200" value="${escapeHtml(pago?.concepto || "")}"
+                 placeholder="${nuevo ? "Ej: Reserva para arrancar" : "Opcional"}">
+        </label>
+
+        <div class="cobro-fila">
+          <label class="cobro-campo">
+            <span>Monto (USD)</span>
+            <input id="cf-monto" type="number" min="0" step="0.01" inputmode="decimal"
+                   value="${pago ? Number(pago.amount_usd) : ""}">
+          </label>
+          <label class="cobro-campo">
+            <span>Estado</span>
+            <select id="cf-estado">${estados.map((e) =>
+              `<option value="${e}" ${e === estadoInicial ? "selected" : ""}>${escapeHtml(ESTADO_PAGO[e] || e)}</option>`).join("")}</select>
+          </label>
+        </div>
+
+        <div class="cobro-fila" id="cf-datos-pago">
+          <label class="cobro-campo">
+            <span>Medio</span>
+            <select id="cf-medio">${opciones(MEDIO_PAGO, medioInicial)}</select>
+          </label>
+          <label class="cobro-campo">
+            <span>Fecha de pago</span>
+            <input id="cf-fecha" type="date" value="${fechaDeIso(pago?.paid_at)}" max="${aInputFecha(new Date())}">
+          </label>
+        </div>
+        ${aviso}
+      </div>`,
+    showCancelButton: true,
+    confirmButtonText: nuevo ? "Agregar" : "Guardar",
+    cancelButtonText: "Cancelar",
+    didOpen: (popup) => {
+      const estado = popup.querySelector("#cf-estado");
+      const datos = popup.querySelector("#cf-datos-pago");
+      const kind = popup.querySelector("#cf-kind");
+      const ayuda = popup.querySelector("#cf-kind-ayuda");
+      const sincronizar = () => { datos.hidden = estado.value !== "pagado"; };
+      estado.addEventListener("change", sincronizar);
+      kind?.addEventListener("change", () => {
+        ayuda.textContent = TIPOS_MANUALES[kind.value];
+        // Una reserva casi siempre se carga cuando ya entró la plata; una
+        // cuota o un extra, cuando todavía hay que cobrarlos.
+        estado.value = kind.value === "reserva" ? "pagado" : "pendiente";
+        sincronizar();
+      });
+      sincronizar();
+      popup.querySelector("#cf-monto")?.focus();
+    },
+    preConfirm: () => {
+      const monto = Number(document.getElementById("cf-monto").value);
+      if (!Number.isFinite(monto) || monto <= 0) {
+        Swal.showValidationMessage("Ingresá un monto mayor a cero.");
+        return false;
+      }
+      return {
+        kind: document.getElementById("cf-kind")?.value || pago.kind,
+        concepto: sanitizeText(document.getElementById("cf-concepto").value, 200),
+        monto: redondo(monto),
+        estado: document.getElementById("cf-estado").value,
+        medio: document.getElementById("cf-medio").value,
+        fecha: document.getElementById("cf-fecha").value,
+      };
+    },
+  });
+
+  if (!value) return;
+
+  const res = nuevo
+    ? await adminCrearCobro(c.id, {
+        kind: value.kind, concepto: value.concepto, montoUsd: value.monto,
+        pagado: value.estado === "pagado", method: value.medio, fecha: value.fecha,
+      })
+    : await adminEditarCobro(pago, {
+        montoUsd: value.monto, status: value.estado, concepto: value.concepto,
+        method: value.estado === "pagado" ? value.medio : (value.estado === "pendiente" ? null : pago.method),
+        fecha: value.fecha,
       });
 
-      fila.appendChild(btn);
+  if (!res.ok) {
+    avisar("No se pudo guardar", res.error, "error");
+    return;
+  }
+
+  const avisos = value.kind === "reserva" ? await recalcularInicio(c) : [];
+  await recargar();
+
+  const texto = nuevo
+    ? value.estado === "pagado" ? "Se sumó como cobrado." : "Le va a figurar al cliente para abonar."
+    : "El cobro quedó actualizado y el cliente ya lo ve así en su link.";
+  avisar(nuevo ? "Cobro agregado" : "Cobro guardado",
+    avisos.length ? `${texto}\n\n• ${avisos.join("\n• ")}` : texto,
+    avisos.length ? "info" : "success");
+}
+
+async function eliminarCobro(c, p) {
+  const pagado = p.status === "pagado";
+  const ok = await confirmar({
+    titulo: "¿Eliminar este cobro?",
+    html: `<strong>${escapeHtml(ETIQUETA_PAGO[p.kind] || p.kind)}${p.concepto ? ` · ${escapeHtml(p.concepto)}` : ""}</strong>
+           por ${escapeHtml(usd(p.amount_usd))}.<br><br>${pagado
+      ? "Figura como <strong>pagado</strong>: si lo borrás, desaparece del total cobrado y del historial del cliente, junto con su recibo. Si solo te equivocaste en el estado, usá «Editar»."
+      : "El cliente deja de verlo para pagar."}`,
+    confirmar: "Sí, eliminar",
+    peligroso: true,
+  });
+  if (!ok) return;
+
+  const res = await adminEliminarCobro(p.id);
+  if (!res.ok) {
+    avisar("No se pudo eliminar", res.error, "error");
+    return;
+  }
+
+  const avisos = p.kind === "reserva" ? await recalcularInicio(c) : [];
+  await recargar();
+  avisar("Cobro eliminado", avisos.length ? `• ${avisos.join("\n• ")}` : "Ya no figura en el proyecto.",
+    avisos.length ? "info" : "success");
+}
+
+function conectarCobros(ficha, c) {
+  const accion = (n) => ficha.querySelector(`[data-accion="${n}"]`);
+
+  accion("aplicar-plan").addEventListener("click", async (e) => {
+    const plan = ficha.querySelector('[data-campo="plan"]').value;
+    const fijar = ficha.querySelector('[data-campo="plan-fijar"]').checked;
+    if (!plan) {
+      avisar("Elegí un plan", "Seleccioná cómo va a pagar el cliente.", "warning");
+      return;
     }
 
-    zona.appendChild(fila);
+    const yaAcepto = Number(c.orden) >= 2;
+    const ok = await confirmar({
+      titulo: `¿Aplicar «${PLANES[plan].label}»?`,
+      texto: yaAcepto
+        ? "Se rehace el cobro inicial (anticipo o pago total) con este plan, descontando las reservas. Lo que ya está cobrado no se toca."
+        : fijar
+          ? "Cuando el cliente abra la demo va a ver este plan, sin poder elegir otro."
+          : "Queda como sugerencia: el cliente igual puede elegir otro al aceptar la demo.",
+      confirmar: "Sí, aplicar",
+      icono: "question",
+    });
+    if (!ok) return;
+
+    const b = e.currentTarget;
+    b.disabled = true;
+    const res = await adminConfigurarPlan(c.id, plan, fijar);
+    b.disabled = false;
+
+    if (!res.ok) {
+      avisar("No se pudo aplicar", res.error, "error");
+      return;
+    }
+    await recargar();
+    const avisos = Array.isArray(res.avisos) ? res.avisos : [];
+    avisar("Plan aplicado",
+      avisos.length ? `• ${avisos.join("\n• ")}` : `El cliente ya ve «${PLANES[plan].label}» en su link.`,
+      avisos.length ? "info" : "success");
+  });
+
+  accion("nuevo-cobro").addEventListener("click", () => dialogoCobro(c));
+
+  accion("recalcular-saldo").addEventListener("click", async () => {
+    const ok = await confirmar({
+      titulo: "¿Recalcular el saldo final?",
+      texto: "Se borra el saldo pendiente y se vuelve a calcular con lo que falta hoy: precio + dominio − lo ya cobrado o programado. Si no falta nada, no se genera.",
+      confirmar: "Sí, recalcular",
+      icono: "question",
+    });
+    if (!ok) return;
+
+    const res = await adminRecalcularSaldo(c.id);
+    if (!res.ok) {
+      avisar("No se pudo recalcular", res.error, "error");
+      return;
+    }
+    await recargar();
+    avisar("Saldo recalculado",
+      Number(res.monto) > 0
+        ? `Saldo final: ${usd(res.monto)}. Ya le figura al cliente para abonar.`
+        : "No queda nada por cobrar del precio: no se generó saldo.",
+      "success");
   });
 }
 

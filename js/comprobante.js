@@ -44,11 +44,20 @@ export const EMISOR = {
 };
 
 const CONCEPTO = {
-  anticipo: "Anticipo del 50% — desarrollo web",
+  anticipo: "Anticipo — desarrollo web",
   saldo:    "Saldo final — desarrollo web",
   total:    "Pago total del proyecto — desarrollo web",
   dominio:  "Dominio propio",
+  reserva:  "Reserva — desarrollo web",
+  cuota:    "Cuota — desarrollo web",
+  otro:     "Adicional",
 };
+
+/* Con cuotas y extras el tipo solo no alcanza ("Cuota" ¿cuál?): si Ariel le
+   puso un concepto al cobro, va en el recibo al lado del tipo. */
+const conceptoDe = (pago) => pago.concepto
+  ? `${CONCEPTO[pago.kind] || "Desarrollo web"} · ${pago.concepto}`
+  : CONCEPTO[pago.kind] || "Desarrollo web";
 
 const METODO = {
   mercadopago:    "Mercado Pago",
@@ -155,7 +164,7 @@ export function htmlComprobante({ pago, datos, cotizacion }) {
           <span>Concepto</span><span>Importe</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:baseline;padding:5mm;">
-          <span style="max-width:60%;">${escapeHtml(CONCEPTO[pago.kind] || "Desarrollo web")}</span>
+          <span style="max-width:60%;">${escapeHtml(conceptoDe(pago))}</span>
           <span style="text-align:right;">
             <span style="font-size:15pt;font-weight:700;">${escapeHtml(dolares(pago.amount_usd))}</span>
             ${arsGuardado ? `<div style="color:#555;font-size:9.5pt;margin-top:1mm;">${escapeHtml(arsGuardado)}</div>` : ""}

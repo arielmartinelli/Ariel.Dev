@@ -779,7 +779,7 @@
   font-weight: 700;
   font-size: 1rem;
 }
-.portal-desglose span:last-child { font-variant-numeric: tabular-nums; }
+.portal-desglose span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
 
 /* ==========================================================================
    Opciones (método de pago, dominio)
@@ -1328,3 +1328,66 @@
   .portal-precio { padding: var(--e3) var(--e4); }
   .portal-precio-num { font-size: 2rem; }
 }
+
+/* ==========================================================================
+   Plan de pagos (migración 14)
+   ========================================================================== */
+
+/* El plan que fijó Ariel: se muestra como un dato, no como una opción. */
+.portal-plan-fijo {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 12px;
+  margin-bottom: var(--e2);
+}
+.portal-plan-fijo small { color: var(--text-secondary); font-size: 0.88rem; }
+
+.portal-plan-lista {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.portal-plan-lista li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+.portal-plan-lista b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+.portal-desglose-ars { color: var(--text-secondary); font-weight: 500; font-size: 0.82em; }
+
+/* Lista de pagos en el resumen: qué se pagó, qué falta y de qué es. */
+.portal-pagos {
+  margin-top: var(--e4);
+  padding-top: var(--e3);
+  border-top: 1px solid var(--border);
+}
+.portal-pagos ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.portal-pago {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 9px;
+  font-size: 0.86rem;
+  box-shadow: inset 3px 0 0 var(--border-hover);
+}
+.portal-pago-ok   { box-shadow: inset 3px 0 0 #22c55e; }
+.portal-pago-pend { box-shadow: inset 3px 0 0 #f59e0b; }
+.portal-pago-nom { display: grid; line-height: 1.25; min-width: 0; }
+.portal-pago-nom small { font-size: 0.72rem; color: var(--text-muted); }
+.portal-pago b { font-variant-numeric: tabular-nums; white-space: nowrap; }

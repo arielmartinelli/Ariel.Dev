@@ -420,3 +420,88 @@ SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'portal_obtener';
   acreditados → 2 botones; saldo pendiente → 1; pago viejo sin numerar → el
   botón no aparece; nada cobrado → ninguno.
 - El PDF se descarga de verdad: 259 kB, abierto y leído, no «no tiró error».
+
+---
+
+## Pagos flexibles (migración 14)
+
+Correr `supabase/migracion-14-pagos-flexibles.sql` en el SQL Editor. Tiene que
+devolver **13 ✅**. Se puede correr dos veces sin romper nada.
+
+### Por qué
+
+El caso que lo disparó: un cliente pagó una **reserva** antes de arrancar y el
+sistema igual le pedía el anticipo completo del 50%. No había dónde cargar esa
+plata ni forma de cambiar un monto.
+
+### Los cuatro planes
+
+| Plan | Quién lo elige | Cobros que se generan |
+|---|---|---|
+| `mitades` | cliente o Ariel | anticipo 50% − reservas · saldo = lo que falta |
+| `unico` | cliente o Ariel | pago total − reservas (MP en **1** pago o transferencia) |
+| `cuotas3` | cliente o Ariel | pago total − reservas (MP en **3** cuotas) |
+| `personalizado` | **solo Ariel** | ninguno automático: las cuotas se cargan a mano |
+
+Con **«Fijarlo»** tildado (`clients.plan_fijado`), el cliente ve el plan en su
+link y no puede elegir otro: `portal_decidir` ignora lo que mande el navegador.
+
+### Tipos de cobro
+
+| Tipo | Qué es | ¿Parte del precio? |
+|---|---|---|
+| `reserva` | plata cobrada antes de arrancar | sí — se descuenta del cobro inicial |
+| `anticipo` / `total` | el cobro inicial del plan | sí |
+| `cuota` | una parte del precio (plan personalizado) | sí |
+| `saldo` | **lo que falta**: precio + dominio − todo lo anterior | sí |
+| `otro` | un extra fuera del presupuesto | no, se suma aparte |
+
+Cada cobro tiene un `concepto` que ve el cliente. Reserva, cuota y extra
+admiten varios por cliente; el comprobante y Mercado Pago toman siempre el
+**primero pendiente** de ese tipo.
+
+### En el panel — bloque «Cobros» de cada cliente
+
+- Resumen: total del proyecto, cobrado, pendiente y **sin programar** (lo que
+  todavía no tiene cobro y se pedirá con el saldo). Avisa si programaste más
+  que el precio.
+- Plan de pago + «Aplicar plan»: rehace el cobro inicial descontando reservas.
+- Cada cobro: **Marcar pagado**, **Editar** (monto, estado, medio, fecha,
+  concepto) y **Eliminar**.
+- **+ Agregar cobro**: reserva, cuota o extra.
+- **Recalcular el saldo final**.
+
+Al cargar, editar o borrar una reserva, el anticipo se recalcula solo. Si la
+reserva cubre todo el pago inicial, el proyecto pasa directo a producción.
+
+### Reglas que conviene no romper
+
+- **Lo pagado no se borra ni se recalcula** en ninguna función de la base. El
+  panel sí deja eliminarlo a mano, con una advertencia.
+- **No se toca un cobro con pago en curso** (`en_proceso` o `en_revision`):
+  borrarlo dejaría la plata sin fila donde acreditarse.
+- **Editar el monto suelta la preferencia de MP**, y el webhook compara los
+  USD del link con los del cobro actual: un pago hecho con un link viejo queda
+  para revisar en vez de acreditarse solo.
+- **`portal_obtener` no se reescribió**: la migración toma la versión que está
+  corriendo con `pg_get_functiondef()` y le inserta dos claves. Si no encuentra
+  dónde, falla sin tocar nada.
+
+### De paso se arregló
+
+`admin_mover_flujo` pedía siempre un `anticipo`: con el plan de 3 cuotas,
+mover la etapa a mano creaba un anticipo del 50% **además** del pago total.
+Ahora `asegurar_cobro` traduce «anticipo» al cobro inicial que corresponde al
+plan.
+
+### Qué se verificó
+
+- En Postgres 16 con las 14 migraciones en orden: reserva de 100 sobre 400
+  (anticipo 100, saldo 200), reserva que cubre el anticipo (pasa sola a
+  producción), plan fijado que el cliente no puede pisar, el anticipo fantasma,
+  plan personalizado de 3 cuotas hasta finalizar, recálculo del saldo, y que
+  otro usuario logueado no vea ni toque nada.
+- En Chromium (`pruebas/verificar-pagos.mjs`), a 390 y 1280 px: los números
+  del resumen del panel, que «Agregar» y «Editar» manden a la base exactamente
+  lo cargado, y los cinco casos nuevos del portal.
+- `pruebas/verificar-mp.mjs`: 3 cuotas para `cuotas3`, 1 pago para `unico`.

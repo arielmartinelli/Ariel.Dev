@@ -4,7 +4,7 @@
  * Crea una preferencia de Checkout Pro y devuelve el init_point (la URL de
  * Mercado Pago a la que se manda al cliente).
  *
- * Body: { token: "<token del portal>", kind: "anticipo" | "saldo" | "dominio" }
+ * Body: { token: "<token del portal>", kind: "anticipo" | "saldo" | "total" | "cuota" | "otro" | ... }
  *
  * ------------------------------------------------------------------------
  * POR QUE ESTO NO PUEDE ESTAR EN EL NAVEGADOR
@@ -27,16 +27,21 @@ import {
 } from "./_lib.js";
 
 const TITULOS = {
-  anticipo: "Adelanto 50% — desarrollo web",
-  saldo: "Saldo final 50% — desarrollo web",
+  anticipo: "Anticipo — desarrollo web",
+  saldo: "Saldo final — desarrollo web",
   dominio: "Dominio propio (.com) — registro y configuración",
-  total: "Desarrollo web — pago total en 3 cuotas",
+  total: "Desarrollo web — pago total",
+  reserva: "Reserva — desarrollo web",
+  cuota: "Cuota — desarrollo web",
+  otro: "Adicional — desarrollo web",
 };
 
-/* Cuántas cuotas se le ofrecen al cliente según el tipo de cobro.
-   El plan de 3 cuotas es UN cobro por el total: el que divide en tres es el
-   banco del cliente, no nosotros. El resto de los cobros van en un pago. */
-const CUOTAS = { total: 3 };
+/* Cuántas cuotas se le ofrecen al cliente.
+   Solo el plan de 3 cuotas: es UN cobro por el total y el que lo divide en
+   tres es el banco del cliente, no nosotros. El pago total del plan «único»
+   usa el mismo tipo de cobro ('total') pero va en un pago: por eso se decide
+   por el PLAN y no por el tipo. */
+const cuotasPara = (kind, plan) => (kind === "total" && plan === "cuotas3" ? 3 : 1);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -89,16 +94,22 @@ export default async function handler(req, res) {
     // 2. El pago tiene que existir y estar pendiente. Esto evita cobrar dos
     //    veces lo mismo si el cliente deja la pestaña abierta y vuelve a
     //    apretar el botón después de haber pagado.
-    const { data: pago, error: errPago } = await db
+    //
+    //    Con cuotas y extras puede haber VARIAS filas del mismo tipo: se toma
+    //    la más vieja que siga sin pagar, igual que portal_subir_comprobante().
+    //    El cliente nunca elige cuál: siempre se paga en orden.
+    const { data: filas, error: errPago } = await db
       .from("payments")
-      .select("id, kind, amount_usd, status")
+      .select("id, kind, amount_usd, status, concepto")
       .eq("client_id", cliente.id)
       .eq("kind", kind)
-      .maybeSingle();
+      .order("created_at", { ascending: true });
 
     if (errPago) throw errPago;
-    if (!pago) return json(res, 404, { error: "Ese pago todavía no está habilitado." });
-    if (pago.status === "pagado") return json(res, 409, { error: "Este pago ya figura como abonado." });
+    if (!filas || filas.length === 0) return json(res, 404, { error: "Ese pago todavía no está habilitado." });
+
+    const pago = filas.find((f) => f.status !== "pagado");
+    if (!pago) return json(res, 409, { error: "Este pago ya figura como abonado." });
 
     // 3. El monto sale de la base, jamás del body. Ver la nota de arriba.
     const montoUsd = Number(pago.amount_usd);
@@ -119,7 +130,7 @@ export default async function handler(req, res) {
       items: [
         {
           id: `${cliente.id}-${kind}`,
-          title: TITULOS[kind],
+          title: pago.concepto ? `${TITULOS[kind]} · ${pago.concepto}`.slice(0, 250) : TITULOS[kind],
           description: `${cliente.project_name} — ${cliente.client_name}`,
           quantity: 1,
           currency_id: "ARS",
@@ -153,8 +164,8 @@ export default async function handler(req, res) {
       // promoción activa, Mercado Pago igual ofrece 3 cuotas pero CON
       // interés para el cliente. Ver MANTENIMIENTO.md.
       payment_methods: {
-        installments: CUOTAS[kind] || 1,
-        default_installments: CUOTAS[kind] || 1,
+        installments: cuotasPara(kind, cliente.payment_plan),
+        default_installments: cuotasPara(kind, cliente.payment_plan),
       },
       back_urls: {
         success: `${volver}?pago=ok`,

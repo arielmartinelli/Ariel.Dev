@@ -410,6 +410,84 @@ function fecha(iso) {
 
 const pagoDe = (kind) => (datos?.pagos || []).find((p) => p.kind === kind) || null;
 
+/* --------------------------------------------------------------------------
+   Plan de pagos (migración 14)
+   --------------------------------------------------------------------------
+   El plan puede elegirlo el cliente (mitades, pago total o 3 cuotas) o
+   fijarlo Ariel desde el panel — incluido uno personalizado con los cobros
+   armados a mano. Puede haber además una reserva ya pagada que se descuenta
+   del primer pago, cuotas y extras. Estas funciones son la única fuente para
+   decidir qué se muestra.
+   -------------------------------------------------------------------------- */
+const PLAN_TXT = {
+  mitades: {
+    titulo: "Mitad y mitad",
+    detalle: (p) => `${usd(p / 2)} para arrancar y ${usd(p / 2)} cuando la página está publicada.`,
+  },
+  unico: {
+    titulo: "Pago total",
+    detalle: (p) => `${usd(p)} en un solo pago, por transferencia o Mercado Pago.`,
+  },
+  cuotas3: {
+    titulo: "3 cuotas sin interés",
+    detalle: (p) => `${usd(p)} con tarjeta en Mercado Pago. Lo pagás una vez y la tarjeta te lo divide en 3.`,
+  },
+  personalizado: {
+    titulo: "Plan acordado",
+    detalle: () => "Los pagos que acordamos, uno por uno, con su monto.",
+  },
+};
+
+const NOMBRE_PAGO = {
+  anticipo: "Anticipo",
+  saldo: "Saldo final",
+  total: "Pago total",
+  reserva: "Reserva",
+  cuota: "Cuota",
+  otro: "Extra",
+  dominio: "Dominio propio",
+};
+
+const ESTADO_PAGO_CLIENTE = {
+  pagado: "Pagado",
+  pendiente: "Pendiente",
+  en_proceso: "Procesando",
+  en_revision: "En revisión",
+  rechazado: "Pendiente",
+};
+
+/** Lo que es parte del precio (y no un extra aparte). */
+const A_CUENTA = ["reserva", "anticipo", "total", "cuota"];
+
+const nombrePago = (p) => p.concepto || NOMBRE_PAGO[p.kind] || "Pago";
+
+const sumaPagos = (filtro) => (datos?.pagos || [])
+  .filter(filtro)
+  .reduce((a, p) => a + Number(p.amount_usd || 0), 0);
+
+/** Lo ya pagado de esos tipos. */
+const pagadoDe = (kinds) => sumaPagos((p) => p.status === "pagado" && kinds.includes(p.kind));
+
+/** El primer cobro sin pagar, en el orden de prioridad de `kinds`. */
+function proximoPendiente(kinds) {
+  const pagos = datos?.pagos || [];
+  for (const k of kinds) {
+    const p = pagos.find((x) => x.kind === k && x.status !== "pagado");
+    if (p) return p;
+  }
+  return null;
+}
+
+/** El cobro con el que arranca el proyecto, según el plan. */
+function cobroInicial(d) {
+  const plan = d.payment_plan || "mitades";
+  if (plan === "personalizado") return proximoPendiente(["cuota", "reserva", "anticipo", "total", "otro"]);
+  return pagoDe(["cuotas3", "unico"].includes(plan) ? "total" : "anticipo");
+}
+
+/** Cobros pendientes que no son el de la etapa: cuotas, extras. */
+const KINDS_SUELTOS = ["cuota", "otro", "reserva", "dominio", "anticipo", "total"];
+
 /* ==========================================================================
    Una función por etapa
    --------------------------------------------------------------------------
@@ -417,6 +495,64 @@ const pagoDe = (kind) => (datos?.pagos || []).find((p) => p.kind === kind) || nu
    entre ellas: lo que no devuelve una etapa, sencillamente no existe en
    pantalla.
    ========================================================================== */
+/**
+ * Cómo se paga, en la tarjeta de la demo.
+ *
+ * Si Ariel fijó el plan, se muestra ese y nada más: ofrecerle opciones que
+ * después la base no respeta sería mentirle. Si no, el cliente elige entre
+ * los tres planes que puede elegir él solo.
+ */
+function bloquePlanDemo(d, precio) {
+  const reserva = pagadoDe(["reserva"]);
+  // En el plan acordado los montos ya los armó Ariel con la reserva en
+  // cuenta: decir "se descuenta del primer pago" ahí sería falso.
+  const notaReserva = reserva > 0
+    ? nota(d.plan_fijado && d.payment_plan === "personalizado"
+        ? `Ya abonaste <strong>${escapeHtml(usd(reserva))}</strong> de reserva.`
+        : `Ya abonaste <strong>${escapeHtml(usd(reserva))}</strong> de reserva: se descuenta del primer pago.`, "ok", "check")
+    : "";
+
+  if (d.plan_fijado && PLAN_TXT[d.payment_plan]) {
+    const plan = PLAN_TXT[d.payment_plan];
+    const programados = (d.pagos || []).filter((p) => p.kind !== "reserva" || p.status !== "pagado");
+    return `
+      <p class="portal-ruta-tit">Cómo lo vas a pagar</p>
+      <div class="portal-plan-fijo">
+        <b>${escapeHtml(plan.titulo)}</b>
+        <small>${escapeHtml(plan.detalle(precio))}</small>
+        ${d.payment_plan === "personalizado" && programados.length ? `
+          <ul class="portal-plan-lista">
+            ${programados.map((p) => `
+              <li><span>${escapeHtml(nombrePago(p))}</span><b>${escapeHtml(usd(p.amount_usd))}</b></li>`).join("")}
+          </ul>` : ""}
+      </div>
+      ${notaReserva}
+      ${nota("Es el plan que acordamos. Si querés cambiar algo, escribime antes de continuar.")}`;
+  }
+
+  const op = (valor, titulo, detalle, extra = "", marcado = false) => `
+    <label class="portal-op">
+      <input type="radio" name="plan" value="${valor}" ${marcado ? "checked" : ""}>
+      <span class="portal-op-marca" aria-hidden="true"></span>
+      <span class="portal-op-txt"><b>${escapeHtml(titulo)}</b>
+        <small>${escapeHtml(detalle)}</small></span>
+      ${extra}
+    </label>`;
+
+  const sugerido = PLAN_TXT[d.payment_plan] && d.payment_plan !== "personalizado" ? d.payment_plan : "mitades";
+
+  return `
+    <p class="portal-ruta-tit">¿Cómo preferís pagarlo?</p>
+    <div class="portal-ops" role="radiogroup" aria-label="Forma de pago">
+      ${op("mitades", PLAN_TXT.mitades.titulo, PLAN_TXT.mitades.detalle(precio), "", sugerido === "mitades")}
+      ${op("unico", PLAN_TXT.unico.titulo, PLAN_TXT.unico.detalle(precio), "", sugerido === "unico")}
+      ${op("cuotas3", PLAN_TXT.cuotas3.titulo, PLAN_TXT.cuotas3.detalle(precio),
+           `<span class="portal-op-precio libre">Sin recargo</span>`, sugerido === "cuotas3")}
+    </div>
+    ${notaReserva}
+    ${nota("Elegís ahora y después, si querés cambiar, me escribís y lo vemos. El dominio propio, si lo elegís más adelante, se suma al final.")}`;
+}
+
 const ETAPAS = {
 
   demo_pendiente: () => tarjeta({
@@ -428,7 +564,7 @@ const ETAPAS = {
       <p class="portal-ruta-tit">Lo que viene después</p>
       <ol class="portal-ruta">
         <li><span>1</span><div><b>Ver la demo y decidir</b><small>Si te gusta cómo va, seguimos.</small></div></li>
-        <li><span>2</span><div><b>Anticipo del 50%</b><small>Con eso arranco a trabajar en serio.</small></div></li>
+        <li><span>2</span><div><b>El primer pago</b><small>Según el plan de pago. Con eso arranco a trabajar en serio.</small></div></li>
         <li><span>3</span><div><b>Cargar tus cambios</b><small>Todo lo que quieras ajustar, lo escribís acá.</small></div></li>
       </ol>` +
       nota("Este link es tuyo y <strong>no vence</strong>. Guardalo: desde acá vas a seguir todo el proyecto de punta a punta."),
@@ -463,24 +599,7 @@ const ETAPAS = {
         </div>
         <p class="portal-url">${escapeHtml(d.demo_url || "")}</p>
 
-        <p class="portal-ruta-tit">¿Cómo preferís pagarlo?</p>
-        <div class="portal-ops" role="radiogroup" aria-label="Forma de pago">
-          <label class="portal-op">
-            <input type="radio" name="plan" value="mitades" checked>
-            <span class="portal-op-marca" aria-hidden="true"></span>
-            <span class="portal-op-txt"><b>Mitades</b>
-              <small>${escapeHtml(usd(precio / 2))} para arrancar y ${escapeHtml(usd(precio / 2))} cuando la página está publicada.</small></span>
-          </label>
-          <label class="portal-op">
-            <input type="radio" name="plan" value="cuotas3">
-            <span class="portal-op-marca" aria-hidden="true"></span>
-            <span class="portal-op-txt"><b>3 cuotas sin interés</b>
-              <small>${escapeHtml(usd(precio))} con tarjeta en Mercado Pago. Lo pagás una vez y la tarjeta te lo divide en 3.</small></span>
-            <span class="portal-op-precio libre">Sin recargo</span>
-          </label>
-        </div>
-
-        ${nota("Elegís ahora y después, si querés cambiar, me escribís y lo vemos. El dominio propio, si lo elegís más adelante, se suma al final.")}
+        ${bloquePlanDemo(d, precio)}
 
         <div class="portal-acciones">
           <button type="button" class="btn btn-exito" data-accion="continuar">
@@ -492,32 +611,57 @@ const ETAPAS = {
   },
 
   anticipo_pendiente: (d) => {
-    // El plan de 3 cuotas genera UN cobro por el total; el de mitades, el
-    // anticipo del 50%. La tarjeta es la misma, cambian el monto y el texto.
-    const enCuotas = d.payment_plan === "cuotas3";
-    const pago = pagoDe(enCuotas ? "total" : "anticipo");
-    const monto = pago?.amount_usd ?? (enCuotas ? Number(d.price_usd) : Number(d.price_usd) / 2);
+    const plan = d.payment_plan || "mitades";
+    const pago = cobroInicial(d);
+
+    // Sin cobro pendiente todavía: el plan personalizado sin cuotas cargadas,
+    // o un pago que ya entró y el flujo está por avanzar. Nada para pagar.
+    if (!pago || pago.status === "pagado") {
+      return tarjeta({
+        icono: "reloj", tono: "espera",
+        titulo: "Estoy preparando tu plan de pagos",
+        bajada: "En un rato te aparece acá el monto a pagar. Te aviso por WhatsApp.",
+        cuerpo: cartelDeEspera("Todavía no hay nada para pagar", "No tenés que hacer nada por ahora."),
+      });
+    }
+
+    const monto = Number(pago.amount_usd);
     const totalUsd = Number(d.total_usd) || 0;
+    const reserva = pagadoDe(["reserva"]);
+    const enCuotas = plan === "cuotas3" && pago.kind === "total";
+
+    const titulo =
+      pago.kind === "anticipo" ? "Anticipo para arrancar"
+      : pago.kind === "total" ? (enCuotas ? "Pago en 3 cuotas sin interés" : "Pago total del proyecto")
+      : nombrePago(pago);
+
+    const bajada =
+      enCuotas ? "Pagás una sola vez con tarjeta y Mercado Pago te lo divide en 3 cuotas sin interés. Apenas se acredita arranco y se te habilita la lista de cambios."
+      : pago.kind === "total" ? "Pagás el proyecto completo de una vez. Apenas se acredita arranco y se te habilita la lista de cambios."
+      : "Con este pago arranco a trabajar y se te habilita la lista de cambios para dejar la página a tu gusto.";
+
+    const referencia = pago.kind === "anticipo"
+      ? `de ${escapeHtml(usd(totalUsd))} totales`
+      : pago.kind === "total" ? "el proyecto completo" : "";
 
     return tarjetaPago({
-      kind: enCuotas ? "total" : "anticipo",
-      titulo: enCuotas ? "Pago en 3 cuotas sin interés" : "Anticipo del 50%",
-      bajada: enCuotas
-        ? "Pagás una sola vez con tarjeta y Mercado Pago te lo divide en 3 cuotas sin interés. Apenas se acredita arranco y se te habilita la lista de cambios."
-        : "Con el anticipo arranco a trabajar y se te habilita la lista de cambios para dejar la página a tu gusto.",
+      kind: pago.kind,
+      titulo,
+      bajada,
       monto,
       detalle: `
         <div class="portal-monto-box" style="margin: 8px 0 18px;">
           <p class="portal-monto">
             <b>${escapeHtml(usd(monto))}</b>
-            <span>${enCuotas ? "el proyecto completo" : `de ${escapeHtml(usd(totalUsd))} totales`}</span>
+            ${referencia ? `<span>${referencia}</span>` : ""}
           </p>
           <p style="font-size: 1.05rem; font-weight: 700; color: #4ade80; margin-top: 2px;">
             ≡ ${escapeHtml(ars(monto))}
             <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); margin-left: 6px;">(Cotización Dólar hoy: $${cotizacionDolar.toLocaleString("es-AR")} ARS/USD)</span>
           </p>
           ${enCuotas ? `<p class="portal-cuotas-hint">3 cuotas de ${escapeHtml(usd(monto / 3))} · ${escapeHtml(ars(monto / 3))} cada una</p>` : ""}
-        </div>`,
+        </div>
+        ${reserva > 0 ? nota(`Ya descontamos tu reserva de <strong>${escapeHtml(usd(reserva))}</strong>.`, "ok", "check") : ""}`,
       pago,
     });
   },
@@ -628,18 +772,48 @@ const ETAPAS = {
   },
 
   saldo_pendiente: (d) => {
-    const pago = pagoDe("saldo");
-    const monto = pago?.amount_usd ?? Number(d.price_usd) / 2;
+    const saldo = pagoDe("saldo");
+    const pago = saldo && saldo.status !== "pagado"
+      ? saldo
+      : proximoPendiente(["cuota", "otro", "anticipo", "total", "reserva", "dominio"]);
+
+    if (!pago) {
+      return tarjeta({
+        icono: "reloj", tono: "espera",
+        titulo: "Estoy confirmando tus pagos",
+        bajada: "No queda nada por pagar. En un momento se habilita el link de tu página.",
+      });
+    }
+
+    // Un cobro suelto (una cuota del plan acordado, un extra): tarjeta simple.
+    if (pago.kind !== "saldo") {
+      return tarjetaPago({
+        kind: pago.kind,
+        titulo: `Último paso: ${nombrePago(pago).toLowerCase()}`,
+        bajada: "Tu página ya está lista y funcionando. Con este pago queda publicada y es toda tuya.",
+        monto: Number(pago.amount_usd),
+        pago,
+      });
+    }
+
+    // El saldo es "lo que falta": se muestra la cuenta completa para que el
+    // cliente vea de dónde sale el número y que ya se descontó lo que pagó.
+    const monto = Number(pago.amount_usd);
     const extra = d.domain_choice === "propio" ? Number(d.domain_extra_usd || 0) : 0;
-    const base = Number(monto) - extra;
+    const precio = Number(d.price_usd) || 0;
+    const aCuenta = (d.pagos || []).filter((p) => A_CUENTA.includes(p.kind));
+    const linea = (izq, der, estilo = "") =>
+      `<div><span>${izq}</span><span${estilo}>${der}</span></div>`;
 
     const detalle = `
       <div class="portal-desglose">
-        <div><span>Saldo del desarrollo (50%)</span><span>${escapeHtml(usd(base))} <small style="color:var(--text-secondary); font-weight:500;">(${ars(base)})</small></span></div>
-        ${extra > 0
-          ? `<div><span>Dominio propio${d.domain_name ? ` · ${escapeHtml(d.domain_name)}` : ""}</span><span>${escapeHtml(usd(extra))} <small style="color:var(--text-secondary); font-weight:500;">(${ars(extra)})</small></span></div>`
-          : ""}
-        <div><span>Total a pagar</span><span style="color: #4ade80;">${escapeHtml(usd(monto))} · ${ars(monto)}</span></div>
+        ${linea("Valor del proyecto", `${escapeHtml(usd(precio))} <small class="portal-desglose-ars">(${ars(precio)})</small>`)}
+        ${extra > 0 ? linea(`Dominio propio${d.domain_name ? ` · ${escapeHtml(d.domain_name)}` : ""}`,
+             `${escapeHtml(usd(extra))} <small class="portal-desglose-ars">(${ars(extra)})</small>`) : ""}
+        ${aCuenta.map((p) => linea(
+             `${escapeHtml(nombrePago(p))} <small class="portal-desglose-ars">${p.status === "pagado" ? "· pagado" : "· pendiente aparte"}</small>`,
+             `− ${escapeHtml(usd(p.amount_usd))}`)).join("")}
+        ${linea("Total a pagar", `${escapeHtml(usd(monto))} · ${ars(monto)}`, ' style="color: #4ade80;"')}
       </div>
       <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 18px; display: flex; align-items: center; gap: 6px;">
         ${ico("info", "pico pico-sm")} Tipo de cambio en vivo: <strong>$${cotizacionDolar.toLocaleString("es-AR")} ARS/USD</strong>
@@ -725,30 +899,31 @@ const ETAPAS_HISTORIAL = {
     });
   },
 
-  // Paso 1: Anticipo
+  // Paso 1: Pago inicial (anticipo, pago total, reserva o primera cuota)
   1: (d) => {
-    const pago = pagoDe("anticipo");
-    const monto = pago?.amount_usd ?? Number(d.price_usd) / 2;
-    const fechaPago = pago?.comprobante_fecha ? fecha(pago.comprobante_fecha) : "registrado";
-    const estadoTexto = pago?.status === "pagado" ? "Acreditado" : "Aprobado";
+    const iniciales = (d.pagos || []).filter((p) => A_CUENTA.includes(p.kind) && p.status === "pagado");
+    const monto = iniciales.reduce((a, p) => a + Number(p.amount_usd || 0), 0);
+    const ultimo = iniciales[iniciales.length - 1];
+    const fechaPago = ultimo?.paid_at ? fecha(ultimo.paid_at) : "registrado";
+    const nombres = iniciales.map(nombrePago).join(" + ") || "Pago inicial";
 
     return tarjeta({
       icono: "tarjeta", tono: "listo",
-      titulo: "Paso 2: Anticipo del 50% (Pagado)",
-      bajada: "El anticipo fue recibido y confirmado correctamente.",
+      titulo: "Paso 2: Pago inicial (Pagado)",
+      bajada: "El pago para arrancar fue recibido y confirmado correctamente.",
       cuerpo: `
         <div class="portal-espera" style="border-color: rgba(34, 197, 94, 0.35); background: rgba(34, 197, 94, 0.06); text-align: left; padding: 20px 24px; justify-content: space-between; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; border-radius: 16px;">
           <div>
-            <strong class="portal-hito-ok">${ico("checkCirculo", "pico")} Anticipo del 50% acreditado</strong>
+            <strong class="portal-hito-ok">${ico("checkCirculo", "pico")} ${escapeHtml(nombres)} acreditado</strong>
             <small style="color: var(--text-secondary); font-size: 0.92rem; margin-top: 4px; display: block;">
-              ${usd(monto)} (${ars(monto)}) · ${estadoTexto} (${fechaPago})
+              ${usd(monto)} (${ars(monto)}) · Acreditado (${fechaPago})
             </small>
           </div>
           <span style="background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 5px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700;">
-            100% Pagado
+            Pagado
           </span>
         </div>
-        ${nota("Pago del 50% registrado correctamente. Con este paso abonado se habilitó el desarrollo y la lista de cambios.", "ok", "check")}
+        ${nota("Pago registrado correctamente. Con este paso abonado se habilitó el desarrollo y la lista de cambios.", "ok", "check")}
         <div class="portal-acciones" style="margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;">
           <button type="button" class="btn btn-outline btn-sm" data-accion="reiniciar-paso" data-decision="volver_anticipo" data-nombre-paso="Anticipo">
             ↺ Retomar paso de Anticipo
@@ -868,10 +1043,13 @@ const ETAPAS_HISTORIAL = {
    se muestra nada y el cliente lo pide por WhatsApp.
    ========================================================================== */
 const CONCEPTO_CORTO = {
-  anticipo: "Anticipo 50%",
+  anticipo: "Anticipo",
   saldo:    "Saldo final",
   total:    "Pago total",
   dominio:  "Dominio propio",
+  reserva:  "Reserva",
+  cuota:    "Cuota",
+  otro:     "Extra",
 };
 
 function bloqueComprobantes(d) {
@@ -883,10 +1061,10 @@ function bloqueComprobantes(d) {
       <p class="portal-recibos-tit">${ico("recibo", "pico pico-sm")} Tus comprobantes</p>
       ${conRecibo.map((p) => `
         <button type="button" class="portal-resumen-link portal-recibo-btn"
-                data-accion="bajar-recibo" data-kind="${escapeHtml(p.kind)}">
+                data-accion="bajar-recibo" data-nro="${escapeHtml(String(p.nro_recibo))}">
           ${ico("descargar", "pico pico-sm")}
           <span class="portal-recibo-txt">
-            <b>${escapeHtml(CONCEPTO_CORTO[p.kind] || "Pago")}</b>
+            <b>${escapeHtml(p.concepto || CONCEPTO_CORTO[p.kind] || "Pago")}</b>
             <small>${escapeHtml(numeroRecibo(p.nro_recibo, p.recibo_fecha || p.paid_at) || "")} · ${escapeHtml(usd(p.amount_usd))}</small>
           </span>
         </button>`).join("")}
@@ -897,18 +1075,42 @@ function bloqueComprobantes(d) {
 /* ==========================================================================
    Resumen del proyecto (columna derecha en pantalla ancha)
    ========================================================================== */
+/**
+ * Todos los pagos del proyecto, con su estado. Es lo que pidió Ariel: que en
+ * el link quede claro qué se pagó, qué falta y de qué es cada monto.
+ */
+function listaDePagos(pagos) {
+  if (!pagos.length) return "";
+  return `
+    <div class="portal-pagos">
+      <p class="portal-recibos-tit">${ico("tarjeta", "pico pico-sm")} Tus pagos</p>
+      <ul>
+        ${pagos.map((p) => `
+          <li class="portal-pago portal-pago-${p.status === "pagado" ? "ok" : "pend"}">
+            <span class="portal-pago-nom">${escapeHtml(nombrePago(p))}
+              <small>${escapeHtml(ESTADO_PAGO_CLIENTE[p.status] || p.status)}${
+                p.status === "pagado" && p.paid_at ? ` · ${escapeHtml(fecha(p.paid_at))}` : ""}</small></span>
+            <b>${escapeHtml(usd(p.amount_usd))}</b>
+          </li>`).join("")}
+      </ul>
+    </div>`;
+}
+
 function panelResumen(d) {
   const pagos = d.pagos || [];
   const pagado = pagos.filter((p) => p.status === "pagado")
                       .reduce((a, p) => a + Number(p.amount_usd || 0), 0);
-  const total = Number(d.total_usd) || 0;
+  const extras = pagos.filter((p) => p.kind === "otro")
+                      .reduce((a, p) => a + Number(p.amount_usd || 0), 0);
+  const total = (Number(d.total_usd) || 0) + extras;
   const resta = Math.max(0, total - pagado);
+  const plan = PLAN_TXT[d.payment_plan];
 
   const demo = safeUrl(d.demo_url, "");
   const prod = safeUrl(d.production_url, "");
 
   const filas = [
-    { label: "Presupuesto", usdVal: usd(total), arsVal: ars(total) },
+    { label: extras > 0 ? "Presupuesto + extras" : "Presupuesto", usdVal: usd(total), arsVal: ars(total) },
     { label: "Pagado", usdVal: usd(pagado), arsVal: ars(pagado) },
     resta > 0 ? { label: "Falta abonar", usdVal: usd(resta), arsVal: ars(resta), highlight: true } : null,
     { label: "Cotización USD", usdVal: `$${cotizacionDolar.toLocaleString("es-AR")} ARS`, arsVal: null },
@@ -935,8 +1137,11 @@ function panelResumen(d) {
             </dd>
           </div>
         `).join("")}
+        ${plan ? `<div><dt>Plan de pago</dt><dd class="corta">${escapeHtml(plan.titulo)}</dd></div>` : ""}
         <div><dt>Dirección</dt><dd class="corta">${escapeHtml(dominio)}</dd></div>
       </dl>
+
+      ${listaDePagos(pagos)}
 
       ${prod ? `
         <a class="portal-resumen-link" href="${escapeHtml(prod)}" target="_blank" rel="noopener noreferrer">
@@ -1122,6 +1327,24 @@ function render() {
         });
   }
 
+  // Una cuota o un extra pendiente fuera de las etapas de pago (por ejemplo
+  // la cuota 2 de un plan acordado, que vence durante la producción). Va
+  // debajo de la tarjeta de la etapa. Solo en la vista actual, no en el
+  // historial, y nunca en las etapas que ya son una tarjeta de pago.
+  const conTarjetaDePago = ["demo_pendiente", "demo_lista", "anticipo_pendiente", "saldo_pendiente", "rechazado"];
+  if (pasoVista === null && !conTarjetaDePago.includes(d.status)) {
+    const suelto = proximoPendiente(KINDS_SUELTOS);
+    if (suelto) {
+      htmlEtapa += tarjetaPago({
+        kind: suelto.kind,
+        titulo: `Pago pendiente: ${nombrePago(suelto)}`,
+        bajada: "Este pago quedó pendiente de lo que acordamos. Podés hacerlo cuando te quede cómodo.",
+        monto: Number(suelto.amount_usd),
+        pago: suelto,
+      });
+    }
+  }
+
   $("pc-etapa").innerHTML = htmlEtapa;
 
   const conResumen = ["anticipo_pendiente", "en_produccion", "dominio",
@@ -1194,7 +1417,9 @@ function firma(d) {
     d.domain_choice,
     d.production_url,
     (d.tareas || []).map((t) => [t.id, t.done]),
-    (d.pagos || []).map((p) => [p.kind, p.status, p.amount_usd]),
+    d.payment_plan,
+    d.plan_fijado,
+    (d.pagos || []).map((p) => [p.kind, p.status, p.amount_usd, p.concepto]),
   ]);
 }
 
@@ -1375,7 +1600,9 @@ const ACCIONES = {
    * sin esto el cliente aprieta tres veces y se bajan tres archivos iguales.
    */
   "bajar-recibo": async (el) => {
-    const pago = pagoDe(el.dataset.kind);
+    // Por número de recibo y no por tipo: con varias cuotas o extras, el
+    // tipo ya no identifica un pago solo.
+    const pago = (datos?.pagos || []).find((p) => String(p.nro_recibo) === el.dataset.nro);
     if (!pago) return;
 
     const original = el.innerHTML;
@@ -1397,12 +1624,20 @@ const ACCIONES = {
   },
 
   continuar: async (el) => {
-    const plan = document.querySelector('input[name="plan"]:checked')?.value || "mitades";
+    const fijo = Boolean(datos?.plan_fijado && PLAN_TXT[datos?.payment_plan]);
+    const plan = fijo
+      ? datos.payment_plan
+      : document.querySelector('input[name="plan"]:checked')?.value || "mitades";
     const precio = Number(datos?.price_usd) || 0;
+    const reserva = pagadoDe(["reserva"]);
+    const conReserva = reserva > 0 ? ` (menos los ${usd(reserva)} de reserva que ya abonaste)` : "";
 
-    const detalle = plan === "cuotas3"
-      ? `Vas a pagar ${usd(precio)} en 3 cuotas sin interés con tarjeta, desde Mercado Pago. Con eso arranco y se te habilita la lista de cambios.`
-      : `Vas a pagar ${usd(precio / 2)} ahora para arrancar, y los otros ${usd(precio / 2)} cuando la página esté publicada.`;
+    const detalle = {
+      cuotas3: `Vas a pagar ${usd(precio)}${conReserva} en 3 cuotas sin interés con tarjeta, desde Mercado Pago. Con eso arranco y se te habilita la lista de cambios.`,
+      unico: `Vas a pagar ${usd(precio)}${conReserva} en un solo pago para arrancar.`,
+      mitades: `Vas a pagar ${usd(precio / 2)}${conReserva} ahora para arrancar, y el resto cuando la página esté publicada.`,
+      personalizado: "Vamos con los pagos que acordamos. El primero te aparece acá para pagar.",
+    }[plan];
 
     const ok = await confirmar({
       titulo: "¿Arrancamos?",
@@ -1423,9 +1658,11 @@ const ACCIONES = {
     }
     await recargar();
     avisar("¡Buenísimo!",
-           plan === "cuotas3"
-             ? "Te dejé el pago listo acá abajo. Al entrar a Mercado Pago elegí 3 cuotas."
-             : "Te dejé el anticipo listo para pagar acá abajo.",
+           res.status === "en_produccion"
+             ? "Con lo que ya abonaste alcanza para arrancar: ya podés cargar tus cambios."
+             : plan === "cuotas3"
+               ? "Te dejé el pago listo acá abajo. Al entrar a Mercado Pago elegí 3 cuotas."
+               : "Te dejé el primer pago listo acá abajo.",
            "success");
   },
 

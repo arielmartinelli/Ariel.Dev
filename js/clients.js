@@ -63,20 +63,36 @@ export const SIGUIENTE_PASO = {
   publicando: {
     a: "saldo_pendiente",
     boton: "Ya está publicada → pedir el saldo",
-    ayuda: "Le genera el saldo final (50% + dominio si eligió propio).",
+    ayuda: "Le genera el saldo final: lo que falte cobrar del precio, más el dominio si eligió propio.",
     requiere: "production_url",
   },
 };
 
 export const ETIQUETA_PAGO = {
-  anticipo: "Anticipo (50%)",
-  saldo: "Saldo final (50%)",
+  anticipo: "Anticipo",
+  saldo: "Saldo final",
   dominio: "Dominio propio",
-  // Plan de 3 cuotas: un solo cobro por el 100%. Las cuotas las arma la
-  // tarjeta del cliente, así que para la caja esto entra de una.
-  total: "Pago total (3 cuotas)",
-  otro: "Cobro manual",
+  // Pago único o 3 cuotas: un solo cobro por el 100%. Las cuotas las arma
+  // la tarjeta del cliente, así que para la caja esto entra de una.
+  total: "Pago total",
+  reserva: "Reserva",
+  cuota: "Cuota",
+  otro: "Extra",
 };
+
+/**
+ * Los cuatro planes de pago. Los tres primeros los puede elegir el cliente
+ * desde su link; «personalizado» solo lo fija Ariel desde el panel.
+ */
+export const PLANES = {
+  mitades: { label: "Mitad y mitad", detalle: "50% para arrancar + 50% al publicar" },
+  unico: { label: "Pago total", detalle: "100% en un pago, por transferencia o Mercado Pago" },
+  cuotas3: { label: "3 cuotas sin interés", detalle: "100% con tarjeta en Mercado Pago, en 3 cuotas" },
+  personalizado: { label: "Personalizado", detalle: "Armás vos los cobros, uno por uno" },
+};
+
+/** Qué cobros cuentan como parte del precio (y no como un extra aparte). */
+export const KINDS_A_CUENTA = ["reserva", "anticipo", "total", "cuota", "saldo"];
 
 /* ==========================================================================
    PORTAL DEL CLIENTE (token, sin sesión)
@@ -441,55 +457,114 @@ export async function adminObtenerComprobante(paymentId) {
     : null;
 }
 
+/* ==========================================================================
+   Cobros editables (migración 14)
+   --------------------------------------------------------------------------
+   Antes los montos salían siempre de una fórmula fija y lo único que se
+   podía hacer desde el panel era «marcar pagado». Con una reserva, un
+   descuento o un acuerdo distinto por WhatsApp no había forma de reflejarlo.
+   ========================================================================== */
+
 /**
- * Cobro manual: cualquier importe, fuera del esquema anticipo/saldo/dominio.
- * Usa kind='otro', que es el unico que admite varios por cliente.
+ * Fija el plan de pago del cliente y rehace el cobro inicial (anticipo o
+ * pago total) descontando las reservas. Ver admin_configurar_plan().
  */
-export async function adminCrearCobroManual(clientId, { concepto, montoUsd, yaCobrado }) {
+export async function adminConfigurarPlan(clientId, plan, fijar = true) {
+  const { data, error } = await supabase.rpc("admin_configurar_plan", {
+    p_client_id: clientId,
+    p_plan: plan,
+    p_fijar: fijar,
+  });
+  if (error) {
+    console.error("admin_configurar_plan:", error.message);
+    if (faltaEsquema(error)) {
+      return { ok: false, faltaEsquema: true,
+        error: "Falta correr supabase/migracion-14-pagos-flexibles.sql en Supabase." };
+    }
+    return { ok: false, error: traducirError(error) };
+  }
+  return data?.ok ? data : { ok: false, error: data?.error || "No se pudo aplicar el plan." };
+}
+
+/**
+ * Borra el saldo sin pagar y lo vuelve a calcular con lo que falta hoy:
+ * precio + dominio propio − todo lo ya cobrado o programado a cuenta.
+ */
+export async function adminRecalcularSaldo(clientId) {
+  const { data, error } = await supabase.rpc("admin_recalcular_saldo", { p_client_id: clientId });
+  if (error) {
+    console.error("admin_recalcular_saldo:", error.message);
+    if (faltaEsquema(error)) {
+      return { ok: false, faltaEsquema: true,
+        error: "Falta correr supabase/migracion-14-pagos-flexibles.sql en Supabase." };
+    }
+    return { ok: false, error: traducirError(error) };
+  }
+  return data?.ok ? data : { ok: false, error: data?.error || "No se pudo recalcular el saldo." };
+}
+
+/**
+ * Fecha elegida en un <input type="date"> → ISO.
+ * Se fija al mediodía local: a medianoche, el pasaje a UTC en Argentina
+ * (UTC-3) la corre al día anterior y el recibo saldría con otra fecha.
+ */
+export function fechaInputAIso(valor) {
+  if (!valor) return new Date().toISOString();
+  const [a, m, d] = String(valor).split("-").map(Number);
+  if (!a || !m || !d) return new Date().toISOString();
+  return new Date(a, m - 1, d, 12, 0, 0).toISOString();
+}
+
+/** Agrega un cobro a mano: reserva, cuota del proyecto o extra. */
+export async function adminCrearCobro(clientId, { kind, concepto, montoUsd, pagado, method, fecha }) {
   const { error } = await supabase.from("payments").insert([
     {
       client_id: clientId,
-      kind: "otro",
+      kind,
       amount_usd: Number(montoUsd),
-      status: yaCobrado ? "pagado" : "pendiente",
-      method: yaCobrado ? "transferencia" : null,
-      paid_at: yaCobrado ? new Date().toISOString() : null,
-      receipt_note: concepto || null,
+      concepto: concepto || null,
+      status: pagado ? "pagado" : "pendiente",
+      method: pagado ? (method || "transferencia") : null,
+      paid_at: pagado ? fechaInputAIso(fecha) : null,
     },
   ]);
-
   if (error) return { ok: false, error: traducirError(error) };
   return { ok: true };
 }
 
-/** Crea el pago del saldo final (50%) cuando el proyecto llega al 100%. */
 /**
- * Genera el saldo final a mano, sin esperar a la etapa «esperando el saldo».
+ * Edita un cobro existente: monto, estado, medio, fecha y concepto.
  *
- * OJO CON EL MONTO: antes esto insertaba `price_usd * 0.5` directo. Con el
- * flujo nuevo el saldo también incluye los USD 10 del dominio propio, así que
- * ese cálculo dejaba el cobro USD 10 corto y no había forma de darse cuenta
- * hasta el momento de cobrar.
- *
- * Ahora lo calcula `asegurar_cobro()` en la base — el mismo lugar que lo hace
- * cuando el flujo llega solo a esa etapa. Una única fuente de verdad: si algún
- * día cambia el precio del dominio, cambia en un lado y vale para los dos
- * caminos.
+ * Si cambia el monto, o se saca un cobro del estado «en proceso», se suelta
+ * la preferencia de Mercado Pago: el link viejo tenía el importe anterior.
+ * El webhook igual compara el monto en USD antes de acreditar (ver
+ * api/mp-webhook.js), así que un pago hecho con el link viejo queda para
+ * revisar en vez de acreditarse solo.
  */
-export async function adminCrearSaldoFinal(clientId) {
-  const { error } = await supabase.rpc("asegurar_cobro", {
-    p_client_id: clientId,
-    p_kind: "saldo",
-  });
+export async function adminEditarCobro(pago, { montoUsd, status, method, fecha, concepto }) {
+  const cambios = {
+    amount_usd: Number(montoUsd),
+    concepto: concepto || null,
+    status,
+    method: method || null,
+    paid_at: status === "pagado" ? fechaInputAIso(fecha) : null,
+  };
 
-  if (error) {
-    console.error("asegurar_cobro(saldo):", error.message);
-    if (faltaEsquema(error)) {
-      return { ok: false, faltaEsquema: true,
-        error: "Falta correr supabase/migracion-05-flujo-9-etapas.sql en Supabase." };
-    }
-    return { ok: false, error: traducirError(error) };
+  const cambioMonto = Number(pago.amount_usd) !== Number(montoUsd);
+  if (cambioMonto || (pago.status === "en_proceso" && status !== "en_proceso")) {
+    cambios.mp_preference_id = null;
+    cambios.amount_ars = null;
   }
+
+  const { error } = await supabase.from("payments").update(cambios).eq("id", pago.id);
+  if (error) return { ok: false, error: traducirError(error) };
+  return { ok: true };
+}
+
+/** Elimina un cobro. La confirmación (y la advertencia si estaba pagado) la pide el panel. */
+export async function adminEliminarCobro(paymentId) {
+  const { error } = await supabase.from("payments").delete().eq("id", paymentId);
+  if (error) return { ok: false, error: traducirError(error) };
   return { ok: true };
 }
 
@@ -539,7 +614,7 @@ export async function adminTareasDeTodos() {
 export async function adminPagosDeTodos() {
   const { data, error } = await supabase
     .from("payments")
-    .select("id, kind, amount_usd, amount_ars, status, method, paid_at, created_at, mp_payment_id, client_id, clients!inner(client_name, project_name)")
+    .select("id, kind, concepto, amount_usd, amount_ars, status, method, paid_at, created_at, mp_payment_id, client_id, clients!inner(client_name, project_name)")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -552,6 +627,7 @@ export async function adminPagosDeTodos() {
   return (data || []).map((p) => ({
     id: p.id,
     kind: p.kind,
+    concepto: p.concepto || "",
     amountUsd: Number(p.amount_usd) || 0,
     amountArs: p.amount_ars ? Number(p.amount_ars) : null,
     status: p.status,

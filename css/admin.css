@@ -920,6 +920,215 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* --- Cobros editables (migración 14) -------------------------------------
+   Cada fila: qué es y cuándo · monto · estado · botones. En celular los
+   botones bajan a su propio renglón en vez de apretar el texto. */
+.admin-pago-info {
+    flex: 1 1 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+/* .admin-pago-tipo trae flex: 1 1 130px de cuando era un hijo directo de la
+   fila. Adentro de esta columna ese 130px se vuelve ALTO y cada cobro medía
+   el triple. */
+.admin-pago-info .admin-pago-tipo { flex: none; }
+
+.admin-pago-concepto { font-weight: 500; color: var(--text-secondary); }
+
+.admin-pago-meta {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.admin-pago-botones {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
+.admin-pago-botones .btn { min-height: 36px; }
+
+.admin-pago-pagado { box-shadow: inset 3px 0 0 #22c55e; }
+.admin-pago-en_revision,
+.admin-pago-en_proceso { box-shadow: inset 3px 0 0 #22d3ee; }
+.admin-pago-pendiente,
+.admin-pago-rechazado { box-shadow: inset 3px 0 0 #f59e0b; }
+
+.admin-td-concepto {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.cobros-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0 0 12px;
+}
+
+.cobros-kpis > div {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.22);
+    min-width: 0;
+}
+
+.cobros-kpis dt {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+}
+
+.cobros-kpis dd {
+    margin: 2px 0 0;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.02rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.cobros-kpis dd.verde { color: #4ade80; }
+.cobros-kpis dd.ambar { color: #fbbf24; }
+.cobros-kpis small { font-size: 0.72rem; color: var(--text-secondary); }
+
+.cobros-nota {
+    font-size: 0.83rem;
+    color: var(--text-secondary);
+    margin: -2px 0 12px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.cobros-nota.alerta { color: #fbbf24; }
+
+.cobros-plan {
+    padding: 12px 14px;
+    border: 1px dashed var(--border-hover);
+    border-radius: 12px;
+    margin-bottom: 12px;
+}
+
+.cobros-plan .form-group { margin-bottom: 8px; }
+.cobros-plan select { width: 100%; }
+
+.cobros-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: 0.86rem;
+    cursor: pointer;
+    min-height: 36px;
+}
+
+.cobros-check input {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    accent-color: var(--primary);
+}
+
+.cobros-plan-pie {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+.cobros-plan-pie .admin-hint { margin: 0; flex: 1 1 220px; }
+
+.cobros-acciones { margin-top: 12px; flex-wrap: wrap; gap: 8px; }
+
+/* El formulario del cobro vive dentro del diálogo de SweetAlert2. */
+.cobro-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.cobro-fila {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.cobro-fila[hidden] { display: none; }
+
+.cobro-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.cobro-campo > span { font-weight: 600; font-size: 0.82rem; }
+.cobro-campo small { font-weight: 400; opacity: 0.75; }
+
+.cobro-campo input,
+.cobro-campo select {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 11px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border-hover);
+    background: rgba(127, 127, 127, 0.08);
+    color: inherit;
+    font: inherit;
+}
+
+.cobro-campo input:focus-visible,
+.cobro-campo select:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 1px;
+}
+
+.cobro-form-tipo { font-weight: 700; margin: 0; }
+
+.cobro-form-ayuda {
+    margin: -4px 0 0;
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.cobro-form-aviso {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+body.light-theme .cobros-kpis > div,
+body.light-theme .admin-pago { background: #f1f5f9; }
+body.light-theme .cobros-kpis dd.verde { color: #15803d; }
+body.light-theme .cobros-kpis dd.ambar,
+body.light-theme .cobros-nota.alerta { color: #b45309; }
+body.light-theme .admin-badge.pendiente  { color: #92400e; }
+body.light-theme .admin-badge.pagado     { color: #166534; }
+body.light-theme .admin-badge.en_proceso,
+body.light-theme .admin-badge.en_revision { color: #155e75; }
+body.light-theme .admin-badge.rechazado  { color: #991b1b; }
+
+@media (max-width: 640px) {
+    .cobros-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cobro-fila { grid-template-columns: 1fr; }
+    .admin-pago-botones { margin-left: 0; width: 100%; flex-wrap: nowrap; }
+    /* En una fila y repartidos: apilados, cada cobro ocupaba media pantalla. */
+    .admin-pago-botones .btn { flex: 1 1 0; width: auto; min-width: 0; padding-inline: 8px; }
+}
+
 /* ==========================================================================
    Flujo del proyecto
    --------------------------------------------------------------------------

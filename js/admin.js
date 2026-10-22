@@ -741,7 +741,8 @@ function pintarCobros() {
           <span>${escapeHtml(p.clientName)}</span>
         </span>
       </td>
-      <td>${escapeHtml(ETIQUETA_PAGO[p.kind] || p.kind)}</td>
+      <td>${escapeHtml(ETIQUETA_PAGO[p.kind] || p.kind)}${p.concepto
+        ? `<span class="admin-td-concepto">${escapeHtml(p.concepto)}</span>` : ""}</td>
       <td class="num">${escapeHtml(usd(p.amountUsd))}</td>
       <td><span class="admin-badge ${escapeHtml(p.status)}">${escapeHtml(etiquetaEstado(p.status))}</span></td>
       <td>${escapeHtml(etiquetaMedio(p.method))}</td>
@@ -836,8 +837,10 @@ async function revisarComprobante(pago) {
     // Conviene decirlo, si no parece que aprobar y avanzar fueran dos cosas
     // distintas que hay que hacer por separado.
     const efecto = {
-      anticipo: " El proyecto pasó a «Aplicando los cambios» y el cliente ya puede cargarlos.",
-      saldo: " El proyecto quedó finalizado y el cliente ya ve su link.",
+      anticipo: " Si estaba esperando este pago, el proyecto pasó a «Aplicando los cambios».",
+      total: " Si estaba esperando este pago, el proyecto pasó a «Aplicando los cambios».",
+      cuota: " Si estaba esperando este pago, el proyecto avanzó solo.",
+      saldo: " Si no queda nada pendiente, el proyecto quedó finalizado y el cliente ya ve su link.",
     }[pago.kind] || "";
 
     avisar("Cobro aprobado",
