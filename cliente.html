@@ -2,7 +2,7 @@
 <html lang="es-AR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
   <!-- Portal privado: no se indexa nunca. -->
   <meta name="robots" content="noindex, nofollow, noarchive">
@@ -66,19 +66,30 @@
             <h1 id="pc-saludo">Hola</h1>
             <p class="portal-hero-proyecto" id="pc-proyecto"></p>
           </div>
-          <div class="portal-hero-num-box">
-            <p class="portal-hero-num">
-              <b id="pc-progreso-num">0</b><span class="portal-hero-pct" aria-hidden="true">%</span>
-            </p>
-            <span class="portal-hero-etq">Avance del proyecto</span>
+          <!-- Avance: anillo con el porcentaje + en qué etapa está y qué sigue.
+               Lo completa cliente.js. -->
+          <div class="portal-avance-card">
+            <div class="portal-anillo" id="pc-barra-wrap" role="progressbar"
+                 aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Avance del proyecto">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <defs>
+                  <linearGradient id="pc-anillo-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#6366f1"/>
+                    <stop offset="100%" stop-color="#06b6d4"/>
+                  </linearGradient>
+                </defs>
+                <circle class="portal-anillo-fondo" cx="60" cy="60" r="52"/>
+                <circle class="portal-anillo-valor" id="pc-anillo" cx="60" cy="60" r="52"/>
+              </svg>
+              <p class="portal-anillo-num"><b id="pc-progreso-num">0</b><span aria-hidden="true">%</span></p>
+            </div>
+            <div class="portal-avance-txt">
+              <span class="portal-hero-etq">Avance del proyecto</span>
+              <strong id="pc-etapa-nombre"></strong>
+              <small id="pc-etapa-sig"></small>
+            </div>
           </div>
         </div>
-
-        <div class="portal-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100"
-             aria-valuenow="0" aria-label="Avance del proyecto" id="pc-barra-wrap">
-          <i id="pc-barra"></i>
-        </div>
-
       </div>
 
       <!-- Dashboard: barra lateral de pestañas + el contenido de la elegida.

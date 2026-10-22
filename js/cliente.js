@@ -1279,6 +1279,50 @@ const CONTENIDO = {
   produccion: tabProduccion,
 };
 
+/* --------------------------------------------------------------------------
+   El avance: anillo + en qué etapa está + qué sigue
+   --------------------------------------------------------------------------
+   Un número solo ("55%") no le dice nada al cliente: ¿55% de qué? ¿falta
+   mucho? Al lado del anillo va la etapa en palabras y el paso que viene.
+   -------------------------------------------------------------------------- */
+const ETAPA_TXT = {
+  demo_pendiente:     ["Preparando tu demo", "Después: la revisás y decidís si seguimos"],
+  demo_lista:         ["Tu demo está lista", "Siguiente: mirala y decidí si seguimos"],
+  anticipo_pendiente: ["Esperando el primer pago", "Después: arranco con tus cambios"],
+  en_produccion:      ["Aplicando tus cambios", ""],
+  dominio:            ["Eligiendo la dirección", "Después: publico tu página"],
+  publicando:         ["Publicando tu página", "Ya casi está"],
+  saldo_pendiente:    ["Tu página está lista", "Falta el último pago"],
+  finalizado:         ["¡Proyecto terminado!", "Tu página está en línea"],
+  rechazado:          ["Proyecto en pausa", "Escribime cuando quieras retomarlo"],
+};
+
+const CIRCUNFERENCIA = 2 * Math.PI * 52;   // r = 52 en el SVG
+
+function pintarAvance(d, progreso) {
+  const pct = Math.max(0, Math.min(100, progreso));
+  const anillo = $("pc-anillo");
+  if (anillo) {
+    anillo.style.strokeDasharray = String(CIRCUNFERENCIA);
+    anillo.style.strokeDashoffset = String(CIRCUNFERENCIA * (1 - pct / 100));
+  }
+  const caja = $("pc-barra-wrap");
+  caja?.setAttribute("aria-valuenow", String(pct));
+  caja?.classList.toggle("completo", d.status === "finalizado");
+  caja?.classList.toggle("tres-cifras", pct >= 100);
+
+  let [nombre, sig] = ETAPA_TXT[d.status] || ["En curso", ""];
+  if (d.status === "en_produccion") {
+    const t = d.tareas || [];
+    sig = t.length
+      ? `${t.filter((x) => x.done).length} de ${t.length} cambios listos`
+      : "Contame qué querés ajustar";
+  }
+  $("pc-etapa-nombre").textContent = nombre;
+  $("pc-etapa-sig").textContent = sig;
+  caja?.setAttribute("aria-valuetext", `${pct}% · ${nombre}`);
+}
+
 function render() {
   if (!datos) return;
 
@@ -1289,8 +1333,7 @@ function render() {
   $("pc-proyecto").textContent = d.project_name || "";
   $("pc-progreso-num").textContent = String(progreso);
 
-  $("pc-barra").style.transform = `scaleX(${progreso / 100})`;
-  $("pc-barra-wrap").setAttribute("aria-valuenow", String(progreso));
+  pintarAvance(d, progreso);
 
   // La pestaña: la que eligió el cliente (también una con candado, para
   // que vea por qué está cerrada) o, si no eligió, la que tiene algo para hacer.

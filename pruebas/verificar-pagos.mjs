@@ -254,7 +254,6 @@ const CASOS = [
     status: "en_produccion", secciones: abiertas(),
     pagos: [{ kind: "anticipo", amount_usd: 200, status: "pagado", paid_at: ahora }],
   }, (t) => [
-    [t.includes("Próximamente"), "las pestañas cerradas no dicen «Próximamente»"],
     [t.includes("todavía no está habilitada"), "una pestaña cerrada no explica por qué"],
     [!t.includes("Contame qué querés cambiar"), "con Tareas cerrada no tendría que dejar cargar cambios"],
   ], "tareas"],
@@ -301,6 +300,11 @@ for (const ancho of [390, 1280]) {
     const texto = await p.evaluate(() => document.body.innerText);
     for (const [cond, msg] of chequeos(texto)) ok(cond, `portal ${nombre} @${ancho}: ${msg}`);
     ok(await p.locator(".portal-nav-btn").count() === 5, `portal ${nombre} @${ancho}: la barra no tiene las 5 pestañas`);
+    // Las cerradas se marcan con candado (en el celular el texto chico se
+    // oculta, así que se mira la clase y no el texto).
+    const cerradas = Object.entries(datos.secciones || {}).filter(([, v]) => !v).length;
+    ok(await p.locator(".portal-nav-btn.bloqueada").count() === cerradas,
+       `portal ${nombre} @${ancho}: tendría que haber ${cerradas} pestañas con candado`);
     for (const c of await p.evaluate(CONTRASTE)) fallas.push(`portal ${nombre} @${ancho}: contraste → ${c}`);
     const desborde = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     ok(desborde <= 2, `portal ${nombre} @${ancho}: desborde ${desborde}px`);
