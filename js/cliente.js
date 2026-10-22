@@ -1821,6 +1821,9 @@ const ACCIONES = {
     }
   },
 
+  "instalar-app": () => instalarApp(),
+  "cerrar-aviso-app": () => cerrarAvisoApp(),
+
   /** Cambiar de pestaña. Queda en la URL (#pagos) para que al recargar
       o al volver con la flecha se abra la misma. */
   pestana: (el) => {
@@ -1888,6 +1891,131 @@ $("portal-contenido").addEventListener("keydown", (ev) => {
 });
 
 /* ==========================================================================
+   Como app: pantalla completa desde la pantalla de inicio
+   --------------------------------------------------------------------------
+   Un link abierto en Safari o Chrome SIEMPRE muestra la barra del
+   navegador: eso no se puede sacar desde la página. Lo que sí se puede es
+   que el cliente agregue el link a la pantalla de inicio: queda un ícono
+   como el de cualquier app y al tocarlo se abre a pantalla completa.
+
+   Para eso hacen falta tres cosas:
+     1. un manifiesto con SU dirección (/api/manifest-cliente?t=…), porque
+        cada cliente tiene un link distinto;
+     2. las etiquetas de Apple en cliente.html (iPhone no lee el manifiesto
+        para todo);
+     3. un service worker vacío (public/sw-cliente.js) que Android pide para
+        ofrecer «Instalar».
+
+   Y un aviso, solo en el celular y solo si todavía no lo instaló, que le
+   explica cómo hacerlo. Si lo cierra, no vuelve a aparecer en ese teléfono.
+   ========================================================================== */
+const CLAVE_AVISO_APP = "pc-app-aviso-cerrado";
+let pedidoDeInstalacion = null;   // el evento de Android para mostrar «Instalar»
+
+const enModoApp = () =>
+  window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true;
+
+const esIphone = () =>
+  /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+const esCelular = () => window.matchMedia?.("(max-width: 899px) and (pointer: coarse)").matches;
+
+function prepararApp() {
+  const link = document.createElement("link");
+  link.rel = "manifest";
+  link.href = `/api/manifest-cliente?t=${encodeURIComponent(TOKEN)}`;
+  document.head.appendChild(link);
+
+  if (enModoApp()) document.documentElement.classList.add("modo-app");
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw-cliente.js", { scope: "/cliente/" }).catch(() => {
+      /* sin service worker igual funciona; solo no aparece «Instalar» en Android */
+    });
+  }
+
+  window.addEventListener("beforeinstallprompt", (ev) => {
+    ev.preventDefault();          // el botón lo mostramos nosotros, en el aviso
+    pedidoDeInstalacion = ev;
+    pintarAvisoApp();
+  });
+  window.addEventListener("appinstalled", () => {
+    pedidoDeInstalacion = null;
+    cerrarAvisoApp();
+  });
+
+  pintarAvisoApp();
+}
+
+function avisoCerrado() {
+  try { return localStorage.getItem(CLAVE_AVISO_APP) === "1"; } catch { return false; }
+}
+
+function cerrarAvisoApp() {
+  try { localStorage.setItem(CLAVE_AVISO_APP, "1"); } catch { /* modo privado */ }
+  const el = $("pc-app-aviso");
+  if (el) { el.hidden = true; el.innerHTML = ""; }
+}
+
+function pintarAvisoApp() {
+  const el = $("pc-app-aviso");
+  if (!el) return;
+  if (enModoApp() || avisoCerrado() || !esCelular()) { el.hidden = true; return; }
+
+  el.innerHTML = `
+    <span class="portal-app-aviso-ico" aria-hidden="true"><img src="/apple-touch-icon.png" alt="" width="40" height="40"></span>
+    <span class="portal-app-aviso-txt">
+      <b>Tenelo como una app</b>
+      <small>Abrilo desde tu pantalla de inicio, a pantalla completa y sin la barra del navegador.</small>
+    </span>
+    <span class="portal-app-aviso-acciones">
+      <button type="button" class="btn btn-primary btn-sm" data-accion="instalar-app">
+        ${pedidoDeInstalacion ? "Instalar" : "Cómo"}
+      </button>
+      <button type="button" class="portal-app-aviso-cerrar" data-accion="cerrar-aviso-app" aria-label="No mostrar más">
+        ${ico("cruz", "pico pico-sm")}
+      </button>
+    </span>`;
+  el.hidden = false;
+}
+
+async function instalarApp() {
+  // Android / Chrome: el navegador ofrece instalar con un toque.
+  if (pedidoDeInstalacion) {
+    pedidoDeInstalacion.prompt();
+    const { outcome } = await pedidoDeInstalacion.userChoice.catch(() => ({ outcome: "" }));
+    pedidoDeInstalacion = null;
+    if (outcome === "accepted") cerrarAvisoApp();
+    else pintarAvisoApp();
+    return;
+  }
+
+  // iPhone (y Android sin el pedido automático): se explica a mano.
+  const pasos = esIphone()
+    ? `<ol class="portal-app-pasos">
+         <li>Tocá el botón <b>Compartir</b> (el cuadrado con la flecha para arriba), abajo en Safari.</li>
+         <li>Bajá y elegí <b>Agregar a inicio</b>.</li>
+         <li>Tocá <b>Agregar</b>. Listo: abrilo desde el ícono <b>Mi proyecto</b>.</li>
+       </ol>
+       <p class="portal-app-nota">Si lo abriste desde WhatsApp, primero tocá los tres puntos y elegí <b>Abrir en Safari</b>.</p>`
+    : `<ol class="portal-app-pasos">
+         <li>Tocá el menú <b>⋮</b> (arriba a la derecha) de Chrome.</li>
+         <li>Elegí <b>Instalar app</b> o <b>Agregar a pantalla principal</b>.</li>
+         <li>Confirmá. Listo: abrilo desde el ícono <b>Mi proyecto</b>.</li>
+       </ol>
+       <p class="portal-app-nota">Si lo abriste desde WhatsApp, primero tocá los tres puntos y elegí <b>Abrir en Chrome</b>.</p>`;
+
+  const Swal = window.Swal;
+  if (!Swal) return;
+  await Swal.fire({
+    title: "Tenelo como una app",
+    html: pasos,
+    confirmButtonText: "Entendido",
+  });
+}
+
+/* ==========================================================================
    Arranque
    ========================================================================== */
 (async function iniciar() {
@@ -1905,6 +2033,8 @@ $("portal-contenido").addEventListener("keydown", (ev) => {
     mostrarVista("invalido");
     return;
   }
+
+  prepararApp();
 
   try {
     await cargarCotizacionDolar();

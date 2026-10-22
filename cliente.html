@@ -14,6 +14,16 @@
   <title>Tu proyecto · Ariel.Dev</title>
 
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+  <!-- Como app: agregado a la pantalla de inicio se abre a pantalla completa,
+       sin la barra del navegador. El manifiesto lleva el token del cliente,
+       así que lo agrega cliente.js (ver prepararApp). -->
+  <meta name="theme-color" content="#070913">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Mi proyecto">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
@@ -91,6 +101,9 @@
           </div>
         </div>
       </div>
+
+      <!-- "Usalo como app": solo en el celular, si todavía no lo instaló. -->
+      <div id="pc-app-aviso" class="portal-app-aviso" hidden></div>
 
       <!-- Dashboard: barra lateral de pestañas + el contenido de la elegida.
            Las pestañas las habilita Ariel desde su panel; las cerradas se

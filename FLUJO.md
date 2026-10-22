@@ -574,3 +574,29 @@ las pestañas de su etapa abiertas, para que nadie pierda lo que ya veía.
   elegido y link final) y, en el panel, que los interruptores y los medios de
   pago manden a la base exactamente lo elegido.
 - `pruebas/verificar-mp.mjs`: cuotas fijadas en el cobro y 403 con MP apagado.
+
+---
+
+## El link del cliente como app
+
+Un link abierto en Safari o Chrome **siempre** muestra la barra del
+navegador: eso no se puede sacar desde la página. Lo que sí: el cliente lo
+agrega a la pantalla de inicio y queda un ícono **Mi proyecto** que se abre a
+pantalla completa, como una app.
+
+| Pieza | Para qué |
+|---|---|
+| `api/manifest-cliente.js` | El manifiesto con el link de ESE cliente (`/cliente/<token>`). Solo repite el token si tiene forma de token; no consulta la base. |
+| `cliente.html` (metas `apple-mobile-web-app-*`) | iPhone: pantalla completa y barra de estado transparente. |
+| `public/sw-cliente.js` | Service worker vacío que Android pide para ofrecer «Instalar». **No cachea nada.** |
+| `public/app-icon-*.png`, `apple-touch-icon.png`, `favicon.svg` | Los íconos (el favicon antes no existía y daba 404). |
+
+En el celular, si todavía no lo instaló, el portal muestra «Tenelo como una
+app»: en Android con Chrome el botón instala directo; en iPhone explica los
+tres toques (Compartir → Agregar a inicio). Si lo cierra, no vuelve a
+aparecer en ese teléfono. Abierto como app, el contenido baja lo justo para
+no quedar debajo de la hora y la batería.
+
+Si el cliente abre el link desde WhatsApp, primero tiene que pasarlo al
+navegador («Abrir en Safari / Chrome»): el navegador interno de WhatsApp no
+deja instalar. El aviso lo dice.
