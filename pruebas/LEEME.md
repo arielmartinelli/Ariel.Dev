@@ -8,14 +8,24 @@ justo lo que más se rompe sin avisar — que algo se vea mal, no que tire error
 
 ```bash
 npm run build
-npx serve dist -l 4178        # o: cd dist && python3 -m http.server 4178
+npx serve dist -l 4178
 node pruebas/verificar-iconos.mjs
 node pruebas/verificar-portal.mjs
 node pruebas/verificar-panel.mjs
 node pruebas/verificar-recibo.mjs
 node pruebas/verificar-pagos.mjs
+node pruebas/verificar-proyectos.mjs
+node pruebas/verificar-preloader.mjs
+node pruebas/verificar-skeletons.mjs
+node pruebas/verificar-filtro.mjs
 node pruebas/verificar-mp.mjs      # este no necesita el servidor
 ```
+
+**Usá `npx serve`, no `python3 -m http.server`.** El de Python atiende un
+pedido por vez. `verificar-skeletons.mjs` abre varias páginas y mide los
+primeros 250 ms de cada una: con los pedidos haciendo cola, el esqueleto
+todavía no llegó cuando se lo mide y la prueba falla con «no se dibujó
+ningún esqueleto» sin que haya nada roto en el sitio.
 
 La primera vez: `npx playwright install chromium`.
 

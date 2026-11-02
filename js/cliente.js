@@ -143,6 +143,15 @@ function mostrarVista(cual) {
     const el = $(`portal-${n}`);
     if (el) el.classList.toggle("hidden", n !== cual);
   });
+
+  /* El esqueleto se BORRA, no se esconde. Usa las mismas clases que el portal
+     de verdad (.portal-nav-btn, .portal-etapa…) para que mida igual, así que
+     si se queda escondido en el documento cualquier querySelectorAll sigue
+     encontrando el doble de todo: las 5 pestañas pasan a ser 10. Lo mismo
+     con el lector de pantalla, que tampoco distingue display:none de una
+     tarjeta real si el día de mañana alguien le saca el `hidden`.
+     Una vez que llegaron los datos ya no vuelve a hacer falta. */
+  if (cual !== "cargando") $("portal-cargando")?.remove();
 }
 
 /* ==========================================================================

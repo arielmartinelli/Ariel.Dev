@@ -1815,17 +1815,57 @@ body.light-theme .portal-anillo.completo .portal-anillo-valor { stroke: #15803d;
 /* ==========================================================================
    Esqueleto del portal
    --------------------------------------------------------------------------
-   Reemplaza al spinner centrado. Reusa .portal-hero, .portal-pasos y
-   .portal-etapa, o sea las mismas clases del portal de verdad: el alto no
-   está estimado, lo calcula el mismo CSS.
-   ========================================================================== */
-#portal-cargando .portal-barra .hueso { height: 100%; border-radius: inherit; }
-#portal-cargando .portal-paso-n { border: none; }
-#portal-cargando .portal-paso-t { display: inline-block; min-width: 42px; }
-#portal-cargando .portal-hero-num .hueso { display: inline-block; }
+   Reemplaza al spinner centrado. Reusa .portal-hero, .portal-avance-card,
+   .portal-dash y .portal-etapa, o sea las mismas clases del portal de
+   verdad: el alto no está estimado, lo calcula el mismo CSS.
 
-/* El riel de pasos del esqueleto no lleva la línea verde que une los
-   círculos: esa línea dice "este paso ya está hecho", y todavía no se sabe
-   nada. Mostrarla sería inventar información. */
-#portal-cargando .portal-paso::before { display: none; }
+   Son poquitas reglas a propósito. Cada línea de acá es una diferencia
+   entre el esqueleto y el portal real, y cada diferencia es un lugar donde
+   se pueden despegar con el tiempo. Lo que se puede resolver reusando la
+   clase real, se resuelve reusándola.
+   ========================================================================== */
+
+/* .hueso pinta el texto de transparente para que el bloque gris no tenga
+   letras adentro, pero lo hace con un selector de una sola clase. Cualquier
+   regla del portal que fije un color y sea un poco más específica
+   (.portal-nav-txt small, .portal-avance-txt .portal-hero-etq) le gana, y el
+   relleno de mentira se lee: «Cargando», «Avance del proyecto». Con el id
+   adelante esto gana siempre, sin tocar .hueso para todo el sitio. */
+#portal-cargando .hueso { color: transparent; }
+
+/* Lo mismo con el fondo: .portal-etapa-ico trae su violeta y vive en este
+   archivo, que carga después de styles.css, así que le ganaba al gris del
+   hueso y quedaba un cuadrado de color que parece contenido ya cargado. Se
+   le deja la forma (46px, esquinas de 13px) y se le saca el color. */
+#portal-cargando .portal-etapa-ico { background: rgba(255, 255, 255, 0.055); }
+
+/* El anillo mide 84px (96 en pantalla ancha) por CSS. El hueso lo llena
+   entero: así el alto sale del mismo lugar que el del anillo de verdad y no
+   de un número escrito acá, que se desactualizaría solo. */
+#portal-cargando .portal-anillo .hueso {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+/* La pastilla del ícono ya trae su caja de 32×32 y su fondo; el hueso solo
+   le iguala el redondeo para que no se note el cambio. */
+#portal-cargando .portal-nav-ico { border-radius: 9px; }
+
+/* <b> y <small> son inline: sin esto no ocupan alto propio y el botón de
+   la pestaña queda más bajo que el real. */
+#portal-cargando .portal-nav-txt b,
+#portal-cargando .portal-nav-txt small,
+#portal-cargando .portal-hero-etq { display: block; }
+
+/* El botón de pestaña del esqueleto es un <span> y no un <button>, para que
+   no se pueda tabular ni tocar. No hace falta nada más: .portal-nav-btn es
+   un selector de clase, así que el <span> ya recibe el padding, el borde y
+   el alto mínimo del botón de verdad — incluidos los 56px que la pantalla
+   ancha le pone en el @media de la barra lateral.
+
+   (Acá había un `min-height: 48px` escrito a mano. Como esta regla va al
+   final del archivo, le ganaba al @media y dejaba las pestañas 6px más
+   bajas que las reales: 30px de diferencia en la barra entera.) */
 

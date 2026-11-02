@@ -55,7 +55,13 @@
       El spinner estaba centrado y medía 34px; abajo aparecía un portal de
       varios miles de píxeles. La pantalla pegaba un salto justo cuando el
       cliente empezaba a mirar. Esto reserva el espacio y, por la forma, ya
-      dice qué va a haber: el saludo, el avance, los pasos y la tarjeta.
+      dice qué va a haber: el saludo, el anillo de avance, las pestañas y la
+      tarjeta de la pestaña abierta.
+
+      REGLA: este bloque usa LAS MISMAS CLASES que #portal-contenido, no unas
+      propias. El alto no está estimado a ojo, lo calcula el mismo CSS que
+      después va a dibujar el portal de verdad. Si cambiás la estructura de
+      #portal-contenido, cambiá esta en el mismo commit o vuelve el salto.
     -->
     <section id="portal-cargando" aria-busy="true" aria-label="Cargando tu proyecto">
       <div class="portal-hero">
@@ -65,28 +71,44 @@
             <h1><span class="hueso hueso-titulo">&nbsp;</span></h1>
             <p class="portal-hero-proyecto"><span class="hueso hueso-chico">&nbsp;</span></p>
           </div>
-          <div class="portal-hero-num-box">
-            <p class="portal-hero-num"><span class="hueso">00</span></p>
+          <!-- El anillo mide 84px (96 en pantalla grande) por CSS, así que el
+               hueso redondo lo llena entero sin número mágico acá. -->
+          <div class="portal-avance-card" data-esqueleto aria-hidden="true">
+            <div class="portal-anillo"><span class="hueso hueso-circulo hueso-bloque"></span></div>
+            <div class="portal-avance-txt">
+              <span class="portal-hero-etq hueso">Avance del proyecto</span>
+              <strong><span class="hueso hueso-chico">&nbsp;</span></strong>
+              <small><span class="hueso hueso-chico">&nbsp;</span></small>
+            </div>
           </div>
         </div>
-        <div class="portal-barra"><span class="hueso hueso-bloque"></span></div>
-        <ol class="portal-pasos" data-esqueleto aria-hidden="true">
-          <li class="portal-paso"><span class="portal-paso-n hueso hueso-circulo"></span><span class="portal-paso-t hueso">Paso</span></li>
-          <li class="portal-paso"><span class="portal-paso-n hueso hueso-circulo"></span><span class="portal-paso-t hueso">Paso</span></li>
-          <li class="portal-paso"><span class="portal-paso-n hueso hueso-circulo"></span><span class="portal-paso-t hueso">Paso</span></li>
-          <li class="portal-paso"><span class="portal-paso-n hueso hueso-circulo"></span><span class="portal-paso-t hueso">Paso</span></li>
-          <li class="portal-paso"><span class="portal-paso-n hueso hueso-circulo"></span><span class="portal-paso-t hueso">Paso</span></li>
-        </ol>
       </div>
-      <div class="portal-etapa" data-esqueleto aria-hidden="true">
-        <span class="portal-etapa-ico hueso hueso-circulo"></span>
-        <h2><span class="hueso hueso-titulo">&nbsp;</span></h2>
-        <p class="hueso-parrafo">
-          <span class="hueso hueso-linea"></span>
-          <span class="hueso hueso-linea"></span>
-          <span class="hueso hueso-linea"></span>
-        </p>
-        <div class="portal-acciones"><span class="hueso" style="display:block;height:44px;width:190px;border-radius:12px"></span></div>
+
+      <!-- Las cinco pestañas son siempre las mismas cinco, abiertas o con
+           candado, así que el esqueleto puede mostrar las cinco sin inventar
+           nada: la cantidad no depende de los datos que están por llegar. -->
+      <div class="portal-dash" data-esqueleto aria-hidden="true">
+        <nav class="portal-nav">
+          <ul>
+            <li><span class="portal-nav-btn"><span class="portal-nav-ico hueso"></span><span class="portal-nav-txt"><b class="hueso">Inicio</b><small class="hueso">Cargando</small></span></span></li>
+            <li><span class="portal-nav-btn"><span class="portal-nav-ico hueso"></span><span class="portal-nav-txt"><b class="hueso">Tareas</b><small class="hueso">Cargando</small></span></span></li>
+            <li><span class="portal-nav-btn"><span class="portal-nav-ico hueso"></span><span class="portal-nav-txt"><b class="hueso">Pagos</b><small class="hueso">Cargando</small></span></span></li>
+            <li><span class="portal-nav-btn"><span class="portal-nav-ico hueso"></span><span class="portal-nav-txt"><b class="hueso">Dominio</b><small class="hueso">Cargando</small></span></span></li>
+            <li><span class="portal-nav-btn"><span class="portal-nav-ico hueso"></span><span class="portal-nav-txt"><b class="hueso">Producción</b><small class="hueso">Cargando</small></span></span></li>
+          </ul>
+        </nav>
+        <div class="portal-panel">
+          <div class="portal-etapa">
+            <span class="portal-etapa-ico hueso"></span>
+            <h2><span class="hueso hueso-titulo">&nbsp;</span></h2>
+            <p class="hueso-parrafo">
+              <span class="hueso hueso-linea"></span>
+              <span class="hueso hueso-linea"></span>
+              <span class="hueso hueso-linea"></span>
+            </p>
+            <div class="portal-acciones"><span class="hueso" style="display:block;height:44px;width:190px;border-radius:12px"></span></div>
+          </div>
+        </div>
       </div>
     </section>
 
