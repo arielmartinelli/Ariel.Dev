@@ -371,7 +371,7 @@ async function pintarProyectos({ forzar = true } = {}) {
     meta.innerHTML = `
       <div class="admin-proyecto-nombre">
         ${escapeHtml(p.title)}
-        ${p.isFeatured ? `<span class="admin-badge-destacado">⭐ Grande</span>` : ""}
+        ${p.isFeatured ? `<span class="admin-badge-destacado">${ico("estrella", "pico pico-sm", { relleno: true })} Grande</span>` : ""}
       </div>
       <div class="admin-proyecto-cat">${escapeHtml(etiquetaCategoria(p.category))}</div>`;
 

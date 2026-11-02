@@ -26,8 +26,13 @@
     
     --text-primary: #f3f4f6;
     --text-secondary: #9ca3af;
-    --text-muted: #6b7280;
-    
+    /* El gris de los textos secundarios. Antes era #6b7280, que sobre el
+       fondo oscuro daba 4.11:1 y sobre las tarjetas 3.78:1 — por debajo del
+       4.5:1 que pide WCAG AA. Este pasa en las cuatro superficies del tema
+       oscuro, y la mas exigente (#0f172a, el fondo opaco del panel) da
+       4.85:1. OJO: #767f8e NO alcanza, se queda en 4.42:1 justo ahi. */
+    --text-muted: #7c8696;
+
     --border: rgba(255, 255, 255, 0.08);
     --border-hover: rgba(255, 255, 255, 0.18);
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);

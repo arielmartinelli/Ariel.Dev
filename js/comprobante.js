@@ -40,7 +40,7 @@ export const EMISOR = {
   email:    "ariel.martinelli.dev@gmail.com",
   whatsapp: "+54 351 612 1498",
   lugar:    "Córdoba, Argentina",
-  sitio:    "arieldev.com.ar",
+  sitio:    "arieldev.com",
 };
 
 const CONCEPTO = {

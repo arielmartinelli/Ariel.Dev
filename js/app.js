@@ -1174,7 +1174,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </div>
                             <div style="text-align: right;">
                                 <div class="brand">Ariel.Dev</div>
-                                <p>arieldev.com.ar</p>
+                                <p>arieldev.com</p>
                             </div>
                         </div>
                     </div>

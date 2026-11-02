@@ -126,7 +126,7 @@ ve un mail que **dice** venir de gmail.com pero sale de un servidor que no
 es de Google, y lo manda a spam o directamente lo rebota. No hay forma de
 esquivarlo.
 
-Hay que mandar desde tu propio dominio: `hola@arieldev.com.ar`. Eso implica
+Hay que mandar desde tu propio dominio: `hola@arieldev.com`. Eso implica
 cargar tres registros DNS donde tenés el dominio:
 
 | Registro | Para qué |
