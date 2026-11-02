@@ -428,11 +428,31 @@ async function toggleDestacado(proyecto) {
   const nuevoEstado = !proyecto.isFeatured;
   const res = await updateProject({ ...proyecto, isFeatured: nuevoEstado });
   await refrescarPortfolio({ forzar: false });
-  if (res.ok) {
-    anunciar(nuevoEstado ? `"${proyecto.title}" se marcó como Tarjeta Grande.` : `"${proyecto.title}" volvió a Vista Normal.`);
-  } else {
+  if (!res.ok) {
     avisar("No se pudo cambiar el destaque", res.error || "Intentá de nuevo.", "error");
+    return;
   }
+
+  /* `ok` NO quiere decir que haya quedado guardado en el servidor:
+     updateProject() devuelve ok:true aunque Supabase rechace la escritura,
+     porque deja el cambio en el localStorage de este navegador como
+     respaldo. Mirando solo `ok`, la estrella se prendía, el panel decía que
+     sí, y en /proyectos la tarjeta seguía igual que las otras — sin un solo
+     cartel de error. Faltaba la columna is_featured en la tabla (migración
+     16) y así estuvo, en silencio, desde que se agregó la función.
+     moverOrden(), acá al lado, ya miraba `persistido`. Esta no. */
+  if (!res.persistido) {
+    avisar(
+      "El destaque quedó solo en este navegador",
+      `${res.error || "No se pudo guardar en el servidor."} En la página pública la tarjeta va a seguir viéndose normal.`,
+      "warning"
+    );
+    return;
+  }
+
+  anunciar(nuevoEstado
+    ? `"${proyecto.title}" se marcó como Tarjeta Grande.`
+    : `"${proyecto.title}" volvió a Vista Normal.`);
 }
 
 async function moverOrden(proyectos, fromIndex, toIndex) {
