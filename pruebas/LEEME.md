@@ -13,6 +13,7 @@ node pruebas/verificar-iconos.mjs
 node pruebas/verificar-portal.mjs
 node pruebas/verificar-panel.mjs
 node pruebas/verificar-recibo.mjs
+node pruebas/verificar-pagos.mjs
 node pruebas/verificar-mp.mjs      # este no necesita el servidor
 ```
 
@@ -47,6 +48,11 @@ recorre las cuatro vistas. Que dibujen, básicamente.
 **verificar-recibo.mjs** — que el botón de comprobante aparezca solo cuando
 hay un pago acreditado **con número**, que el PDF se descargue de verdad (no
 que "no tire error") y que el archivo no salga vacío.
+
+**verificar-pagos.mjs** — el bloque de Cobros del panel (que los números
+cierren y que agregar/editar manden lo cargado) y los casos nuevos del
+portal: plan fijado, reserva descontada, saldo con la cuenta y cuota
+pendiente. Deja capturas en una carpeta temporal.
 
 **verificar-mp.mjs** — arma la preferencia de Mercado Pago con `fetch` y
 Supabase interceptados y mira **el cuerpo que se habría mandado**, sin tocar

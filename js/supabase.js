@@ -60,6 +60,43 @@ if (isConfigured) {
 export const supabase = supabaseInstance;
 
 /**
+ * Cliente SOLO para lecturas públicas (proyectos y categorías del sitio).
+ *
+ * POR QUÉ UN SEGUNDO CLIENTE
+ * --------------------------
+ * El cliente de arriba manda la sesión del panel en cada consulta. Si en un
+ * navegador quedó guardada una sesión vencida o rota (por ejemplo, entraste
+ * al panel desde esa máquina hace días), Supabase rechaza la consulta con
+ * 401 — también las públicas, que no necesitan sesión para nada. El sitio
+ * entonces caía al respaldo y mostraba proyectos que no eran los tuyos, solo
+ * en ESE navegador, mientras en cualquier otro se veía todo bien.
+ *
+ * Este cliente nunca guarda ni manda sesión: consulta como un visitante
+ * cualquiera. Lo que ve el público no puede depender de si vos iniciaste
+ * sesión alguna vez en esa computadora.
+ */
+let publicoInstance;
+if (isConfigured) {
+  try {
+    publicoInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        storageKey: "arieldev-publico",
+      },
+    });
+  } catch (err) {
+    console.error("Error inicializando el cliente público de Supabase:", err);
+    publicoInstance = createMockClient();
+  }
+} else {
+  publicoInstance = createMockClient();
+}
+
+export const supabasePublico = publicoInstance;
+
+/**
  * Indica si hay credenciales reales de Supabase.
  * NO es un dato sensible: cualquiera lo deduce mirando si el sitio hace
  * peticiones a supabase.co.

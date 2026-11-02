@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from "./supabase.js";
+import { supabase, supabasePublico, isSupabaseConfigured } from "./supabase.js";
 
 /**
  * projects.js — Acceso a datos de proyectos y categorias.
@@ -26,56 +26,23 @@ import { supabase, isSupabaseConfigured } from "./supabase.js";
  *
  * 3. LECTURAS REPETIDAS. getProjects() se llamaba varias veces seguidas
  *    (render + cada click de editar). Se agrega una cache corta en memoria.
+ *
+ * 4. PROYECTOS DE EJEMPLO EN LUGAR DE LOS REALES (grave).
+ *    Había una lista de proyectos de ejemplo (Aura Store, Apex SaaS…) que se
+ *    usaba como respaldo: si la lectura fallaba, el sitio la mostraba como si
+ *    fueran trabajos tuyos. Y si la tabla venía vacía con una sesión
+ *    iniciada, ¡los insertaba en la base real! Bastaba una sesión vencida en
+ *    un navegador para que ese navegador mostrara trabajos inventados.
+ *    Ahora:
+ *      - las lecturas públicas van por supabasePublico (sin sesión);
+ *      - no existen proyectos de ejemplo: si falla, se usa la última lista
+ *        REAL guardada en ese navegador o, si no hay, se avisa;
+ *      - nada se inserta solo en la base;
+ *      - las claves de localStorage cambiaron (_v2) para que las copias
+ *        viejas contaminadas con los de ejemplo no se lean más.
  */
 
 // Semilla inicial. SOLO se usa si la tabla esta vacia o si no hay conexion.
-const DEFAULT_PROJECTS = [
-  {
-    id: "proj-1",
-    title: "Aura Store",
-    description:
-      "Plataforma e-commerce de indumentaria exclusiva. Integra catálogo interactivo con filtros dinámicos, carrito flotante de alta conversión, simulación de pagos y diseño responsivo ultra minimalista.",
-    category: "ecommerce",
-    image: "/images/aura-store.webp",
-    tags: ["HTML5", "CSS Grid", "JS Vanilla", "E-commerce"],
-    demoUrl: "https://aura-store-demo.example.com",
-    isFeatured: true,
-  },
-  {
-    id: "proj-2",
-    title: "Apex SaaS Landing",
-    description:
-      "Landing page de alto impacto para software en la nube (SaaS). Diseñada con enfoque en captación de leads, animaciones fluidas al hacer scroll, tiempos de carga ultra rápidos (<1s) y optimización SEO integral.",
-    category: "landing",
-    image: "/images/apex-landing.webp",
-    tags: ["Landing Page", "CSS Flexbox", "Intersection Observer"],
-    demoUrl: "https://apex-saas-demo.example.com",
-    isFeatured: false,
-  },
-  {
-    id: "proj-3",
-    title: "Lens & Light",
-    description:
-      "Portfolio cinematográfico y fotográfico de alta gama. Cuenta con galería interactiva en cuadrícula Masonry, visor inmersivo de fotos en pantalla completa, tema oscuro nativo y transiciones visuales de calidad premium.",
-    category: "portfolio",
-    image: "/images/lens-light.webp",
-    tags: ["Portfolio", "Masonry CSS", "Animations", "Modal Gallery"],
-    demoUrl: "https://lens-light-demo.example.com",
-    isFeatured: true,
-  },
-  {
-    id: "proj-4",
-    title: "TaskFlow Dashboard",
-    description:
-      "Web App interactiva para la gestión inteligente de proyectos y tareas. Incluye tableros Kanban con tecnología Drag & Drop, seguimiento de progreso en tiempo real y métricas visuales de productividad.",
-    category: "custom",
-    image: "/images/taskflow.webp",
-    tags: ["Custom App", "Drag & Drop", "Charts", "Local Storage"],
-    demoUrl: "https://taskflow-demo.example.com",
-    isFeatured: false,
-  },
-];
-
 const DEFAULT_CATEGORIES = [
   { id: "landing", label: "Landing Page" },
   { id: "ecommerce", label: "E-Commerce" },
@@ -84,8 +51,15 @@ const DEFAULT_CATEGORIES = [
   { id: "invitacion", label: "Tarjeta de Invitación" },
 ];
 
-const CLAVE_PROYECTOS = "portfolio_projects";
-const CLAVE_CATEGORIAS = "portfolio_categories";
+const CLAVE_PROYECTOS = "portfolio_projects_v2";
+const CLAVE_CATEGORIAS = "portfolio_categories_v2";
+
+// Las copias de antes pueden tener los proyectos de ejemplo mezclados: se
+// borran una vez y listo.
+try {
+  localStorage.removeItem("portfolio_projects");
+  localStorage.removeItem("portfolio_categories");
+} catch { /* almacenamiento bloqueado (modo privado): nada que limpiar */ }
 const CLAVE_ORDEN_PROYECTOS = "portfolio_projects_order";
 
 /* ==========================================================================
@@ -203,14 +177,14 @@ async function revalidarProyectosEnSegundoPlano() {
 async function fetchProyectosDeSupabase() {
   try {
     let data, error;
-    const resPos = await supabase
+    const resPos = await supabasePublico
       .from("projects")
       .select("*")
       .order("position", { ascending: true })
       .order("created_at", { ascending: true });
 
     if (resPos.error) {
-      const resFallback = await supabase
+      const resFallback = await supabasePublico
         .from("projects")
         .select("*")
         .order("created_at", { ascending: true });
@@ -223,23 +197,13 @@ async function fetchProyectosDeSupabase() {
 
     if (error) throw error;
 
+    // Tabla vacía: no hay trabajos publicados. Se devuelve vacío (la página
+    // lo dice) en vez de inventar proyectos.
     if (!data || data.length === 0) {
-      const { data: sesion } = await supabase.auth.getSession();
-      if (sesion?.session) {
-        await supabase.from("projects").insert(DEFAULT_PROJECTS.map(mapProjectToDB));
-        const { data: nuevos } = await supabase
-          .from("projects")
-          .select("*")
-          .order("created_at", { ascending: true });
-        const listos = (nuevos || []).map(mapProjectFromDB);
-        cache.projects = listos;
-        cache.projectsAt = Date.now();
-        escribirLocal(CLAVE_PROYECTOS, listos);
-        return listos;
-      }
-      cache.projects = DEFAULT_PROJECTS;
+      cache.projects = [];
       cache.projectsAt = Date.now();
-      return DEFAULT_PROJECTS;
+      escribirLocal(CLAVE_PROYECTOS, []);
+      return [];
     }
 
     const orderMap = leerLocal(CLAVE_ORDEN_PROYECTOS, {});
@@ -258,7 +222,9 @@ async function fetchProyectosDeSupabase() {
   } catch (e) {
     console.error("Supabase no disponible, se usa el respaldo local:", e?.message || e);
     const orderMap = leerLocal(CLAVE_ORDEN_PROYECTOS, {});
-    const respaldo = leerLocal(CLAVE_PROYECTOS, DEFAULT_PROJECTS);
+    // Solo la última lista REAL que vio este navegador. Si no hay, vacío:
+    // la página avisa que no pudo cargar, que es la verdad.
+    const respaldo = leerLocal(CLAVE_PROYECTOS, []);
     respaldo.forEach((p) => {
       if (typeof orderMap[p.id] === "number") {
         p.position = orderMap[p.id];
@@ -294,27 +260,17 @@ export async function getCategories({ forzar = false } = {}) {
 
 async function fetchCategoriasDeSupabase() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabasePublico
       .from("categories")
       .select("*")
       .order("created_at", { ascending: true });
 
     if (error) throw error;
 
+    // Sin categorías en la base: se usan las básicas solo para dibujar los
+    // filtros. Son etiquetas (Landing, E-commerce…), no datos inventados, y
+    // ya no se insertan solas en la base.
     if (!data || data.length === 0) {
-      const { data: sesion } = await supabase.auth.getSession();
-      if (sesion?.session) {
-        await supabase.from("categories").insert(DEFAULT_CATEGORIES);
-        const { data: nuevas } = await supabase
-          .from("categories")
-          .select("*")
-          .order("created_at", { ascending: true });
-        const listos = nuevas || DEFAULT_CATEGORIES;
-        cache.categories = listos;
-        cache.categoriesAt = Date.now();
-        escribirLocal(CLAVE_CATEGORIAS, listos);
-        return listos;
-      }
       cache.categories = DEFAULT_CATEGORIES;
       cache.categoriesAt = Date.now();
       return DEFAULT_CATEGORIES;
@@ -384,7 +340,7 @@ export async function addProject(project) {
     return { ok: true, persistido: true, data };
   } catch (e) {
     console.error("Error al agregar proyecto:", e?.message || e);
-    const proyectos = leerLocal(CLAVE_PROYECTOS, [...DEFAULT_PROJECTS]);
+    const proyectos = leerLocal(CLAVE_PROYECTOS, [...(cache.projects || [])]);
     proyectos.push({ ...project, id: `local-${Date.now()}` });
     escribirLocal(CLAVE_PROYECTOS, proyectos);
     return { ok: true, persistido: false, error: motivoNoPersistido(e) };
@@ -424,7 +380,7 @@ export async function updateProject(project) {
     return { ok: true, persistido: true, data };
   } catch (e) {
     console.error("Error al actualizar proyecto:", e?.message || e);
-    let proyectos = leerLocal(CLAVE_PROYECTOS, [...DEFAULT_PROJECTS]);
+    let proyectos = leerLocal(CLAVE_PROYECTOS, [...(cache.projects || [])]);
     proyectos = proyectos.map((p) => (p.id === project.id ? project : p));
     escribirLocal(CLAVE_PROYECTOS, proyectos);
     return { ok: true, persistido: false, error: motivoNoPersistido(e) };
@@ -439,7 +395,7 @@ export async function deleteProject(id) {
     return { ok: true, persistido: true };
   } catch (e) {
     console.error("Error al eliminar proyecto:", e?.message || e);
-    const proyectos = leerLocal(CLAVE_PROYECTOS, [...DEFAULT_PROJECTS]).filter((p) => p.id !== id);
+    const proyectos = leerLocal(CLAVE_PROYECTOS, [...(cache.projects || [])]).filter((p) => p.id !== id);
     escribirLocal(CLAVE_PROYECTOS, proyectos);
     return { ok: true, persistido: false, error: motivoNoPersistido(e) };
   }

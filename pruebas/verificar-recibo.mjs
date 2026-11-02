@@ -8,6 +8,7 @@ import { chromium } from "playwright";
    install`, que es el caso normal en tu maquina. */
 const OPCIONES = process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {};
 import { mkdirSync, readdirSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -23,6 +24,8 @@ const base = {
   domain_choice: "propio", domain_name: "dulcehogar.com.ar",
   project_brief: "Catálogo y pedidos por WhatsApp.",
   tareas: [], created_at: "2026-06-01T12:00:00Z", client_decision: "acepta",
+  // Desde la migración 15 los comprobantes viven en la pestaña Pagos.
+  secciones: { tareas: true, pagos: true, dominio: true, produccion: true },
   proposal_url: null, proposal_es_pdf: false, budget_es_pdf: false, brief_es_pdf: false,
   pagos: [
     { kind: "anticipo", amount_usd: 215, amount_ars: 290250, status: "pagado",
@@ -47,13 +50,13 @@ const nav = await chromium.launch(OPCIONES);
 const fallas = [];
 
 for (const [nombre, datos, esperados] of CASOS) {
-  const ctx = await nav.newContext({ viewport: { width: 1280, height: 1000 }, acceptDownloads: true });
+  const ctx = await nav.newContext({ viewport: { width: Number(process.env.ANCHO || 1280), height: 1000 }, acceptDownloads: true });
   const p = await ctx.newPage();
   p.on("pageerror", (e) => fallas.push(`${nombre}: pageerror ${e}`));
   await p.route("**/rest/v1/**", (r) => r.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
   await p.route("**/rest/v1/rpc/portal_obtener*", (r) =>
     r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(datos) }));
-  await p.goto(`${BASE}/cliente.html?t=${"a".repeat(40)}`, { waitUntil: "networkidle" });
+  await p.goto(`${BASE}/cliente.html?t=${"a".repeat(40)}#pagos`, { waitUntil: "networkidle" });
   await p.waitForTimeout(500);
 
   const botones = p.locator('[data-accion="bajar-recibo"]');
@@ -68,6 +71,10 @@ for (const [nombre, datos, esperados] of CASOS) {
     if (!/R-\d{4}-\d{4}/.test(txt)) fallas.push(`${nombre}: el boton no muestra el numero de recibo → «${txt}»`);
 
     // ¿El PDF se genera de verdad?
+    // Como un cliente real: baja hasta el botón antes de tocarlo. El PDF en
+    // blanco dependía justamente de dónde estaba la página al generarlo.
+    await botones.first().scrollIntoViewIfNeeded();
+    await p.mouse.wheel(0, 400);
     const esperaDescarga = p.waitForEvent("download", { timeout: 25000 });
     await botones.first().click();
     try {
@@ -77,6 +84,22 @@ for (const [nombre, datos, esperados] of CASOS) {
       const bytes = statSync(ruta).size;
       console.log(`  ${"".padEnd(24)}   archivo: ${d.suggestedFilename()} (${Math.round(bytes / 1024)} kB)`);
       if (bytes < 8000) fallas.push(`${nombre}: el PDF salio de ${bytes} bytes — probablemente vacio`);
+
+      // EL TAMAÑO NO ALCANZA. Un recibo en blanco pesaba 22 kB y pasaba este
+      // control: así se escapó el bug del PDF vacío. Si hay pdftoppm
+      // (poppler), se dibuja la página y se cuenta cuánta tinta tiene.
+      try {
+        // PGM en escala de grises: "P5\n<ancho> <alto>\n255\n" + un byte por píxel.
+        const pgm = execFileSync("pdftoppm", ["-r", "30", "-gray", "-singlefile", ruta]);
+        const cab = pgm.toString("latin1", 0, 40).match(/^P5\s+(\d+)\s+(\d+)\s+\d+\s/);
+        const pixeles = cab ? pgm.subarray(cab[0].length) : pgm;
+        let tinta = 0;
+        for (const b of pixeles) if (b < 160) tinta++;
+        console.log(`  ${"".padEnd(24)}   tinta: ${tinta} píxeles oscuros`);
+        if (tinta < 200) fallas.push(`${nombre}: el PDF se descargó pero está EN BLANCO`);
+      } catch {
+        console.log(`  ${"".padEnd(24)}   (sin pdftoppm: no se pudo mirar el contenido, solo el tamaño)`);
+      }
       if (!/^R-\d{4}-\d{4}-/.test(d.suggestedFilename())) fallas.push(`${nombre}: nombre de archivo raro → ${d.suggestedFilename()}`);
     } catch (e) {
       fallas.push(`${nombre}: no se descargo ningun archivo (${e.message.split("\n")[0]})`);

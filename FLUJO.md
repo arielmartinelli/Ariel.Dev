@@ -420,3 +420,183 @@ SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'portal_obtener';
   acreditados → 2 botones; saldo pendiente → 1; pago viejo sin numerar → el
   botón no aparece; nada cobrado → ninguno.
 - El PDF se descarga de verdad: 259 kB, abierto y leído, no «no tiró error».
+
+---
+
+## Pagos flexibles (migración 14)
+
+Correr `supabase/migracion-14-pagos-flexibles.sql` en el SQL Editor. Tiene que
+devolver **13 ✅**. Se puede correr dos veces sin romper nada.
+
+### Por qué
+
+El caso que lo disparó: un cliente pagó una **reserva** antes de arrancar y el
+sistema igual le pedía el anticipo completo del 50%. No había dónde cargar esa
+plata ni forma de cambiar un monto.
+
+### Los cuatro planes
+
+| Plan | Quién lo elige | Cobros que se generan |
+|---|---|---|
+| `mitades` | cliente o Ariel | anticipo 50% − reservas · saldo = lo que falta |
+| `unico` | cliente o Ariel | pago total − reservas (MP en **1** pago o transferencia) |
+| `cuotas3` | cliente o Ariel | pago total − reservas (MP en **3** cuotas) |
+| `personalizado` | **solo Ariel** | ninguno automático: las cuotas se cargan a mano |
+
+Con **«Fijarlo»** tildado (`clients.plan_fijado`), el cliente ve el plan en su
+link y no puede elegir otro: `portal_decidir` ignora lo que mande el navegador.
+
+### Tipos de cobro
+
+| Tipo | Qué es | ¿Parte del precio? |
+|---|---|---|
+| `reserva` | plata cobrada antes de arrancar | sí — se descuenta del cobro inicial |
+| `anticipo` / `total` | el cobro inicial del plan | sí |
+| `cuota` | una parte del precio (plan personalizado) | sí |
+| `saldo` | **lo que falta**: precio + dominio − todo lo anterior | sí |
+| `otro` | un extra fuera del presupuesto | no, se suma aparte |
+
+Cada cobro tiene un `concepto` que ve el cliente. Reserva, cuota y extra
+admiten varios por cliente; el comprobante y Mercado Pago toman siempre el
+**primero pendiente** de ese tipo.
+
+### En el panel — bloque «Cobros» de cada cliente
+
+- Resumen: total del proyecto, cobrado, pendiente y **sin programar** (lo que
+  todavía no tiene cobro y se pedirá con el saldo). Avisa si programaste más
+  que el precio.
+- Plan de pago + «Aplicar plan»: rehace el cobro inicial descontando reservas.
+- Cada cobro: **Marcar pagado**, **Editar** (monto, estado, medio, fecha,
+  concepto) y **Eliminar**.
+- **+ Agregar cobro**: reserva, cuota o extra.
+- **Recalcular el saldo final**.
+
+Al cargar, editar o borrar una reserva, el anticipo se recalcula solo. Si la
+reserva cubre todo el pago inicial, el proyecto pasa directo a producción.
+
+### Reglas que conviene no romper
+
+- **Lo pagado no se borra ni se recalcula** en ninguna función de la base. El
+  panel sí deja eliminarlo a mano, con una advertencia.
+- **No se toca un cobro con pago en curso** (`en_proceso` o `en_revision`):
+  borrarlo dejaría la plata sin fila donde acreditarse.
+- **Editar el monto suelta la preferencia de MP**, y el webhook compara los
+  USD del link con los del cobro actual: un pago hecho con un link viejo queda
+  para revisar en vez de acreditarse solo.
+- **`portal_obtener` no se reescribió**: la migración toma la versión que está
+  corriendo con `pg_get_functiondef()` y le inserta dos claves. Si no encuentra
+  dónde, falla sin tocar nada.
+
+### De paso se arregló
+
+`admin_mover_flujo` pedía siempre un `anticipo`: con el plan de 3 cuotas,
+mover la etapa a mano creaba un anticipo del 50% **además** del pago total.
+Ahora `asegurar_cobro` traduce «anticipo» al cobro inicial que corresponde al
+plan.
+
+### Qué se verificó
+
+- En Postgres 16 con las 14 migraciones en orden: reserva de 100 sobre 400
+  (anticipo 100, saldo 200), reserva que cubre el anticipo (pasa sola a
+  producción), plan fijado que el cliente no puede pisar, el anticipo fantasma,
+  plan personalizado de 3 cuotas hasta finalizar, recálculo del saldo, y que
+  otro usuario logueado no vea ni toque nada.
+- En Chromium (`pruebas/verificar-pagos.mjs`), a 390 y 1280 px: los números
+  del resumen del panel, que «Agregar» y «Editar» manden a la base exactamente
+  lo cargado, y los cinco casos nuevos del portal.
+- `pruebas/verificar-mp.mjs`: 3 cuotas para `cuotas3`, 1 pago para `unico`.
+
+---
+
+## Link del cliente en pestañas (migración 15)
+
+Correr `supabase/migracion-15-portal-pestanas.sql` **después** de la 14. Tiene
+que devolver **9 ✅**. Se puede correr dos veces: la segunda no pisa las
+pestañas que abriste o cerraste a mano.
+
+### Qué ve el cliente
+
+Un dashboard: arriba el saludo y el avance, abajo una barra con cinco
+pestañas (al costado en la computadora, arriba y deslizable en el celular).
+
+| Pestaña | Qué tiene | ¿Quién la abre? |
+|---|---|---|
+| **Inicio** | en qué está el proyecto, la demo, propuesta, presupuesto y descripción | siempre abierta |
+| **Tareas** | la lista de cambios y el campo para sumar (con PDF) | vos, a mano |
+| **Pagos** | lo que hay que pagar ahora, la cuenta completa, «Tus pagos» y comprobantes | vos, a mano |
+| **Dominio** | elegir o corregir la dirección | vos, a mano |
+| **Producción** | el link final de la página | vos, a mano |
+
+Una pestaña cerrada se ve con **candado** y «Próximamente»; si la toca, le
+explica qué va a encontrar ahí y que le avisás cuando la abras. Un puntito
+naranja marca la pestaña donde tiene algo para hacer, y el portal abre
+directo esa. `#pagos`, `#tareas`, etc. al final del link abren esa pestaña.
+
+### Qué manejás desde el panel
+
+- **Pestañas del link del cliente**: cuatro interruptores, guardan al tocar.
+- **Condiciones** (en Cobros): precio, costo del dominio propio y **medios de
+  pago** que ve el cliente (Mercado Pago, transferencia o los dos).
+- **Cada cobro**: tipo (reserva, anticipo, pago total, cuota, saldo o extra),
+  concepto, monto, estado, medio, fecha y **cuotas de Mercado Pago** (1 a 12;
+  vacío = las del plan).
+
+### Solo a mano, a propósito
+
+Nada abre una pestaña solo: si el cliente paga el anticipo un domingo a la
+noche, el proyecto pasa a producción pero **Tareas sigue cerrada** hasta que
+la abras. Para que no se te pase, el bloque «Flujo del proyecto» te avisa en
+ámbar («te toca a vos») cuando el cliente necesita una pestaña que sigue
+cerrada.
+
+Los proyectos que ya estaban en marcha al correr la migración arrancan con
+las pestañas de su etapa abiertas, para que nadie pierda lo que ya veía.
+
+### Lo hace cumplir la base, no la pantalla
+
+- Cargar un cambio exige **Tareas** abierta (`portal_pedir_cambio`).
+- Elegir el dominio exige **Dominio** abierta (`portal_elegir_dominio`). Si la
+  abriste antes de tiempo, elegir guarda la dirección pero **no** saltea la
+  producción: el flujo pasa a «publicando» solo desde la etapa «dominio».
+- El link final viaja solo con **Producción** abierta o el proyecto
+  finalizado (`portal_obtener`).
+- Con Mercado Pago apagado para ese cliente, `api/mp-crear-preferencia`
+  responde 403 aunque alguien fuerce el botón desde la consola.
+
+### Qué se verificó
+
+- Postgres 16 con las 15 migraciones: los candados de cada acción, que elegir
+  dominio durante la producción no salte etapas, que el link final aparezca
+  recién con Producción abierta y que no se pueda dejar a un cliente sin
+  ningún medio de pago.
+- Chromium a 390 y 1280 px (`pruebas/verificar-pagos.mjs`): diez casos del
+  portal (incluidos candado, tocar una pestaña, solo transferencia, dominio
+  elegido y link final) y, en el panel, que los interruptores y los medios de
+  pago manden a la base exactamente lo elegido.
+- `pruebas/verificar-mp.mjs`: cuotas fijadas en el cobro y 403 con MP apagado.
+
+---
+
+## El link del cliente como app
+
+Un link abierto en Safari o Chrome **siempre** muestra la barra del
+navegador: eso no se puede sacar desde la página. Lo que sí: el cliente lo
+agrega a la pantalla de inicio y queda un ícono **Mi proyecto** que se abre a
+pantalla completa, como una app.
+
+| Pieza | Para qué |
+|---|---|
+| `api/manifest-cliente.js` | El manifiesto con el link de ESE cliente (`/cliente/<token>`). Solo repite el token si tiene forma de token; no consulta la base. |
+| `cliente.html` (metas `apple-mobile-web-app-*`) | iPhone: pantalla completa y barra de estado transparente. |
+| `public/sw-cliente.js` | Service worker vacío que Android pide para ofrecer «Instalar». **No cachea nada.** |
+| `public/app-icon-*.png`, `apple-touch-icon.png`, `favicon.svg` | Los íconos (el favicon antes no existía y daba 404). |
+
+En el celular, si todavía no lo instaló, el portal muestra «Tenelo como una
+app»: en Android con Chrome el botón instala directo; en iPhone explica los
+tres toques (Compartir → Agregar a inicio). Si lo cierra, no vuelve a
+aparecer en ese teléfono. Abierto como app, el contenido baja lo justo para
+no quedar debajo de la hora y la batería.
+
+Si el cliente abre el link desde WhatsApp, primero tiene que pasarlo al
+navegador («Abrir en Safari / Chrome»): el navegador interno de WhatsApp no
+deja instalar. El aviso lo dice.

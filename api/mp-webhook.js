@@ -148,6 +148,28 @@ export default async function handler(req, res) {
       }
     }
 
+    // ---- Defensa 4: el monto en USD tiene que ser el de HOY ----
+    // Desde la migración 14 el monto de un cobro se puede editar en el panel.
+    // Si Ariel lo cambia después de que el cliente abrió el link de Mercado
+    // Pago, ese link viejo tiene el importe anterior. El panel limpia
+    // amount_ars al editar (así que la Defensa 3 no tiene contra qué
+    // comparar), pero la preferencia guardó los USD en metadata: si no
+    // coinciden con el cobro actual, no se acredita solo.
+    const usdPreferencia = Number(pagoMp?.metadata?.usd);
+    const usdActual = Number(pago.amount_usd);
+    if (Number.isFinite(usdPreferencia) && usdPreferencia > 0 && usdActual > 0) {
+      const desvioUsd = Math.abs(usdPreferencia - usdActual) / usdActual;
+      if (desvioUsd > 0.01) {
+        console.error(
+          `El cobro ${pago.id} cambió de monto: el link era por USD ${usdPreferencia} y hoy es USD ${usdActual}.`
+        );
+        await db.from("payments")
+          .update({ status: "en_proceso", mp_payment_id: String(dataId) })
+          .eq("id", pago.id);
+        return json(res, 200, { ok: true, revisar: "monto en USD cambiado" });
+      }
+    }
+
     // ---- Acreditación ----
     const { error: errUpdate } = await db
       .from("payments")
@@ -165,6 +187,8 @@ export default async function handler(req, res) {
     // Al acreditarse el saldo final, el proyecto pasa a finalizado. Se hace
     // acá y no en el navegador porque este es el único punto que sabe, con
     // certeza verificada contra Mercado Pago, que el dinero entró.
+    // (El trigger de la base ya hace lo mismo para cualquier tipo de cobro;
+    // esto queda como respaldo para el saldo.)
     if (kind === "saldo") {
       const { data: pendientes } = await db
         .from("payments")

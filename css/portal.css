@@ -779,7 +779,7 @@
   font-weight: 700;
   font-size: 1rem;
 }
-.portal-desglose span:last-child { font-variant-numeric: tabular-nums; }
+.portal-desglose span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
 
 /* ==========================================================================
    Opciones (método de pago, dominio)
@@ -1330,6 +1330,489 @@
 }
 
 /* ==========================================================================
+   Plan de pagos (migración 14)
+   ========================================================================== */
+
+/* El plan que fijó Ariel: se muestra como un dato, no como una opción. */
+.portal-plan-fijo {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 12px;
+  margin-bottom: var(--e2);
+}
+.portal-plan-fijo small { color: var(--text-secondary); font-size: 0.88rem; }
+
+.portal-plan-lista {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.portal-plan-lista li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+.portal-plan-lista b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+.portal-desglose-ars { color: var(--text-secondary); font-weight: 500; font-size: 0.82em; }
+
+/* Lista de pagos en el resumen: qué se pagó, qué falta y de qué es. */
+.portal-pagos {
+  margin-top: var(--e4);
+  padding-top: var(--e3);
+  border-top: 1px solid var(--border);
+}
+.portal-pagos ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.portal-pago {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 9px;
+  font-size: 0.86rem;
+  box-shadow: inset 3px 0 0 var(--border-hover);
+}
+.portal-pago-ok   { box-shadow: inset 3px 0 0 #22c55e; }
+.portal-pago-pend { box-shadow: inset 3px 0 0 #f59e0b; }
+.portal-pago-nom { display: grid; line-height: 1.25; min-width: 0; }
+.portal-pago-nom small { font-size: 0.72rem; color: var(--text-muted); }
+.portal-pago b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ==========================================================================
+   Dashboard con pestañas (migración 15)
+   --------------------------------------------------------------------------
+   Celular: barra flotante ABAJO, estilo iPhone (ver el bloque al final).
+   Desde 900px: barra lateral fija a la izquierda y el contenido al lado.
+   ========================================================================== */
+.portal-dash { display: block; }
+
+.portal-nav {
+  position: sticky;
+  top: 60px;
+  z-index: 5;
+  margin: 0 -20px;
+  padding: 8px 20px;
+  background: var(--bg-dark);
+  border-bottom: 1px solid var(--border);
+}
+
+.portal-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.portal-nav ul::-webkit-scrollbar { display: none; }
+.portal-nav li { flex: 0 0 auto; scroll-snap-align: start; }
+
+.portal-nav-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;          /* minimo tactil holgado */
+  padding: 6px 14px 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.portal-nav-btn:hover { background: rgba(255, 255, 255, 0.04); color: var(--text-primary); }
+.portal-nav-btn:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; }
+
+.portal-nav-btn.activo {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.55);
+  color: var(--text-primary);
+}
+
+.portal-nav-ico {
+  display: grid;
+  place-items: center;
+  width: 32px; height: 32px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.portal-nav-btn.activo .portal-nav-ico { background: var(--primary-glow); color: var(--primary-light); }
+
+.portal-nav-txt { display: grid; line-height: 1.2; min-width: 0; }
+.portal-nav-txt b { font-size: 0.9rem; font-weight: 600; white-space: nowrap; }
+.portal-nav-txt small {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+/* Candado: se ve, se puede tocar (explica por qué está cerrada), pero apagada. */
+/* El gris va en --text-secondary y no en --text-muted: este último no
+   llega a 4.5:1 sobre el fondo oscuro. Lo "apagado" lo da el ícono. */
+.portal-nav-btn.bloqueada { color: var(--text-secondary); }
+.portal-nav-btn.bloqueada .portal-nav-ico { opacity: 0.7; }
+
+/* Puntito de "te toca": algo para hacer en esa pestaña. */
+.portal-nav-aviso {
+  position: absolute;
+  top: 7px;
+  left: 33px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px var(--bg-dark);
+}
+
+.portal-panel { outline: none; min-width: 0; }
+.portal-panel > .portal-etapa:first-child { margin-top: var(--e4); }
+
+/* El resumen de la cuenta, dentro de Pagos, va debajo de la tarjeta de pago
+   y sin el sticky que tenía cuando era una columna aparte. */
+.portal-panel .portal-resumen { position: static; }
+.portal-panel .portal-resumen-caja { margin: 0 0 var(--e6); }
+
+.portal-brief {
+  white-space: pre-wrap;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-bottom: var(--e4);
+  max-width: 64ch;
+}
+
+.portal-adjuntar { cursor: pointer; gap: 6px; }
+.portal-adjunto-nombre {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 1em;
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.portal-adjunto-nombre:empty { display: none; }
+
+.portal-cambio .pilar-pdf-chip { margin-top: 6px; }
+
+@media (min-width: 900px) {
+  .portal-main { max-width: 1160px; }
+
+  .portal-dash {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+    margin-top: var(--e3);
+  }
+
+  .portal-nav {
+    top: 84px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+  }
+
+  .portal-nav ul { flex-direction: column; overflow: visible; gap: 4px; }
+  .portal-nav-btn { width: 100%; min-height: 56px; padding: 8px 12px; border-color: transparent; }
+  .portal-nav-btn.activo { border-color: rgba(99, 102, 241, 0.45); }
+  .portal-nav-txt small { max-width: 160px; }
+
+  .portal-panel > .portal-etapa:first-child { margin-top: 0; }
+}
+
+body.light-theme .portal-nav { background: var(--bg-dark); }
+body.light-theme .portal-nav-btn:hover { background: rgba(15, 23, 42, 0.04); }
+body.light-theme .portal-nav-ico { background: rgba(15, 23, 42, 0.05); }
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-nav-btn { transition: none; }
+}
+
+/* Una nota (por ejemplo "ya descontamos tu reserva") justo antes de las
+   opciones de pago quedaba pegada a la primera opción. */
+.portal-etapa-cuerpo .portal-nota + .portal-ops,
+.portal-etapa-cuerpo .portal-nota + .portal-datos { margin-top: var(--e4); }
+
+
+/* ==========================================================================
+   Celular: barra de pestañas abajo, estilo iPhone
+   --------------------------------------------------------------------------
+   La misma que usa el panel (css/admin.css, .admin-tabbar), para que las
+   dos pantallas se sientan de la misma familia.
+
+   Por qué abajo: el cliente entra casi siempre desde el celular, con el
+   link de WhatsApp, y con el pulgar se llega cómodo abajo, no arriba.
+
+   - env(safe-area-inset-bottom) la levanta sobre la barra de gestos del
+     iPhone (necesita viewport-fit=cover en el <meta viewport>).
+   - Botones de 56px de alto: por debajo de ~44px el dedo falla.
+   - Ícono arriba y nombre abajo; el renglón chico ("Pendiente USD 100") se
+     esconde: no entra, y el puntito naranja ya avisa dónde hay algo.
+   ========================================================================== */
+@media (max-width: 899px) {
+  .portal-nav {
+    position: fixed;
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: var(--z-drawer);
+    margin: 0;
+    padding: 6px;
+    border: 1px solid var(--border-hover);
+    border-radius: 22px;
+    background: color-mix(in srgb, var(--bg-surface-opaque) 84%, transparent);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.65),
+                0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  }
+
+  .portal-nav ul {
+    gap: 2px;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+  .portal-nav li { flex: 1 1 0; min-width: 0; }
+
+  .portal-nav-btn {
+    width: 100%;
+    height: 56px;
+    min-height: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 0 2px;
+    border: none;
+    border-radius: 17px;
+    text-align: center;
+  }
+  .portal-nav-btn:hover { background: transparent; }
+
+  .portal-nav-ico { width: auto; height: auto; background: none; }
+  .portal-nav-ico .pico { width: 21px; height: 21px; }
+
+  .portal-nav-txt { justify-items: center; }
+  .portal-nav-txt b {
+    font-size: 0.66rem;
+    font-weight: 600;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .portal-nav-txt small { display: none; }
+
+  .portal-nav-btn.activo {
+    background: var(--primary-solido);
+    border: none;
+    color: #fff;
+  }
+  .portal-nav-btn.activo .portal-nav-ico { background: none; color: #fff; }
+
+  /* El puntito vuelve a ser un badge flotante sobre el ícono. */
+  .portal-nav-aviso {
+    top: 7px;
+    left: calc(50% + 6px);
+    box-shadow: 0 0 0 2px var(--bg-surface-opaque);
+  }
+  .portal-nav-btn.activo .portal-nav-aviso {
+    background: #fff;
+    box-shadow: 0 0 0 2px var(--primary);
+  }
+
+  /* Lugar para que lo último de la página no quede tapado por la barra. */
+  .portal-body { padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Teléfonos muy angostos (iPhone SE y menores): Producción no entra entera. */
+@media (max-width: 359px) {
+  .portal-nav { left: 8px; right: 8px; padding: 4px; }
+  .portal-nav-txt b { font-size: 0.6rem; }
+}
+
+body.light-theme .portal-nav-btn.activo,
+body.light-theme .portal-nav-btn.activo .portal-nav-ico { color: #fff; }
+
+
+/* ==========================================================================
+   Avance: anillo + etapa (reemplaza al número suelto con la barra fina)
+   --------------------------------------------------------------------------
+   Celular: tarjeta de ancho completo debajo del saludo, anillo a la
+   izquierda y la etapa al lado. Desde 700px: la tarjeta va a la derecha
+   del saludo.
+   ========================================================================== */
+.portal-hero-fila { align-items: center; }
+
+.portal-avance-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 14px 18px 14px 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--bg-card);
+}
+
+.portal-anillo {
+  position: relative;
+  flex-shrink: 0;
+  width: 84px;
+  height: 84px;
+}
+.portal-anillo svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.portal-anillo circle { fill: none; stroke-width: 10; }
+.portal-anillo-fondo { stroke: rgba(255, 255, 255, 0.08); }
+.portal-anillo-valor {
+  stroke: url(#pc-anillo-grad);
+  stroke-linecap: round;
+  stroke-dasharray: 326.73;
+  stroke-dashoffset: 326.73;
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.portal-anillo.completo .portal-anillo-valor { stroke: #22c55e; }
+
+.portal-anillo-num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-family: var(--font-heading);
+}
+.portal-anillo-num b {
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.portal-anillo-num span {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-left: 1px;
+  align-self: flex-start;
+  margin-top: 30px;
+}
+
+.portal-avance-txt { display: grid; gap: 3px; min-width: 0; }
+.portal-avance-txt .portal-hero-etq { margin: 0; color: var(--text-secondary); }
+.portal-avance-txt strong {
+  font-family: var(--font-heading);
+  font-size: 1.12rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+.portal-avance-txt small { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.4; }
+
+@media (min-width: 700px) {
+  .portal-hero-fila { flex-wrap: nowrap; }
+  .portal-avance-card { width: auto; min-width: 330px; max-width: 400px; padding: 16px 22px 16px 16px; }
+  .portal-anillo { width: 96px; height: 96px; }
+  .portal-anillo-num b { font-size: 1.8rem; }
+  .portal-anillo-num span { margin-top: 34px; }
+}
+
+/* "100" no entra con la misma letra que "55": se achica un poco. */
+.portal-anillo.tres-cifras .portal-anillo-num b { font-size: 1.3rem; }
+.portal-anillo.tres-cifras .portal-anillo-num span { margin-top: 26px; }
+@media (min-width: 700px) {
+  .portal-anillo.tres-cifras .portal-anillo-num b { font-size: 1.5rem; }
+  .portal-anillo.tres-cifras .portal-anillo-num span { margin-top: 30px; }
+}
+
+body.light-theme .portal-anillo-fondo { stroke: rgba(15, 23, 42, 0.08); }
+body.light-theme .portal-anillo.completo .portal-anillo-valor { stroke: #15803d; }
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-anillo-valor { transition: none; }
+}
+
+/* ==========================================================================
+   Como app (pantalla de inicio)
+   ========================================================================== */
+
+/* El aviso «Tenelo como una app»: una tarjeta chica arriba del contenido,
+   solo en el celular y solo hasta que lo instala o lo cierra. */
+.portal-app-aviso {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 var(--e4);
+  padding: 12px 10px 12px 12px;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(6, 182, 212, 0.08));
+}
+.portal-app-aviso[hidden] { display: none; }
+
+.portal-app-aviso-ico img {
+  display: block;
+  width: 40px; height: 40px;
+  border-radius: 10px;
+}
+.portal-app-aviso-txt { display: grid; gap: 2px; flex: 1; min-width: 0; line-height: 1.3; }
+.portal-app-aviso-txt b { font-size: 0.92rem; }
+.portal-app-aviso-txt small { font-size: 0.78rem; color: var(--text-secondary); }
+
+.portal-app-aviso-acciones { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.portal-app-aviso-cerrar {
+  display: grid;
+  place-items: center;
+  width: 36px; height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.portal-app-aviso-cerrar:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; }
+
+/* Los pasos, dentro del diálogo. */
+.portal-app-pasos {
+  text-align: left;
+  margin: 0 0 12px;
+  padding-left: 1.3em;
+  display: grid;
+  gap: 10px;
+  line-height: 1.5;
+}
+.portal-app-nota { text-align: left; font-size: 0.85rem; opacity: 0.8; margin: 0; }
+
+/* Ya abierto como app: sin la barra del navegador, el contenido llega hasta
+   arriba de todo y quedaría debajo de la hora y la batería del iPhone. Se
+   baja lo justo con safe-area-inset-top. */
+.modo-app .portal-top { padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
+@media (display-mode: standalone) {
+  .portal-top { padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
+}
+
+/* ==========================================================================
    Esqueleto del portal
    --------------------------------------------------------------------------
    Reemplaza al spinner centrado. Reusa .portal-hero, .portal-pasos y
@@ -1345,3 +1828,4 @@
    círculos: esa línea dice "este paso ya está hecho", y todavía no se sabe
    nada. Mostrarla sería inventar información. */
 #portal-cargando .portal-paso::before { display: none; }
+
