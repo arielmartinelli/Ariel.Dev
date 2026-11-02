@@ -749,7 +749,12 @@ body.light-theme .moon-icon { display: block; }
     background-color: #0b0f19;
     border-radius: 23px;
     overflow: hidden;
-    height: 380px;
+    /* Era `height: 380px` fijo, de cuando adentro había una caja de código
+       que siempre medía lo mismo. El panel de resultados no: cambia de alto
+       con el ancho (los cuatro números pasan de una fila a dos). Con el alto
+       clavado, abajo quedaba recortado — `overflow: hidden` lo tapaba sin
+       avisar. Ahora el mínimo lo sostiene y el contenido manda. */
+    min-height: 380px;
     display: flex;
     flex-direction: column;
 }
@@ -807,17 +812,268 @@ body.light-theme .mockup-url {
     position: relative;
 }
 
-.mockup-code {
-    font-family: monospace;
-    font-size: 0.825rem;
-    line-height: 1.5;
+/* ==========================================================================
+   Panel de resultados del hero  (ver js/panel-demo.js)
+   --------------------------------------------------------------------------
+   Reemplazó a la caja de código. Los dos gráficos van apilados y NO comparten
+   escala: visitas y consultas están en órdenes distintos (2.800 contra 46) y
+   meterlas en un mismo eje dejaría la segunda pegada al piso. Cada panel
+   lleva su máximo escrito al lado.
+
+   Los dos colores pasaron las seis comprobaciones del validador de paletas en
+   los dos temas, contra el fondo real de la tarjeta. No se eligieron a ojo.
+   ========================================================================== */
+.panel-demo {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+    container-type: inline-size;
+}
+
+.pd-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.pd-top-txt {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-heading);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.pd-pulso {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+    animation: pd-latir 2.4s ease-out infinite;
+}
+@keyframes pd-latir {
+    70%  { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+/* Los números son inventados. Esto se ve siempre, no al pasar el mouse. */
+.pd-demo {
+    flex-shrink: 0;
+    padding: 3px 9px;
+    border: 1px solid var(--border-hover);
+    border-radius: 99px;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     color: var(--text-secondary);
 }
 
-.c-blue { color: #569cd6; }
-.c-green { color: #4ec9b0; }
-.c-orange { color: #ce9178; }
-.c-comment { color: #6a9955; }
+/* ---- Los cuatro números ---- */
+.pd-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+}
+.pd-kpi {
+    /* En el celular el hero va centrado y los números heredaban ese centrado:
+       quedaban flotando en el medio de su tarjeta. Un número se lee alineado
+       a la izquierda, debajo de su rótulo. */
+    text-align: left;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas: "ico rotulo" "valor valor" "sube sube";
+    align-items: center;
+    gap: 2px 5px;
+    padding: 8px 9px 9px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.025);
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.pd-kpi:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+}
+body.light-theme .pd-kpi { background: rgba(15, 23, 42, 0.025); }
+
+.pd-kpi-ico { grid-area: ico; color: var(--primary-light); }
+.pd-kpi-ico svg { display: block; width: 13px; height: 13px; }
+.pd-kpi-rotulo {
+    grid-area: rotulo;
+    font-size: 0.66rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.pd-kpi-valor {
+    grid-area: valor;
+    font-family: var(--font-heading);
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    /* Reserva el alto del renglón desde el principio: el contador arranca en
+       0 y termina en 2.847, y sin esto la tarjeta crece mientras cuenta. */
+    min-height: 1lh;
+}
+.pd-kpi-sube {
+    grid-area: sube;
+    font-size: 0.64rem;
+    font-weight: 700;
+    color: #4ade80;
+}
+body.light-theme .pd-kpi-sube { color: #15803d; }
+
+/* ---- Los dos gráficos ---- */
+.pd-graficos { display: grid; gap: 6px; }
+
+/* El color de la serie se declara UNA vez, acá, y adentro del SVG todo lo
+   usa como `currentColor`: la línea, el relleno, los nodos y el puntito del
+   rótulo. Cambiar la serie de color es cambiar esta línea. */
+.pd-grafico[data-serie="visitas"]   { color: #6366f1; }
+.pd-grafico[data-serie="consultas"] { color: #0891b2; }
+body.light-theme .pd-grafico[data-serie="visitas"]   { color: #4f46e5; }
+body.light-theme .pd-grafico[data-serie="consultas"] { color: #0284c7; }
+
+.pd-grafico-rotulo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    /* El texto va con color de TEXTO, no con el de la serie: el que lleva la
+       identidad es el puntito de al lado. Un rótulo pintado del color de la
+       línea pierde contraste y se lee peor. */
+    color: var(--text-secondary);
+}
+.pd-punto {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    color: inherit;
+}
+.pd-grafico[data-serie] .pd-punto { background: currentColor; }
+.pd-grafico-rotulo { color: var(--text-secondary); }
+.pd-grafico-rotulo .pd-punto { color: inherit; }
+.pd-grafico-max { margin-left: auto; font-size: 0.64rem; color: var(--text-muted); }
+
+.pd-svg { display: block; width: 100%; height: 46px; overflow: visible; }
+
+/* La línea se dibuja sola al aparecer. stroke-dasharray con un guion tan
+   largo como la línea entera, y el offset va de ese largo a cero. */
+.pd-linea {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+}
+.pd-area, .pd-nodo { opacity: 0; }
+
+.pd-listo .pd-linea {
+    animation: pd-trazar 1.1s cubic-bezier(.4, 0, .2, 1) forwards;
+}
+.pd-listo .pd-area { animation: pd-aparecer .7s ease .5s forwards; }
+.pd-listo .pd-nodo { animation: pd-aparecer .3s ease .9s forwards; }
+@keyframes pd-trazar   { to { stroke-dashoffset: 0; } }
+@keyframes pd-aparecer { to { opacity: 1; } }
+
+.pd-nodo {
+    fill: var(--bg-surface-opaque);
+    stroke: currentColor;
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    cursor: pointer;
+}
+.pd-nodo.activo { r: 4; }
+
+.pd-dias {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+}
+
+/* ---- Actividad y sellos ---- */
+.pd-pie { margin-top: auto; display: grid; gap: 8px; }
+
+.pd-actividad { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.pd-act-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+}
+.pd-act-punto { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.pd-act-bien   { background: #22c55e; }
+.pd-act-neutro { background: var(--text-muted); }
+.pd-act-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-act-hace { margin-left: auto; flex-shrink: 0; font-size: 0.62rem; color: var(--text-muted); }
+
+.pd-sellos { display: flex; flex-wrap: wrap; gap: 5px; }
+.pd-sello {
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+/* ---- El globito del dato ---- */
+.pd-globo {
+    position: absolute;
+    z-index: 3;
+    transform: translate(-50%, calc(-100% - 8px));
+    padding: 5px 9px;
+    border: 1px solid var(--border-hover);
+    border-radius: 8px;
+    background: var(--bg-surface-opaque);
+    box-shadow: var(--shadow-md);
+    font-size: 0.66rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--text-primary);
+    pointer-events: none;
+}
+
+/* ---- Pantallas angostas ----
+   La tarjeta se hace más baja: los cuatro números pasan a dos filas de dos y
+   la lista de actividad se recorta a lo primero, que es lo que importa. */
+@container (max-width: 460px) {
+    /* El título entra en dos renglones; el puntito verde se queda arriba en
+       vez de irse al medio del bloque. */
+    .pd-top { align-items: flex-start; }
+    .pd-top-txt { font-size: 0.76rem; }
+    .pd-pulso { margin-top: 4px; }
+    /* Cuatro números en fila a este ancho dejan 85px por tarjeta: "Conversión"
+       no entra. Dos y dos. */
+    .pd-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pd-sello:nth-child(n + 3) { display: none; }
+}
+@container (max-width: 380px) {
+    .pd-act-item:nth-child(n + 3) { display: none; }
+    .pd-svg { height: 40px; }
+}
+@container (max-width: 300px) {
+    .pd-act-item:nth-child(n + 2) { display: none; }
+}
+
+/* Quien pidió menos movimiento ve el panel terminado, sin dibujo ni conteo.
+   Las reglas de `.pd-listo` no llegan a aplicarse porque el JS tampoco pone
+   esa clase por animación; esto asegura que igual se vea todo. */
+@media (prefers-reduced-motion: reduce) {
+    .pd-pulso { animation: none; }
+    .pd-linea { stroke-dashoffset: 0; animation: none; }
+    .pd-area, .pd-nodo { opacity: 1; animation: none; }
+    .pd-kpi { transition: none; }
+}
 
 /* Floating badges inside mockup */
 .floating-badge {
@@ -839,15 +1095,23 @@ body.light-theme .floating-badge {
     border: 1px solid rgba(0,0,0,0.1);
 }
 
+/* Las dos chapitas que flotan sobre la tarjeta.
+   Antes adentro había una caja de código con mucho aire y daba igual dónde
+   cayeran. El panel de resultados llena la tarjeta, así que donde apoyen
+   TAPAN un dato: la de la derecha se comía el número de consultas y la de
+   la izquierda, la lista de actividad. Ahora se corren bien hacia afuera y
+   solo pisan el borde. */
 .badge-1 {
-    bottom: 30px;
-    left: -40px;
+    bottom: 18px;
+    left: 0;
+    transform: translateX(-62%);
     border-left: 3px solid var(--secondary);
 }
 
 .badge-2 {
-    top: 60px;
-    right: -30px;
+    top: 46px;
+    right: 0;
+    transform: translateX(58%);
     border-left: 3px solid var(--primary);
 }
 
@@ -1832,7 +2096,9 @@ body.light-theme .admin-category-item {
     }
 
     .card-inner {
-        height: 310px;
+        /* En el celular los cuatro números van en dos filas, así que el panel
+           es más alto que en escritorio, no más bajo. */
+        min-height: 0;
     }
 
     .floating-badge {
@@ -1852,15 +2118,11 @@ body.light-theme .admin-category-item {
         font-size: 0.65rem;
     }
 
-    .badge-1 {
-        left: -5px;
-        bottom: 15px;
-    }
-    
-    .badge-2 {
-        right: -5px;
-        top: 40px;
-    }
+    /* En el celular no hay lugar al costado: correrlas hacia afuera las
+       dejaría fuera de la pantalla, así que se esconden. Lo que decían —que
+       las páginas cargan rápido y que hace e-commerce— ya está en los sellos
+       del panel y en el texto de arriba. */
+    .badge-1, .badge-2 { display: none; }
     
     .hero-title {
         font-size: 2.2rem;
@@ -2532,6 +2794,10 @@ body.light-theme .mobile-dot.active {
     overflow: hidden;
     position: relative;
     box-shadow: none;
+    /* Este alto lo ponía la <img class="stage-img">, que medía 300px. Ahora
+       adentro va el sitio en vivo, que no tiene alto propio: si no se dice
+       acá, la caja se achica a cero y la tarjeta se deshace. */
+    height: 300px;
 }
 
 .stage-img {
@@ -3944,6 +4210,36 @@ a.pcard:hover .pcard-img { transform: scale(1.04); }
     overflow: hidden;
 }
 
+/* ---- Todas las tarjetas normales miden EXACTAMENTE lo mismo ----
+   Las destacadas no entran acá: esas ocupan la fila entera y pueden ser más
+   altas, que es justamente lo que las destaca.
+
+   Antes el alto lo decidía el contenido: un proyecto con ocho tecnologías
+   usaba dos renglones de etiquetas y otro con seis usaba uno, así que la
+   fila quedaba despareja. Ahora cada parte tiene su alto fijo:
+
+     título         1 renglón   (antes 1 o 2 según el nombre)
+     descripción    3 renglones (ya estaba recortada, ahora además reserva)
+     etiquetas      1 renglón   (las que no entran, no se muestran)
+
+   Los altos van en `lh`, que es el alto de renglón del propio elemento: si
+   algún día cambiás el tamaño de letra, esto se acomoda solo. */
+.proyectos-grid .pcard:not(.pcard-destacada) .pcard-titulo {
+    height: 1lh;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.proyectos-grid .pcard:not(.pcard-destacada) .pcard-desc {
+    height: 3lh;
+}
+
+.proyectos-grid .pcard:not(.pcard-destacada) .pcard-tags {
+    height: 1.95lh;
+    overflow: hidden;
+}
+
 .pcard-tags {
     display: flex;
     flex-wrap: wrap;
@@ -4065,7 +4361,86 @@ a.pcard:hover .pcard-link svg { transform: translateX(4px); }
     flex: 1;
     min-height: 0;
     overflow: hidden;
+    /* Ancla para la vista viva, que va posicionada encima. */
+    position: relative;
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.14), rgba(6, 182, 212, 0.09));
+}
+
+/* ==========================================================================
+   Vista viva: el sitio de verdad adentro del marco
+   --------------------------------------------------------------------------
+   El iframe se dibuja a 1280px de ancho (ver js/vista-viva.js: si se le
+   diera el ancho de la tarjeta, el sitio de adentro mostraría su versión de
+   celular) y se achica con `transform`. El JS pone las dos variables:
+
+     --viva-escala  cuánto se achica          = ancho de la tarjeta / 1280
+     --viva-alto    cuánto ocupa ya achicado  = 2600px × esa escala
+
+   Hace falta decir el alto a mano porque `transform` cambia lo que se VE
+   pero no lo que el elemento OCUPA: para el navegador el iframe sigue
+   midiendo 2600px, y sin esto el scroll quedaría larguísimo y casi vacío.
+   ========================================================================== */
+.vista-viva {
+    /* ABSOLUTA, no relativa. Adentro tiene un lienzo de --viva-alto (unos
+       1.000px ya achicado); si participara del flujo, ese alto empujaría la
+       caja que la contiene. En el landing pasó: la tarjeta real quedó 842px
+       más alta que su esqueleto. Apoyada encima, el alto lo sigue decidiendo
+       .marco-nav-pantalla, que es quien tiene que decidirlo. */
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    /* Al llegar al final, el scroll NO sigue en la página de atrás. Si no,
+       recorrer una tarjeta te empuja la página entera sin querer. */
+    overscroll-behavior: contain;
+
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.vista-viva::-webkit-scrollbar { display: none; }
+
+/* El nombre del sitio, quieto y detrás de todo. Si la página se niega a
+   mostrarse adentro de un marco, el navegador deja el iframe en blanco y no
+   avisa (es de otro dominio): esto es lo que se ve entonces, en vez de un
+   rectángulo vacío. */
+.vista-viva-fondo {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 0 10%;
+    text-align: center;
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.vista-viva-lienzo {
+    position: relative;
+    height: var(--viva-alto, 100%);
+}
+
+.vista-viva-lienzo iframe {
+    width: 1280px;
+    height: 2600px;
+    border: 0;
+    display: block;
+    transform: scale(var(--viva-escala, 0.44));
+    transform-origin: 0 0;
+
+    /* La tarjeta entera es un link que abre el demo. Si el iframe se quedara
+       con los clics, tocarla no haría nada; y como es de otro dominio,
+       tampoco podríamos hacer que el clic signifique algo adentro. */
+    pointer-events: none;
+}
+
+/* Quien pidió menos movimiento tampoco quiere una página entera animándose
+   adentro de una tarjeta: se queda el nombre del sitio y nada más. */
+@media (prefers-reduced-motion: reduce) {
+    .vista-viva { overflow: hidden; }
+    .vista-viva-lienzo { display: none; }
 }
 
 /* object-position: top — una captura de un sitio se lee desde arriba. Al
@@ -4230,4 +4605,17 @@ p > .hueso[data-esqueleto] {
 @media (max-width: 620px) {
     /* En pantalla angosta la frase ocupa dos renglones. */
     #proyectos-conteo { min-height: 2lh; }
+}
+
+/* La captura vieja, como respaldo de la vista viva. Solo aparece cuando
+   /api/marco-permite contestó que ese sitio no se deja mostrar adentro de un
+   marco. Va encima del nombre y debajo de nada: si está, es lo que se ve. */
+.vista-viva-foto {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
 }

@@ -6,13 +6,13 @@
  * El landing muestra los primeros 5 con el efecto de tarjetas apiladas. Ese
  * efecto fija cada tarjeta y la apila con el scroll, así que la sección mide
  * ALTO × cantidad de proyectos: con 20 trabajos cargados, el visitante tiene
- * que scrollear varios metros para pasar de largo y llegar al cotizador, que
+ * que scrollear varios metros para pasar de largo y llegar al contacto, que
  * es donde se convierte. Acá entran todos sin ese costo.
  *
  * POR QUE NO REUSA app.js
  * -----------------------
- * app.js trae el cotizador, el generador de PDF, Lenis y los efectos de
- * scroll del landing: unos 40 kB que esta página no usa para nada. Además
+ * app.js trae Lenis, el dashboard del hero y los efectos de scroll del
+ * landing: kilobytes que esta página no usa para nada. Además
  * busca por id un montón de nodos que acá no existen. Este archivo pide los
  * mismos datos a projects.js y dibuja una grilla, nada más.
  *
@@ -24,7 +24,8 @@
  */
 
 import { getProjects, getCategories } from "./projects.js";
-import { escapeHtml, safeUrl, safeImageSrc, LIMITS } from "./security.js";
+import { escapeHtml, safeUrl, LIMITS } from "./security.js";
+import { pantallaViva, activarVistasVivas } from "./vista-viva.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -196,7 +197,6 @@ function pintarFantasmas() {
 function tarjeta(p, i, enTodos) {
   // Todo esto sale de la base y se trata como no confiable: se escapa en
   // contexto HTML y se validan los esquemas de las URL.
-  const img = escapeHtml(safeImageSrc(p.image));
   const titulo = escapeHtml(p.title);
   const demo = safeUrl(p.demoUrl);
   const tieneDemo = demo && demo !== "#";
@@ -234,11 +234,7 @@ function tarjeta(p, i, enTodos) {
             <span class="marco-nav-url">${escapeHtml(dominioDe(p.demoUrl))}</span>
           </div>
           <div class="marco-nav-pantalla">
-            ${img
-              ? `<img src="${img}" alt="Captura del sitio ${titulo}" class="pcard-img"
-                      width="1376" height="768" loading="lazy" decoding="async"
-                      onerror="this.closest('.pcard-img-box').classList.add('sin-imagen'); this.remove();">`
-              : ""}
+            ${pantallaViva(demo, titulo, p.id)}
           </div>
         </div>
         <span class="pcard-tag">${escapeHtml(etiquetaCategoria(p.category))}</span>
@@ -411,6 +407,12 @@ function pintarGrilla() {
      la grilla de dos columnas, el destacado se lleva la fila entera y no
      deja huecos al costado: la regla vale siempre y la clase sobraba. */
   grilla.innerHTML = lista.map((p, i) => tarjeta(p, i, filtroActivo === "all")).join("");
+
+  /* Las tarjetas se acaban de crear, así que las vistas vivas de adentro
+     todavía no están enganchadas al observador. Esto se llama en CADA
+     repintado (también al cambiar de filtro) y las que ya estaban se saltean
+     solas. */
+  activarVistasVivas(grilla);
 }
 
 /* ==========================================================================

@@ -18,6 +18,8 @@ node pruebas/verificar-proyectos.mjs
 node pruebas/verificar-preloader.mjs
 node pruebas/verificar-skeletons.mjs
 node pruebas/verificar-filtro.mjs
+node pruebas/verificar-vista-viva.mjs
+node pruebas/verificar-panel-demo.mjs
 node pruebas/verificar-mp.mjs      # este no necesita el servidor
 ```
 

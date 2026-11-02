@@ -15,7 +15,7 @@ import {
   getProjects, addProject, updateProject, deleteProject, reorderProjects,
   getCategories, addCategory, deleteCategory,
 } from "./projects.js";
-import { escapeHtml, safeUrl, sanitizeText, LIMITS, ALLOWED_IMAGE_TYPES } from "./security.js";
+import { escapeHtml, safeUrl, sanitizeText, LIMITS } from "./security.js";
 import { confirmar, avisar } from "./ui-dialogs.js";
 import { anunciar } from "./a11y.js";
 import { ico } from "./iconos.js";
@@ -26,7 +26,6 @@ const $ = (id) => document.getElementById(id);
    que existen. La restricción también está en projects.js y en la base. */
 const CATEGORIAS_BASE = ["landing", "ecommerce", "portfolio", "custom"];
 
-let imagenBase64 = "";
 let editando = null;      // id del proyecto en edición, o null
 let categorias = [];
 
@@ -35,7 +34,6 @@ let categorias = [];
    ========================================================================== */
 export function iniciarSeccionPortfolio() {
   conectarFormulario();
-  conectarSubidaImagen();
   conectarCategorias();
   inicializarTechPresets();
 }
@@ -91,16 +89,8 @@ async function guardarProyecto(e) {
     return;
   }
 
-  let image = imagenBase64;
-  if (!image && editando) {
-    // Editando sin subir imagen nueva: se conserva la actual.
-    const existentes = await getProjects();
-    image = existentes.find((p) => p.id === editando)?.image || "";
-  }
-  if (!image) image = portadaGenerada(title);
-
   const isFeatured = $("proj-featured") ? $("proj-featured").checked : false;
-  const datos = { title, description, category, image, tags, demoUrl, isFeatured };
+  const datos = { title, description, category, tags, demoUrl, isFeatured };
 
   boton.disabled = true;
   const textoOriginal = boton.textContent;
@@ -135,24 +125,6 @@ async function guardarProyecto(e) {
     boton.disabled = false;
     boton.textContent = textoOriginal;
   }
-}
-
-/**
- * Portada de respaldo cuando no se sube imagen: un degradado con el título.
- * El título se escapa y el SVG entero se codifica — sin eso, un título con
- * `</text><script>` rompe el marcado y queda guardado así en la base.
- */
-function portadaGenerada(title) {
-  const hue = Math.floor(Math.random() * 360);
-  const label = escapeHtml(title.toUpperCase().slice(0, 40));
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">` +
-    `<defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">` +
-    `<stop offset="0%" stop-color="hsl(${hue}, 80%, 45%)"/>` +
-    `<stop offset="100%" stop-color="hsl(${(hue + 60) % 360}, 85%, 25%)"/></linearGradient></defs>` +
-    `<rect width="800" height="500" fill="url(%23g)"/>` +
-    `<text x="400" y="260" fill="white" font-family="sans-serif" font-size="36" font-weight="bold" text-anchor="middle">${label}</text></svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
 const PRESET_TECNOLOGIAS = [
@@ -230,11 +202,6 @@ function entrarEnEdicion(proyecto) {
   if ($("proj-featured")) $("proj-featured").checked = Boolean(proyecto.isFeatured);
   actualizarEstadoBadgeTech();
 
-  imagenBase64 = proyecto.image;
-  $("image-preview").src = proyecto.image;
-  $("image-preview").classList.remove("hidden");
-  $("upload-dropzone").classList.add("hidden");
-
   $("proj-form-titulo").textContent = "Editar proyecto";
   $("proj-submit").textContent = "Guardar cambios";
   $("proj-cancelar").classList.remove("hidden");
@@ -246,73 +213,13 @@ function entrarEnEdicion(proyecto) {
 
 function salirDeEdicion() {
   editando = null;
-  imagenBase64 = "";
-
   $("form-proyecto").reset();
   if ($("proj-featured")) $("proj-featured").checked = false;
   actualizarEstadoBadgeTech();
-  $("image-preview").classList.add("hidden");
-  $("image-preview").src = "";
-  $("upload-dropzone").classList.remove("hidden");
 
   $("proj-form-titulo").textContent = "Cargar nuevo proyecto";
   $("proj-submit").textContent = "Agregar proyecto";
   $("proj-cancelar").classList.add("hidden");
-}
-
-/* ==========================================================================
-   Subida de imagen
-   ========================================================================== */
-function conectarSubidaImagen() {
-  const zona = $("upload-dropzone");
-  const input = $("proj-image");
-
-  zona.addEventListener("click", () => input.click());
-  input.addEventListener("change", (e) => procesarArchivo(e.target.files[0]));
-
-  ["dragenter", "dragover"].forEach((ev) =>
-    zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.add("dragover"); }));
-
-  ["dragleave", "drop"].forEach((ev) =>
-    zona.addEventListener(ev, (e) => { e.preventDefault(); zona.classList.remove("dragover"); }));
-
-  zona.addEventListener("drop", (e) => procesarArchivo(e.dataTransfer.files[0]));
-
-  $("image-preview").addEventListener("click", () => input.click());
-}
-
-function procesarArchivo(file) {
-  if (!file) return;
-
-  // Se valida el tipo declarado Y, más abajo, el contenido real. Confiar solo
-  // en la extensión permite subir cualquier cosa renombrada a .png.
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    avisar("Formato no permitido", "Usá PNG, JPG, WEBP, GIF o AVIF. Los SVG están bloqueados por seguridad.", "error");
-    return;
-  }
-
-  if (file.size > LIMITS.IMAGE_BYTES) {
-    const mb = (LIMITS.IMAGE_BYTES / (1024 * 1024)).toFixed(0);
-    avisar("Imagen muy pesada", `El máximo es ${mb} MB. Comprimila antes de subirla.`, "error");
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onerror = () => avisar("Error", "No se pudo leer el archivo.", "error");
-
-  reader.onload = (e) => {
-    const resultado = String(e.target.result || "");
-    if (!/^data:image\/(png|jpe?g|gif|webp|avif);base64,/i.test(resultado)) {
-      avisar("Archivo inválido", "El contenido no corresponde a una imagen soportada.", "error");
-      return;
-    }
-    imagenBase64 = resultado;
-    $("image-preview").src = resultado;
-    $("image-preview").classList.remove("hidden");
-    $("upload-dropzone").classList.add("hidden");
-  };
-
-  reader.readAsDataURL(file);
 }
 
 /* ==========================================================================

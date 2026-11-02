@@ -7,11 +7,12 @@ import { estrellas as pintarEstrellas } from "./iconos.js";
 import {
     escapeHtml,
     safeUrl,
-    safeImageSrc,
     sanitizeText,
     isValidEmail,
     LIMITS,
 } from "./security.js";
+import { pantallaViva, activarVistasVivas } from "./vista-viva.js";
+import { montarPanelDemo } from "./panel-demo.js";
 
 /**
  * Carga html2pdf (885 KB) bajo demanda, una sola vez.
@@ -264,7 +265,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const card = document.createElement("div");
                 // Todo dato de proyecto proviene de la base y debe tratarse como
                 // no confiable: se escapa en contexto HTML y se validan los esquemas de URL.
-                const safeImgSrc = escapeHtml(safeImageSrc(proj.image));
                 const safeTitle = escapeHtml(proj.title);
                 const safeDemoUrl = safeUrl(proj.demoUrl);
                 const tagsHTML = (proj.tags || [])
@@ -301,9 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     <span class="marco-nav-url">${escapeHtml(dominioDeUrl(proj.demoUrl))}</span>
                                 </div>
                                 <div class="marco-nav-pantalla">
-                                    <img src="${safeImgSrc}" alt="Captura del sitio ${safeTitle}" class="stage-img"
-                                         width="1376" height="768" loading="lazy" decoding="async"
-                                         onerror="this.style.display='none'">
+                                    ${pantallaViva(safeDemoUrl, safeTitle, proj.id)}
                                 </div>
                             </div>
                         </div>
@@ -317,6 +315,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     scrollRevealObserver.observe(innerCard);
                 }
             });
+
+            /* Las tarjetas recién se crearon: hay que engancharlas al
+               observador que carga y descarga las vistas vivas. */
+            activarVistasVivas(container);
 
             container.style.opacity = "1";
             container.setAttribute("aria-busy", "false");
@@ -873,6 +875,7 @@ document.addEventListener("DOMContentLoaded", () => {
         initScrollEffects();
         initMagnetEffect();
         initCodeTypingEffect();
+        montarPanelDemo(document.getElementById("panel-demo"));
         init3DTilt();
         initStackingProjectsScroll();
         renderizarResenasPublicas();

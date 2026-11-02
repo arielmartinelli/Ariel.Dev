@@ -127,10 +127,13 @@ function mapProjectToDB(p, incluirPosicion = true) {
     title: p.title,
     description: p.description,
     category: p.category,
-    image: p.image,
     tags: p.tags,
     demo_url: p.demoUrl,
     is_featured: Boolean(p.isFeatured),
+    /* `image` NO va, a propósito. El panel ya no sube portadas y la lectura
+       tampoco trae la columna, así que mandarla acá escribiría el undefined
+       de un objeto que nunca la tuvo: editar un proyecto cualquiera le
+       borraría la captura guardada sin que nadie lo pida. */
   };
   if (incluirPosicion && typeof p.position === "number") {
     item.position = p.position;
@@ -177,16 +180,26 @@ async function revalidarProyectosEnSegundoPlano() {
 async function fetchProyectosDeSupabase() {
   try {
     let data, error;
+    /* COLUMNAS EXPLICITAS, Y SIN `image`.
+       Antes esto era select("*"). La columna `image` guarda la captura
+       entera en texto (base64): entre los 19 proyectos sumaban 21,5 MB que
+       se bajaban completos en cada visita, antes de que se pintara una sola
+       tarjeta. Si esa descarga se cortaba, la página quedaba vacía.
+       Ahora la tarjeta muestra el sitio en vivo, así que la captura no hace
+       falta: pidiendo solo estas columnas, la misma respuesta pesa ~30 kB.
+       Los datos siguen en la base, intactos, hasta que decidas borrarlos
+       (ver migracion-17). */
+    const COLUMNAS = "id,title,description,category,tags,demo_url,position,is_featured,created_at";
     const resPos = await supabasePublico
       .from("projects")
-      .select("*")
+      .select(COLUMNAS)
       .order("position", { ascending: true })
       .order("created_at", { ascending: true });
 
     if (resPos.error) {
       const resFallback = await supabasePublico
         .from("projects")
-        .select("*")
+        .select(COLUMNAS)
         .order("created_at", { ascending: true });
       data = resFallback.data;
       error = resFallback.error;
@@ -240,6 +253,43 @@ async function fetchProyectosDeSupabase() {
 /* ==========================================================================
    2. Lectura de categorias (Carga instantánea en 0ms mediante SWR)
    ========================================================================== */
+/* ==========================================================================
+   La portada guardada, de a una y solo si hace falta
+   --------------------------------------------------------------------------
+   La lista de proyectos ya NO trae la columna `image` (ver COLUMNAS más
+   arriba): entre los 19 eran 21,5 MB en cada visita. Pero sigue haciendo
+   falta para los sitios que no se dejan mostrar adentro de un marco — ahí la
+   captura vieja es el respaldo.
+
+   Entonces se pide de a una, por id, y solo cuando el chequeo del marco dijo
+   que no. En el peor caso se bajan las de los proyectos bloqueados que estén
+   a la vista; en el mejor, ninguna.
+   ========================================================================== */
+const portadas = new Map();   // id -> promesa, para no pedir dos veces lo mismo
+
+export function portadaDe(id) {
+  if (!id || !isSupabaseConfigured) return Promise.resolve("");
+  if (portadas.has(id)) return portadas.get(id);
+
+  const pedido = (async () => {
+    try {
+      const { data, error } = await supabasePublico
+        .from("projects")
+        .select("image")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.image || "";
+    } catch (e) {
+      console.debug("No se pudo traer la portada de respaldo:", e?.message || e);
+      return "";
+    }
+  })();
+
+  portadas.set(id, pedido);
+  return pedido;
+}
+
 export async function getCategories({ forzar = false } = {}) {
   if (!forzar && cache.categories && cacheVigente(cache.categoriesAt)) {
     return cache.categories;

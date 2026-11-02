@@ -348,15 +348,23 @@
                                               placeholder="Breve descripción del proyecto…"></textarea>
                                 </div>
 
+                                <!--
+                                  Acá había un cargador de «Foto de portada».
+                                  Ya no hace falta: la tarjeta muestra el sitio
+                                  de verdad adentro del marco, así que la
+                                  portada sale sola del link del demo.
+
+                                  No es solo que sobre. Las fotos se guardaban
+                                  dentro de la base, en texto, y entre las 19
+                                  sumaban 21,5 MB que se bajaban enteros cada
+                                  vez que alguien entraba a la página.
+                                -->
                                 <div class="form-group">
-                                    <label for="proj-image">Foto de portada</label>
-                                    <div class="image-upload-wrapper">
-                                        <input type="file" id="proj-image" accept="image/*" class="file-input-hidden">
-                                        <div class="upload-dropzone" id="upload-dropzone">
-                                            <span>Arrastrá la imagen o hacé clic para subirla</span>
-                                        </div>
-                                        <img id="image-preview" class="image-preview hidden" src="" alt="Vista previa">
-                                    </div>
+                                    <p class="admin-hint" style="margin: 0;">
+                                        La portada ya no se sube: la tarjeta muestra el sitio en vivo
+                                        desde el <strong>link del demo</strong>. Si ese link no anda,
+                                        la tarjeta queda con el nombre del proyecto y nada más.
+                                    </p>
                                 </div>
 
                                 <div class="form-group checkbox-group" style="margin-top: 14px; margin-bottom: 20px;">
