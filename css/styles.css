@@ -1532,6 +1532,12 @@ body.light-theme .filter-btn:hover {
 .contacto-info-card {
     padding: 40px;
     height: 100%;
+    /* Sin el título y el párrafo adentro quedan tres renglones en una tarjeta
+       del alto del formulario. Centrados, el aire se reparte arriba y abajo
+       en vez de amontonarse todo al pie. */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .contacto-info-card h4 {
