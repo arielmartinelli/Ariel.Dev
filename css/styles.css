@@ -1257,307 +1257,6 @@ body.light-theme .filter-btn:hover {
 }
 
 /* ==========================================================================
-   Quotation Section (Cotizador)
-   ========================================================================== */
-.cotizador-container {
-    display: grid;
-    grid-template-columns: 1.3fr 0.7fr;
-    gap: 40px;
-    align-items: start;
-}
-
-.builder-step {
-    background-color: rgba(255,255,255,0.01);
-    border: 1px solid var(--border);
-    padding: 30px;
-    border-radius: 20px;
-}
-
-body.light-theme .builder-step {
-    background-color: rgba(0,0,0,0.01);
-}
-
-.step-title {
-    font-family: var(--font-heading);
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.step-num {
-    background-color: var(--primary);
-    color: #ffffff;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-    font-weight: bold;
-}
-
-.combos-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-.combo-card {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 24px;
-    border-radius: 16px;
-    cursor: pointer;
-    position: relative;
-    transition: var(--transition);
-}
-
-.combo-card:hover {
-    border-color: var(--border-hover);
-    transform: translateY(-2px);
-}
-
-.combo-card.active {
-    border-color: var(--primary);
-    box-shadow: 0 0 15px var(--primary-glow);
-    background-color: rgba(99, 102, 241, 0.05);
-}
-
-.combo-badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background-color: var(--accent);
-    color: #ffffff;
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 20px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.combo-card h4 {
-    font-family: var(--font-heading);
-    font-size: 1.15rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-}
-
-.combo-desc {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin-bottom: 16px;
-    line-height: 1.4;
-}
-
-.combo-details {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 20px;
-    padding-left: 4px;
-}
-
-.combo-details li {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.combo-details li::before {
-    content: '•';
-    color: var(--primary);
-    font-weight: bold;
-}
-
-.combo-price-indicator {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    border-top: 1px solid var(--border);
-    padding-top: 12px;
-}
-
-.combo-price {
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: var(--text-primary);
-}
-
-/* Addons List styling */
-.addons-list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.addon-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    background-color: var(--bg-card);
-    border: 1px solid var(--border);
-    padding: 20px;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.addon-item:hover {
-    border-color: var(--border-hover);
-}
-
-.addon-item input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    border-radius: 6px;
-    margin-top: 2px;
-    cursor: pointer;
-    accent-color: var(--primary);
-}
-
-.addon-content {
-    flex-grow: 1;
-}
-
-.addon-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
-}
-
-.addon-title {
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.addon-price {
-    font-weight: 700;
-    color: var(--secondary);
-    font-size: 0.95rem;
-}
-
-.addon-desc {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    line-height: 1.4;
-}
-
-/* Cotizador Summary Card Sticky */
-.cotizador-summary-card {
-    padding: 30px;
-    position: sticky;
-    top: 100px;
-}
-
-.summary-title {
-    font-family: var(--font-heading);
-    font-size: 1.35rem;
-    font-weight: 700;
-}
-
-.summary-divider {
-    height: 1px;
-    background-color: var(--border);
-    margin: 20px 0;
-}
-
-.summary-line {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 12px;
-}
-
-.summary-label {
-    color: var(--text-secondary);
-}
-
-.summary-value {
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.summary-addons-section h5 {
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    letter-spacing: 0.05em;
-    margin-bottom: 12px;
-}
-
-.summary-addons-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    font-size: 0.85rem;
-}
-
-.summary-addons-list li {
-    display: flex;
-    justify-content: space-between;
-    color: var(--text-secondary);
-}
-
-.summary-addons-list li .add-item-name {
-    max-width: 170px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.summary-addons-list li.no-addons {
-    font-style: italic;
-    color: var(--text-muted);
-}
-
-.summary-delivery {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background-color: var(--primary-glow);
-    color: var(--primary-light);
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-}
-
-.delivery-icon {
-    flex-shrink: 0;
-}
-
-.summary-total {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 24px;
-    margin-bottom: 24px;
-}
-
-.summary-total span:first-child {
-    font-weight: 600;
-    color: var(--text-secondary);
-}
-
-.total-price {
-    font-family: var(--font-heading);
-    font-weight: 800;
-    font-size: 1.8rem;
-    color: var(--text-primary);
-}
-
-.summary-actions {
-    display: flex;
-    flex-direction: column;
-}
-
-/* ==========================================================================
    Contact Section
    ========================================================================== */
 .contacto-container {
@@ -1966,14 +1665,6 @@ body.light-theme .admin-category-item {
         order: -1;
     }
     
-    .cotizador-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .cotizador-summary-card {
-        position: static;
-    }
-    
     .contacto-container {
         grid-template-columns: 1fr;
     }
@@ -2074,10 +1765,6 @@ body.light-theme .admin-category-item {
     
     .filter-wrapper {
         width: 100%;
-    }
-    
-    .combos-grid {
-        grid-template-columns: 1fr;
     }
     
     .admin-grid {
@@ -2304,101 +1991,6 @@ body.light-theme .service-dropdown {
     .service-dropdown {
         max-width: 100%;
     }
-}
-
-/* ==========================================================================
-   Cotizador Payment & Currency Display Styles
-   ========================================================================== */
-.summary-payment-section {
-    margin: 15px 0;
-    text-align: left;
-}
-
-.summary-payment-section h5 {
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 10px;
-    color: var(--text-primary);
-}
-
-.payment-options {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.payment-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    cursor: pointer;
-    user-select: none;
-}
-
-.payment-option input {
-    accent-color: var(--primary);
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
-}
-
-.summary-total-container {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 15px;
-    background-color: rgba(255, 255, 255, 0.02);
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    text-align: left;
-}
-
-body.light-theme .summary-total-container {
-    background-color: rgba(0, 0, 0, 0.02);
-}
-
-.summary-total {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.summary-total.ARS {
-    border-top: 1px dashed var(--border);
-    padding-top: 8px;
-}
-
-.total-price-ars {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--secondary);
-}
-
-.installments-detail {
-    font-size: 0.85rem;
-    color: var(--accent);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: var(--accent-glow);
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(217, 70, 239, 0.2);
-    margin-top: 6px;
-}
-
-.installments-detail.hidden {
-    display: none;
-}
-
-.dollar-rate-footer {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-align: center;
-    margin-top: 12px;
 }
 
 /* ==========================================================================
@@ -2764,40 +2356,6 @@ body.light-theme .service-features {
     color: #334155 !important;
 }
 
-/* Combo / Presupuesto cards in Light Mode */
-body.light-theme .combo-card {
-    background-color: #ffffff !important;
-    border: 1.5px solid #cbd5e1 !important;
-    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03) !important;
-}
-body.light-theme .combo-card.active {
-    background-color: rgba(79, 70, 229, 0.06) !important;
-    border-color: #4f46e5 !important;
-    box-shadow: 0 4px 20px rgba(79, 70, 229, 0.15) !important;
-}
-body.light-theme .combo-badge {
-    background-color: #7e22ce !important;
-    color: #ffffff !important;
-}
-body.light-theme .combo-card h4 {
-    color: #0f172a !important;
-}
-body.light-theme .combo-desc,
-body.light-theme .combo-details {
-    color: #334155 !important;
-}
-
-/* Addon items in Light Mode */
-body.light-theme .addon-item {
-    background-color: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03) !important;
-}
-body.light-theme .addon-item:hover {
-    border-color: #4f46e5 !important;
-    background-color: #f8fafc !important;
-}
-
 /* Form inputs in Light Mode */
 body.light-theme input,
 body.light-theme select,
@@ -2812,17 +2370,6 @@ body.light-theme textarea:focus {
     border-color: #4f46e5 !important;
     box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15) !important;
 }
-
-/* Summary Card in Light Mode */
-body.light-theme .cotizador-summary {
-    background-color: #ffffff !important;
-    border: 1px solid #cbd5e1 !important;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
-}
-body.light-theme .summary-title { color: #0f172a !important; }
-body.light-theme .summary-label { color: #475569 !important; }
-body.light-theme .summary-value { color: #0f172a !important; }
-body.light-theme .summary-addons-section h5 { color: #64748b !important; }
 
 /* Testimonials / Reseñas Carousel in Light Mode */
 body.light-theme .resena-card-inner {
@@ -3208,56 +2755,89 @@ body.light-theme .mobile-dot.active {
 }
 
 /* ==========================================================================
-   Carousel de Reseñas / Testimonios (Diseño Uniforme, Rectangular y Compacto)
+   Reseñas: cinta continua
+   --------------------------------------------------------------------------
+   Las tarjetas se deslizan sin parar y sin cortes. El truco es viejo y
+   sigue siendo el mejor: se dibuja la lista DOS veces (o más, si con dos no
+   se llena la pantalla) y se desplaza exactamente el ancho de una copia.
+   Cuando la animación vuelve a cero, la segunda copia quedó justo donde
+   estaba la primera: el ojo no ve el salto.
+
+   Se anima `transform` y nada más — ni `left`, ni `margin`, ni `scrollLeft`.
+   Es lo único que el navegador puede mover sin recalcular el layout en cada
+   cuadro, así que la cinta no le roba trabajo al resto de la página.
+
+   La velocidad NO está escrita acá. El JS mide el ancho real de una copia y
+   calcula los segundos para que avance siempre a los mismos píxeles por
+   segundo, tengas 3 reseñas o 30. Con la duración fija, más reseñas = más
+   rápido, que es justo lo que no se quiere.
    ========================================================================== */
-.resenas-carousel-wrapper {
+.resenas-cinta {
   position: relative;
   margin-top: 36px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
   width: 100%;
+  overflow: hidden;
+
+  /* Los bordes se desvanecen en vez de cortar la tarjeta al medio. Así se
+     lee como una cinta que sigue más allá de la pantalla y no como una
+     lista a la que le faltó lugar. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
 }
 
-.resenas-carousel-track {
+.resenas-cinta-track {
   display: flex;
   gap: 20px;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  padding: 16px 4px;
-  width: 100%;
+  width: max-content;
+  padding: 16px 0;
   align-items: stretch;
+  animation: resenas-andar var(--cinta-dur, 60s) linear infinite;
 }
 
-.resenas-carousel-track::-webkit-scrollbar {
-  display: none;
+/* Traslada el ancho de UNA copia (incluido el gap que la sigue). Ese número
+   lo pone el JS en --cinta-paso, porque depende de cuánto mide el texto. */
+@keyframes resenas-andar {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(calc(var(--cinta-paso, 0px) * -1), 0, 0); }
 }
-.resenas-carousel-track {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+/* Se frena con el mouse encima, con el dedo apoyado, al tabular dentro, y
+   mientras haya una reseña desplegada con «Ver más» (esa clase la pone el
+   JS). Si no, el texto que estás leyendo se te escapa de la pantalla. */
+.resenas-cinta:hover .resenas-cinta-track,
+.resenas-cinta:focus-within .resenas-cinta-track,
+.resenas-cinta.tocando .resenas-cinta-track,
+.resenas-cinta.pausada .resenas-cinta-track {
+  animation-play-state: paused;
 }
 
 .resena-card-item {
-  flex: 0 0 calc((100% - 40px) / 3);
-  scroll-snap-align: start;
+  flex: 0 0 340px;
   min-width: 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
 }
 
-@media (max-width: 1024px) {
-  .resena-card-item {
-    flex: 0 0 calc((100% - 20px) / 2);
-  }
+@media (max-width: 640px) {
+  .resena-card-item { flex-basis: 85vw; }
 }
 
-@media (max-width: 640px) {
-  .resena-card-item {
-    flex: 0 0 100%;
+/* Quien pidió menos movimiento no ve ninguna cinta: las tarjetas quedan
+   quietas y se recorren con el dedo o la rueda, como cualquier lista.
+   La copia de más la saca el JS, así que no se lee dos veces lo mismo. */
+@media (prefers-reduced-motion: reduce) {
+  .resenas-cinta {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -webkit-mask-image: none;
+            mask-image: none;
   }
+  .resenas-cinta::-webkit-scrollbar { display: none; }
+  .resenas-cinta-track { animation: none; }
+  .resena-card-item { scroll-snap-align: start; }
 }
 
 .resena-card-inner {
@@ -3393,50 +2973,6 @@ body.light-theme .mobile-dot.active {
   background: var(--primary, #6366f1);
   border-color: var(--primary, #6366f1);
   color: #ffffff;
-}
-
-.resenas-nav-btn {
-  background: rgba(15, 23, 42, 0.85);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  flex-shrink: 0;
-  z-index: 10;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-  user-select: none;
-}
-
-.resenas-nav-btn:hover {
-  background: var(--primary, #6366f1);
-  color: #ffffff;
-  border-color: var(--primary, #6366f1);
-  transform: scale(1.1);
-}
-
-.resenas-nav-btn:active {
-  transform: scale(0.95);
-}
-
-@media (max-width: 640px) {
-  .resenas-carousel-wrapper {
-    position: relative;
-    gap: 8px;
-  }
-
-  .resenas-nav-btn {
-    width: 38px;
-    height: 38px;
-    font-size: 1.2rem;
-  }
 }
 
 /* ==========================================================================
@@ -4051,39 +3587,10 @@ body.light-theme .admin-step-item {
     opacity: 0.95;
 }
 
-.step-num {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-size: 0.85rem;
-}
-
-.admin-step-item.active .step-num {
-    background: #6366f1;
-    color: #ffffff;
-}
-
-.admin-step-item.completed .step-num {
-    background: #10b981;
-    color: #ffffff;
-}
-
 .step-info {
     display: flex;
     flex-direction: column;
     gap: 2px;
-}
-
-.step-title {
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: var(--text-primary);
 }
 
 .step-sub {
@@ -4117,123 +3624,6 @@ body.light-theme .admin-step-item {
     .step-action .btn {
         width: 100%;
     }
-}
-
-/* ==========================================================================
-   Carousel de Reseñas / Testimonios (Diseño Uniforme y Responsive)
-   ========================================================================== */
-.resenas-carousel-wrapper {
-  position: relative;
-  margin-top: 36px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-}
-
-.resenas-carousel-track {
-  display: flex;
-  gap: 20px;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  padding: 16px 4px;
-  width: 100%;
-  align-items: stretch; /* TODAS LAS TARJETAS SE ALINEAN AL MISMO ALTO */
-}
-
-.resenas-carousel-track::-webkit-scrollbar {
-  display: none;
-}
-.resenas-carousel-track {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.resena-card-item {
-  flex: 0 0 calc((100% - 40px) / 3);
-  scroll-snap-align: start;
-  min-width: 0;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-}
-
-@media (max-width: 1024px) {
-  .resena-card-item {
-    flex: 0 0 calc((100% - 20px) / 2);
-  }
-}
-
-@media (max-width: 640px) {
-  .resena-card-item {
-    flex: 0 0 100%;
-  }
-}
-
-.resena-card-inner {
-  background: var(--surface, rgba(15, 23, 42, 0.6));
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
-  border-radius: 18px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 16px;
-  height: 100%;
-  box-sizing: border-box;
-  min-height: 230px;
-  transition: transform 0.3s ease, border-color 0.3s ease;
-}
-
-.resena-card-inner:hover {
-  border-color: rgba(99, 102, 241, 0.4);
-  transform: translateY(-2px);
-}
-
-.resenas-nav-btn {
-  background: rgba(15, 23, 42, 0.85);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  flex-shrink: 0;
-  z-index: 10;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-  user-select: none;
-}
-
-.resenas-nav-btn:hover {
-  background: var(--primary, #6366f1);
-  color: #ffffff;
-  border-color: var(--primary, #6366f1);
-  transform: scale(1.1);
-}
-
-.resenas-nav-btn:active {
-  transform: scale(0.95);
-}
-
-@media (max-width: 640px) {
-  .resenas-carousel-wrapper {
-    position: relative;
-    gap: 8px;
-  }
-
-  .resenas-nav-btn {
-    width: 38px;
-    height: 38px;
-    font-size: 1.2rem;
-  }
 }
 
 /* Badges de tecnologías y librerías en el panel de administración */
@@ -4383,59 +3773,63 @@ body.light-theme .admin-step-item {
 /* auto-fill + minmax: las columnas las decide el ancho disponible, no un
    breakpoint. Así no hay un ancho intermedio donde quedan dos tarjetas
    estiradas o tres apretadas. */
+/* ---- Grilla de /proyectos: los destacados a lo ancho, el resto de a dos ----
+
+   Dos columnas, y el que marcás como destacado en el panel se lleva la fila
+   entera. Es la misma idea de una revista: la nota de tapa ocupa la página y
+   las demás comparten. Lo primero que mira el visitante deja de ser "cuántos
+   hay" y pasa a ser "cuál es el mejor".
+
+   Antes eran tres columnas y el destacado ocupaba dos. Esa versión tenía un
+   problema que esta no: con 3 columnas, una tarjeta de ancho 2 deja 1 libre
+   al lado, así que dos destacados seguidos dejaban un hueco. Había que
+   intercalarlos. Ocupando la fila completa no queda nada libre al costado y
+   el orden es el que vos ponés, sin acomodos.
+
+   `align-items: start` y no el stretch por defecto: si no, una tarjeta normal
+   al lado de otra más alta se estira hasta igualarla y le quedan ~300px de
+   vacío adentro.
+   -------------------------------------------------------------------------- */
 .proyectos-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 26px;
-    /* start y no el stretch por defecto: con el mosaico, una tarjeta normal
-       al lado de una destacada se estiraba hasta el alto de la destacada y
-       le quedaban ~300px de vacío abajo, adentro de la tarjeta. Así cada una
-       mide lo que necesita. */
     align-items: start;
 }
 
-/* ---- Mosaico editorial ----
-   Los dos primeros (los que ponés arriba de todo en el panel) ocupan dos
-   columnas y son más altos. Rompe la cuadrícula pareja, que es lo que hace
-   que una grilla se lea como catálogo en vez de como portfolio: lo primero
-   que mira el visitante deja de ser "cuántos hay" y pasa a ser "cuál es el
-   mejor".
+/* El destacado toma de la primera línea a la última, sean las que sean: con
+   `1 / -1` no hay que tocar nada si algún día vuelven las tres columnas. */
+.proyectos-grid .pcard-destacada {
+    grid-column: 1 / -1;
+}
 
-   Solo se aplica cuando hay 3 columnas DE VERDAD. Con dos, una tarjeta de
-   ancho doble es la fila entera: no destaca, solo ocupa.
-   El número sale de la cuenta de la grilla, no del ojo: 3 × 310px de columna
-   + 2 × 26px de separación + 48px de padding del contenedor = 1030px. A
-   1024px todavía hay 2 columnas — lo verifiqué, y con el corte anterior en
-   980px el destacado ocupaba la fila completa justo ahí. */
-@media (min-width: 1060px) {
-    .proyectos-grid.con-destacados .pcard-destacada {
-        grid-column: span 2;
+/* A lo ancho, la tarjeta cambia de forma, no solo de tamaño: la imagen se
+   vuelve panorámica y el texto se queda corto a propósito. Una descripción
+   de tres renglones estirada a 1000px de ancho es incómoda de leer — el ojo
+   pierde el principio del renglón siguiente. */
+@media (min-width: 700px) {
+    /* 21/9 da la forma; el tope en píxeles evita que en una pantalla ancha
+       la portada se coma el alto entero. A 1152px de ancho, 21/9 son 494px
+       de imagen: con el cuerpo de texto, la tarjeta pasaba de 670px y no
+       entraba junto al filtro en una pantalla de notebook. */
+    .proyectos-grid .pcard-destacada .pcard-img-box {
+        aspect-ratio: 21 / 9;
+        max-height: 400px;
     }
-    /* La imagen crece; el texto no. Una descripción de tres líneas estirada
-       a 700px de ancho se vuelve incómoda de leer. */
-    /* Más panorámica, no más alta: el doble de ancho ya la destaca. Con una
-       proporción alta la tarjeta se come la pantalla y deja a las vecinas
-       como notas al pie. */
-    .proyectos-grid.con-destacados .pcard-destacada .pcard-img-box {
-        aspect-ratio: 16 / 7;
-    }
-    .proyectos-grid.con-destacados .pcard-destacada .pcard-titulo {
-        font-size: 1.42rem;
-    }
-    .proyectos-grid.con-destacados .pcard-destacada .pcard-desc {
-        max-width: 60ch;
+    .proyectos-grid .pcard-destacada .pcard-titulo  { font-size: 1.5rem; }
+    .proyectos-grid .pcard-destacada .pcard-cuerpo  { padding: 24px 30px 28px; }
+    .proyectos-grid .pcard-destacada .pcard-desc {
+        max-width: 68ch;
         -webkit-line-clamp: 2;
         line-clamp: 2;
     }
-    .proyectos-grid.con-destacados .pcard-destacada .pcard-cuerpo {
-        padding: 24px 28px 26px;
-    }
 }
 
-@media (max-width: 480px) {
-    /* Debajo de 480px, minmax(310px) deja la tarjeta más ancha que la
-       pantalla y aparece scroll horizontal. Una sola columna. */
-    .proyectos-grid { grid-template-columns: 1fr; gap: 20px; }
+/* Debajo de 700px no entran dos columnas de 310px: 2 × 310 + 26 de
+   separación + 48 del padding del contenedor = 694px. Una sola columna, y
+   ahí el destacado ya ocupa todo sin que haga falta decirle nada. */
+@media (max-width: 699px) {
+    .proyectos-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
     .proyectos-main { padding-top: 100px; }
 }
 

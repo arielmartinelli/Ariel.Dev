@@ -189,7 +189,6 @@ function pintarFantasmas() {
   if (grilla.querySelector("[data-esqueleto]")) return;
   /* La primera va destacada porque casi siempre hay alguna: así el esqueleto
      se parece a lo que viene y el reacomodo final es menor. */
-  grilla.classList.add("con-destacados");
   grilla.innerHTML = Array.from({ length: FANTASMAS },
     (_, i) => tarjetaFantasma(i === 0)).join("");
 }
@@ -407,8 +406,10 @@ function pintarGrilla() {
     return;
   }
 
-  const hayDestacados = lista.some((p) => Boolean(p.isFeatured));
-  grilla.classList.toggle("con-destacados", hayDestacados);
+  /* Antes acá se ponía una clase `con-destacados` en la grilla, porque el
+     mosaico de 3 columnas solo tenía sentido si había alguna destacada. Con
+     la grilla de dos columnas, el destacado se lleva la fila entera y no
+     deja huecos al costado: la regla vale siempre y la clase sobraba. */
   grilla.innerHTML = lista.map((p, i) => tarjeta(p, i, filtroActivo === "all")).join("");
 }
 

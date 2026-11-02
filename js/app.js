@@ -34,24 +34,6 @@ function esIOS() {
         || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
-let html2pdfPromise = null;
-function loadHtml2Pdf() {
-    if (window.html2pdf) return Promise.resolve(window.html2pdf);
-    if (html2pdfPromise) return html2pdfPromise;
-
-    html2pdfPromise = new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = "/html2pdf.bundle.min.js";
-        script.onload = () => resolve(window.html2pdf);
-        script.onerror = () => {
-            html2pdfPromise = null; // permite reintentar si falló la red
-            reject(new Error("No se pudo cargar html2pdf."));
-        };
-        document.head.appendChild(script);
-    });
-    return html2pdfPromise;
-}
-
 // Espera a que el DOM esté completamente cargado
 document.addEventListener("DOMContentLoaded", () => {
     // 1. Inicialización de Elementos del DOM
@@ -71,23 +53,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Grilla de Portfolio
     const portfolioGrid = document.getElementById("portfolio-grid");
 
-    // Cotizador
-    const comboCards = document.querySelectorAll(".combo-card");
-    const addonCheckboxes = document.querySelectorAll("#addons-list input[type='checkbox']");
-    const sumComboName = document.getElementById("sum-combo-name");
-    const sumComboPrice = document.getElementById("sum-combo-price");
-    const sumAddonsList = document.getElementById("sum-addons-list");
-    const sumDeliveryTime = document.getElementById("sum-delivery-time");
-    const sumTotalPrice = document.getElementById("sum-total-price");
-    const btnQuoteWhatsapp = document.getElementById("btn-quote-whatsapp");
-    const btnQuotePdf = document.getElementById("btn-quote-pdf");
-    const sumTotalPriceArs = document.getElementById("sum-total-price-ars");
-    const installmentsDetail = document.getElementById("installments-detail");
-    const installmentPriceValue = document.getElementById("installment-price-value");
-    const payCashRadio = document.getElementById("pay-cash");
-    const payInstallmentsRadio = document.getElementById("pay-installments");
-    const dollarRateDisplay = document.getElementById("dollar-rate-display");
-
     // Formulario de contacto
     const contactForm = document.getElementById("contact-form");
     const contactName = document.getElementById("contact-name");
@@ -98,7 +63,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Variables de Estado
     let cachedCategories = [];
-    let dollarRate = 1250; // Fallback
 
     // ==========================================================================
     // 2. Control de Tema (Oscuro / Claro)
@@ -533,738 +497,6 @@ document.addEventListener("DOMContentLoaded", () => {
     //        hacerle pagar a todo el mundo un código que casi nadie usa.
     // ==========================================================================
     // ==========================================================================
-    // 6. Cotizador Interactivo de Presupuestos
-    // ==========================================================================
-    // ==========================================================================
-    // 6. Cotizador Interactivo de Presupuestos
-    // ==========================================================================
-    async function fetchDollarRate() {
-        try {
-            const res = await fetch("https://dolarapi.com/v1/dolares/blue");
-            if (res.ok) {
-                const data = await res.json();
-                if (data && data.venta) {
-                    dollarRate = parseFloat(data.venta);
-                    console.log("Cotización Dólar Blue cargada con éxito:", dollarRate);
-                }
-            }
-        } catch (error) {
-            console.error("Error cargando Dólar API, usando la cotización predeterminada:", error);
-        } finally {
-            if (dollarRateDisplay) {
-                dollarRateDisplay.textContent = `Cotización Dólar Blue: $${dollarRate} ARS`;
-            }
-            calculateQuotation();
-        }
-    }
-
-    function calculateQuotation() {
-        let baseTotal = 0;
-        let totalTime = 0;
-        
-        // 1. Obtener combo seleccionado
-        const activeComboCard = document.querySelector(".combo-card.active");
-        if (!activeComboCard) return;
-
-        const comboName = activeComboCard.querySelector("h4").textContent;
-        const comboBasePrice = parseInt(activeComboCard.dataset.price);
-        const comboBaseTime = parseInt(activeComboCard.dataset.time);
-
-        baseTotal += comboBasePrice;
-        totalTime += comboBaseTime;
-
-        // Actualizar resumen de combo
-        sumComboName.textContent = comboName;
-        sumComboPrice.textContent = `$${comboBasePrice} USD`;
-
-        // 2. Obtener adicionales seleccionados
-        sumAddonsList.innerHTML = "";
-        let hasAddons = false;
-
-        addonCheckboxes.forEach(checkbox => {
-            if (checkbox.checked) {
-                hasAddons = true;
-                const addonName = checkbox.parentElement.querySelector(".addon-title").textContent;
-                const addonPrice = parseInt(checkbox.dataset.price);
-                const addonTime = parseInt(checkbox.dataset.time);
-
-                baseTotal += addonPrice;
-                totalTime += addonTime;
-
-                // Agregar elemento a la lista visual del resumen
-                const li = document.createElement("li");
-                const safeAddon = escapeHtml(addonName);
-                li.innerHTML = `
-                    <span class="add-item-name" title="${safeAddon}">${safeAddon}</span>
-                    <span>+$${Number.isFinite(addonPrice) ? addonPrice : 0} USD</span>
-                `;
-                sumAddonsList.appendChild(li);
-            }
-        });
-
-        if (!hasAddons) {
-            sumAddonsList.innerHTML = `<li class="no-addons">Ningún adicional seleccionado</li>`;
-        }
-
-        // 3. Evaluar método de pago (3 cuotas SIN interés: el total no cambia)
-        const isInstallments = payInstallmentsRadio && payInstallmentsRadio.checked;
-        let finalTotalUsd = baseTotal;
-        
-        if (isInstallments) {
-            // Sin interés: el total financiado es igual al total al contado.
-            const installmentUsd = (finalTotalUsd / 3).toFixed(2);
-            const installmentArs = Math.round((finalTotalUsd * dollarRate) / 3);
-
-            if (installmentsDetail && installmentPriceValue) {
-                installmentsDetail.classList.remove("hidden");
-                installmentPriceValue.textContent = `$${installmentUsd} USD ($${installmentArs.toLocaleString("es-AR")} ARS) c/u`;
-            }
-        } else {
-            if (installmentsDetail) {
-                installmentsDetail.classList.add("hidden");
-            }
-        }
-
-        const finalTotalArs = Math.round(finalTotalUsd * dollarRate);
-
-        // 4. Escribir resultados finales en la tarjeta resumen
-        sumDeliveryTime.textContent = `${totalTime} días hábiles`;
-        sumTotalPrice.textContent = `$${finalTotalUsd} USD`;
-        if (sumTotalPriceArs) {
-            sumTotalPriceArs.textContent = `$${finalTotalArs.toLocaleString("es-AR")} ARS`;
-        }
-    }
-
-    // Eventos para interactuar con los combos
-    comboCards.forEach(card => {
-        card.addEventListener("click", () => {
-            comboCards.forEach(c => c.classList.remove("active"));
-            card.classList.add("active");
-            calculateQuotation();
-        });
-    });
-
-    // Eventos para interactuar con los checkboxes adicionales
-    addonCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener("change", calculateQuotation);
-    });
-
-    // Eventos para métodos de pago
-    if (payCashRadio) payCashRadio.addEventListener("change", calculateQuotation);
-    if (payInstallmentsRadio) payInstallmentsRadio.addEventListener("change", calculateQuotation);
-
-    // ==========================================================================
-    // 7. Envíos de Cotización (WhatsApp & Mail)
-    // ==========================================================================
-    /**
-     * Pide el nombre del cliente antes de generar el presupuesto.
-     * Lo usan tanto el envío por WhatsApp como la descarga del PDF, para que
-     * ambos se comporten igual. Precarga el valor del formulario de contacto
-     * si ya lo completó.
-     */
-    async function pedirNombreCliente(textoConfirmar) {
-        const { value, isConfirmed } = await Swal.fire({
-            title: "¿A nombre de quién?",
-            input: "text",
-            inputLabel: "Nombre o empresa para el presupuesto",
-            inputPlaceholder: "Ej: Juan Pérez / Empresa SRL",
-            inputValue: contactName.value.trim() || "",
-            showCancelButton: true,
-            confirmButtonText: textoConfirmar,
-            cancelButtonText: "Cancelar",
-            confirmButtonColor: "#6366f1",
-            inputValidator: (v) => (!v || !v.trim()) ? "Por favor ingresá un nombre." : undefined,
-        });
-
-        if (!isConfirmed || !value) return null;
-        return sanitizeText(value, LIMITS.NAME);
-    }
-
-    function generateQuotationText(clientName) {
-
-        const activeComboCard = document.querySelector(".combo-card.active");
-        const comboName = activeComboCard.querySelector("h4").textContent;
-        const comboBasePrice = activeComboCard.dataset.price;
-
-        let addonsText = "";
-        addonCheckboxes.forEach(cb => {
-            if (cb.checked) {
-                const addonName = cb.parentElement.querySelector(".addon-title").textContent;
-                const addonPrice = cb.dataset.price;
-                addonsText += `   • ${addonName} (+$${addonPrice} USD)\n`;
-            }
-        });
-
-        if (!addonsText) {
-            addonsText = "   • Ninguno\n";
-        }
-
-        const isInstallments = payInstallmentsRadio && payInstallmentsRadio.checked;
-        const totalUsd = sumTotalPrice.textContent;
-        const totalArs = sumTotalPriceArs ? sumTotalPriceArs.textContent : "";
-        const time = sumDeliveryTime.textContent;
-        
-        let paymentText = `💵 *Forma de pago:* Contado / Transferencia (1 pago)\n`;
-        if (isInstallments) {
-            const finalTotalUsd = parseInt(totalUsd.replace(/\D/g, ""));
-            const installmentUsd = (finalTotalUsd / 3).toFixed(2);
-            const installmentArs = Math.round((finalTotalUsd * dollarRate) / 3);
-            
-            paymentText = `💳 *Forma de pago:* 3 Cuotas sin interés\n` +
-                          `👉 *Cuotas:* 3 cuotas de $${installmentUsd} USD ($${installmentArs.toLocaleString("es-AR")} ARS) cada una\n`;
-        }
-
-        const text = `Hola Ariel! Me contacto desde tu portfolio web. Mi nombre es *${clientName}*.\n\n` +
-            `Me gustaría solicitar un presupuesto estimado basado en tu cotizador online:\n\n` +
-            `🔹 *Combo seleccionado:* ${comboName} ($${comboBasePrice} USD)\n` +
-            `➕ *Adicionales elegidos:*\n${addonsText}\n` +
-            `${paymentText}` +
-            `🕒 *Tiempo de entrega estimado:* ${time}\n` +
-            `💰 *PRESUPUESTO TOTAL ESTIMADO:* ${totalUsd} / ${totalArs}\n` +
-            `📈 *Tipo de cambio de referencia (Dólar Blue):* $${dollarRate} ARS\n\n` +
-            `Quedo atento/a para que podamos coordinar los detalles. ¡Gracias!`;
-
-        return text;
-    }
-
-    // Botón de WhatsApp
-    btnQuoteWhatsapp.addEventListener("click", async () => {
-        const clientName = await pedirNombreCliente("Enviar por WhatsApp");
-        if (!clientName) return;
-
-        const message = generateQuotationText(clientName);
-        const encodedMessage = encodeURIComponent(message);
-        const phoneNumber = "543516121498";
-        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-
-        // En móvil, window.open tras un await suele quedar bloqueado por el
-        // navegador (se perdió la interacción del usuario). Navegar en la misma
-        // pestaña siempre funciona: WhatsApp abre su propia app igual.
-        if (esMovil()) {
-            window.location.href = whatsappUrl;
-        } else {
-            // noopener/noreferrer: impide que la pestaña destino acceda a window.opener.
-            window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-        }
-    });
-
-
-
-    // Botón de PDF
-    if (btnQuotePdf) {
-        // La librería empieza a bajar apenas el usuario toca el botón, en
-        // paralelo con el diálogo del nombre. Así ya está lista cuando confirma
-        // y la descarga no se demora — que es lo que hacía fallar en móvil.
-        btnQuotePdf.addEventListener("pointerdown", () => {
-            loadHtml2Pdf().catch(() => { /* se reintenta al confirmar */ });
-        }, { once: true });
-
-        btnQuotePdf.addEventListener("click", async () => {
-            const clientName = await pedirNombreCliente("Generar PDF");
-            if (!clientName) return;
-
-            const activeComboCard = document.querySelector(".combo-card.active");
-            if (!activeComboCard) return;
-            const comboName = activeComboCard.querySelector("h4").textContent;
-            const comboDesc = activeComboCard.querySelector(".combo-desc")?.textContent || "";
-            const comboPrice = parseInt(activeComboCard.dataset.price);
-
-            // Recopilar features del combo seleccionado
-            const comboFeatures = [];
-            activeComboCard.querySelectorAll(".combo-details li").forEach(li => {
-                comboFeatures.push(li.textContent.trim());
-            });
-
-            const addons = [];
-            addonCheckboxes.forEach(cb => {
-                if (cb.checked) {
-                    addons.push({
-                        name: cb.parentElement.querySelector(".addon-title").textContent,
-                        price: parseInt(cb.dataset.price)
-                    });
-                }
-            });
-
-            const now = new Date();
-            const dateStr = now.toLocaleDateString("es-AR", {
-                day: "numeric",
-                month: "long",
-                year: "numeric"
-            });
-            const quoteNum = `AD-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}`;
-
-            let addonsMarkup = "";
-            let baseTotal = comboPrice;
-            addons.forEach((addon, i) => {
-                baseTotal += addon.price;
-                addonsMarkup += `
-                    <tr>
-                        <td style="padding-left: 24px; color: #475569;">+ ${addon.name}</td>
-                        <td class="price-col">$${addon.price} USD</td>
-                        <td class="price-col">$${(addon.price * dollarRate).toLocaleString("es-AR")} ARS</td>
-                    </tr>
-                `;
-            });
-
-            const isInstallments = payInstallmentsRadio && payInstallmentsRadio.checked;
-            const finalTotalUsd = baseTotal;
-            let installmentsMarkup = "";
-
-            if (isInstallments) {
-                // Sin interés: el total financiado es igual al total al contado,
-                // así que no hay fila de recargo en el presupuesto.
-                const installmentUsd = (finalTotalUsd / 3).toFixed(2);
-                const installmentArs = Math.round((finalTotalUsd * dollarRate) / 3).toLocaleString("es-AR");
-                
-                installmentsMarkup = `
-                    <div class="installments-box">
-                        <div class="installments-icon">💳</div>
-                        <div>
-                            <strong>Financiación en 3 cuotas sin interés</strong>
-                            <p style="margin: 4px 0 0 0;">3 cuotas mensuales de <strong>$${installmentUsd} USD</strong> ($${installmentArs} ARS) cada una.</p>
-                        </div>
-                    </div>
-                `;
-            }
-
-            const finalTotalArs = Math.round(finalTotalUsd * dollarRate);
-            const time = sumDeliveryTime.textContent;
-
-            // Generar features markup
-            let featuresMarkup = "";
-            if (comboFeatures.length > 0) {
-                featuresMarkup = comboFeatures.map(f => `<li>${f}</li>`).join("");
-                featuresMarkup = `
-                    <div class="features-box">
-                        <h3 style="margin: 0 0 8px 0; font-family: 'Outfit', sans-serif; font-size: 0.95rem; color: #0f172a;">Incluye:</h3>
-                        <ul class="features-list">${featuresMarkup}</ul>
-                    </div>
-                `;
-            }
-
-            const container = document.createElement("div");
-            container.id = "quote-print-container";
-            container.style.position = "fixed";
-            container.style.left = "0";
-            container.style.top = "0";
-            container.style.width = "1px";
-            container.style.height = "1px";
-            container.style.overflow = "hidden";
-            container.style.background = "transparent";
-            container.style.zIndex = "99999";
-            container.style.pointerEvents = "none";
-
-            const tempDiv = document.createElement("div");
-            tempDiv.id = "quote-print-temp";
-            tempDiv.style.width = "750px";
-            tempDiv.style.background = "#ffffff";
-            tempDiv.style.boxSizing = "border-box";
-
-            const htmlContent = `
-                <style>
-                    .pdf-container {
-                        font-family: 'Inter', 'Segoe UI', sans-serif;
-                        color: #1e293b;
-                        background-color: #ffffff;
-                        padding: 0;
-                        line-height: 1.5;
-                        font-size: 13px;
-                        box-sizing: border-box;
-                    }
-
-                    /* ── Header con barra de color ── */
-                    .pdf-header-bar {
-                        background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
-                        padding: 24px 40px;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                    }
-                    .pdf-header-bar .logo {
-                        font-family: 'Outfit', sans-serif;
-                        font-weight: 800;
-                        font-size: 1.8rem;
-                        color: #ffffff;
-                        letter-spacing: -0.5px;
-                    }
-                    .pdf-header-bar .logo span {
-                        opacity: 0.85;
-                    }
-                    .pdf-header-bar .doc-meta {
-                        text-align: right;
-                        color: rgba(255,255,255,0.9);
-                        font-size: 0.85rem;
-                    }
-                    .pdf-header-bar .doc-meta p { margin: 2px 0; }
-                    .pdf-header-bar .quote-ref {
-                        font-family: 'Outfit', monospace;
-                        font-weight: 700;
-                        font-size: 0.9rem;
-                        color: #fff;
-                        background: rgba(255,255,255,0.2);
-                        padding: 3px 10px;
-                        border-radius: 4px;
-                        display: inline-block;
-                        margin-bottom: 4px;
-                    }
-
-                    /* ── Body ── */
-                    .pdf-body {
-                        padding: 28px 40px 20px 40px;
-                    }
-
-                    .pdf-title {
-                        font-family: 'Outfit', sans-serif;
-                        font-size: 1.6rem;
-                        font-weight: 700;
-                        color: #0f172a;
-                        margin: 0 0 18px 0;
-                        padding-bottom: 10px;
-                        border-bottom: 2px solid #e2e8f0;
-                    }
-
-                    /* ── Info cards ── */
-                    .info-grid {
-                        display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        gap: 14px;
-                        margin-bottom: 22px;
-                    }
-                    .info-card {
-                        background-color: #f8fafc;
-                        border: 1px solid #e2e8f0;
-                        border-radius: 8px;
-                        padding: 14px 16px;
-                    }
-                    .info-card h4 {
-                        margin: 0 0 6px 0;
-                        font-family: 'Outfit', sans-serif;
-                        font-size: 0.8rem;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                        color: #6366f1;
-                        font-weight: 600;
-                    }
-                    .info-card p {
-                        margin: 3px 0;
-                        font-size: 0.9rem;
-                        color: #334155;
-                    }
-
-                    /* ── Features box ── */
-                    .features-box {
-                        background: #f0f9ff;
-                        border: 1px solid #bae6fd;
-                        border-radius: 8px;
-                        padding: 14px 18px;
-                        margin-bottom: 22px;
-                    }
-                    .features-list {
-                        margin: 0;
-                        padding: 0;
-                        list-style: none;
-                        display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        gap: 5px 16px;
-                    }
-                    .features-list li {
-                        font-size: 0.88rem;
-                        color: #334155;
-                        padding-left: 18px;
-                        position: relative;
-                    }
-                    .features-list li::before {
-                        content: "✓";
-                        position: absolute;
-                        left: 0;
-                        color: #0ea5e9;
-                        font-weight: 700;
-                    }
-
-                    /* ── Table ── */
-                    .pdf-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-bottom: 20px;
-                    }
-                    .pdf-table th {
-                        background-color: #f1f5f9;
-                        color: #0f172a;
-                        font-family: 'Outfit', sans-serif;
-                        font-weight: 600;
-                        text-align: left;
-                        padding: 10px 14px;
-                        font-size: 0.85rem;
-                        text-transform: uppercase;
-                        letter-spacing: 0.3px;
-                        border-bottom: 2px solid #cbd5e1;
-                    }
-                    .pdf-table td {
-                        padding: 10px 14px;
-                        font-size: 0.9rem;
-                        border-bottom: 1px solid #e2e8f0;
-                        color: #334155;
-                    }
-                    .price-col {
-                        text-align: right;
-                        font-family: 'Inter', monospace;
-                        font-weight: 500;
-                    }
-
-                    /* ── Totals ── */
-                    .totals-section {
-                        display: flex;
-                        justify-content: flex-end;
-                        margin-bottom: 20px;
-                    }
-                    .totals-table {
-                        width: 340px;
-                        margin-bottom: 0;
-                        border-collapse: collapse;
-                    }
-                    .totals-table td {
-                        padding: 6px 12px;
-                        border-bottom: none;
-                        font-size: 0.9rem;
-                    }
-                    .totals-table tr.grand-total td {
-                        font-family: 'Outfit', sans-serif;
-                        font-size: 1.15rem;
-                        font-weight: 700;
-                        color: #6366f1;
-                        border-top: 2px solid #e2e8f0;
-                        padding-top: 8px;
-                    }
-                    .totals-table tr.grand-total-ars td {
-                        font-family: 'Outfit', sans-serif;
-                        font-size: 1.05rem;
-                        font-weight: 600;
-                        color: #06b6d4;
-                    }
-
-                    /* ── Installments ── */
-                    .installments-box {
-                        background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
-                        border: 1px solid #fbcfe8;
-                        border-radius: 8px;
-                        padding: 14px 16px;
-                        margin-bottom: 20px;
-                        color: #9d174d;
-                        font-size: 0.9rem;
-                        display: flex;
-                        gap: 12px;
-                        align-items: flex-start;
-                    }
-                    .installments-icon {
-                        font-size: 1.4rem;
-                        line-height: 1;
-                    }
-
-                    /* ── Footer ── */
-                    .pdf-footer {
-                        border-top: 2px solid #e2e8f0;
-                        padding-top: 12px;
-                        margin-top: 15px;
-                        font-size: 0.8rem;
-                        color: #64748b;
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: flex-end;
-                    }
-                    .pdf-footer p { margin: 2px 0; }
-                    .pdf-footer span {
-                        color: #334155;
-                        font-weight: 500;
-                    }
-                    .pdf-footer .brand {
-                        font-family: 'Outfit', sans-serif;
-                        font-weight: 700;
-                        color: #6366f1;
-                        font-size: 0.9rem;
-                    }
-                </style>
-                <div class="pdf-container">
-                    <!-- Header con gradiente -->
-                    <div class="pdf-header-bar">
-                        <div class="logo">Ariel<span>.Dev</span></div>
-                        <div class="doc-meta">
-                            <div class="quote-ref">${quoteNum}</div>
-                            <p>${dateStr}</p>
-                        </div>
-                    </div>
-
-                    <div class="pdf-body">
-                        <h1 class="pdf-title">Propuesta Técnica y Económica</h1>
-                        
-                        <!-- Info cards -->
-                        <div class="info-grid">
-                            <div class="info-card">
-                                <h4>Destinatario</h4>
-                                <p style="font-weight: 600; font-size: 1rem; color: #0f172a;">${escapeHtml(clientName)}</p>
-                            </div>
-                            <div class="info-card">
-                                <h4>Desarrollador</h4>
-                                <p style="font-weight: 600; color: #0f172a;">Ariel Martinelli</p>
-                                <p>Córdoba, Argentina</p>
-                            </div>
-                            <div class="info-card">
-                                <h4>Paquete seleccionado</h4>
-                                <p style="font-weight: 600; color: #0f172a;">${comboName}</p>
-                                ${comboDesc ? `<p style="font-size: 0.82rem; color: #64748b;">${comboDesc}</p>` : ""}
-                            </div>
-                            <div class="info-card">
-                                <h4>Condiciones</h4>
-                                <p><strong>Validez:</strong> 15 días</p>
-                                <p><strong>Entrega:</strong> ${time}</p>
-                            </div>
-                        </div>
-
-                        <!-- Features del combo -->
-                        ${featuresMarkup}
-
-                        <!-- Tabla de precios -->
-                        <table class="pdf-table">
-                            <thead>
-                                <tr>
-                                    <th>Servicio</th>
-                                    <th class="price-col">USD</th>
-                                    <th class="price-col">ARS</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>${comboName}</strong></td>
-                                    <td class="price-col">$${comboPrice}</td>
-                                    <td class="price-col">$${(comboPrice * dollarRate).toLocaleString("es-AR")}</td>
-                                </tr>
-                                ${addonsMarkup}
-                            </tbody>
-                        </table>
-
-                        ${installmentsMarkup}
-
-                        <!-- Totales -->
-                        <div class="totals-section">
-                            <table class="totals-table">
-                                <tr>
-                                    <td>Subtotal USD</td>
-                                    <td style="text-align: right; font-weight: 500;">$${baseTotal}</td>
-                                </tr>
-                                <tr>
-                                    <td>Subtotal ARS</td>
-                                    <td style="text-align: right; font-weight: 500;">$${(baseTotal * dollarRate).toLocaleString("es-AR")}</td>
-                                </tr>
-                                <tr class="grand-total">
-                                    <td>Total USD</td>
-                                    <td style="text-align: right;">$${finalTotalUsd}</td>
-                                </tr>
-                                <tr class="grand-total-ars">
-                                    <td>Total ARS</td>
-                                    <td style="text-align: right;">$${finalTotalArs.toLocaleString("es-AR")}</td>
-                                </tr>
-                            </table>
-                        </div>
-
-                        <!-- Footer -->
-                        <div class="pdf-footer">
-                            <div>
-                                <p>Email: <span>ariel.martinelli.dev@gmail.com</span></p>
-                                <p>WhatsApp: <span>+54 351 612 1498</span></p>
-                                <p>Córdoba, Argentina</p>
-                            </div>
-                            <div style="text-align: right;">
-                                <div class="brand">Ariel.Dev</div>
-                                <p>arieldev.com</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            tempDiv.innerHTML = htmlContent;
-            container.appendChild(tempDiv);
-            document.body.appendChild(container);
-
-            // Se neutraliza el nombre de archivo: evita path traversal y caracteres inválidos.
-            const safeFilePart = clientName.replace(/[^\p{L}\p{N}_-]+/gu, "_").slice(0, 60) || "Cliente";
-            const pdfFilename = `Presupuesto_ArielDev_${safeFilePart}.pdf`;
-            const opt = {
-                margin:       0,
-                filename:     pdfFilename,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  {
-                    // scale 2 en un celular genera un lienzo enorme y el
-                    // navegador puede quedarse sin memoria y fallar sin aviso.
-                    scale: esMovil() ? 1.5 : 2,
-                    useCORS: true,
-                    logging: false,
-                    scrollX: 0,
-                    scrollY: 0,
-                    x: 0,
-                    y: 0,
-                    windowWidth: 750
-                },
-                pagebreak:    { mode: 'avoid-all' },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            Swal.fire({
-                title: "Generando tu presupuesto...",
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading(),
-            });
-
-            try {
-                await loadHtml2Pdf();
-
-                // Se genera el PDF en memoria y se entrega a mano, en vez de
-                // usar .save(). Así se puede adaptar la entrega a cada
-                // plataforma en lugar de depender del comportamiento interno
-                // de jsPDF, que en móvil no siempre dispara la descarga.
-                const blob = await html2pdf().set(opt).from(tempDiv).outputPdf("blob");
-                const url = URL.createObjectURL(blob);
-
-                if (esIOS()) {
-                    // iOS ignora el atributo `download`. Se ofrece un enlace
-                    // para que el usuario lo toque: ese gesto real es lo que
-                    // permite abrir el archivo sin que Safari lo bloquee.
-                    Swal.fire({
-                        icon: "success",
-                        title: "Presupuesto listo",
-                        html: `<p>Tocá el botón para abrirlo y luego usá <strong>Compartir → Guardar en Archivos</strong>.</p>
-                               <a href="${url}" target="_blank" rel="noopener noreferrer"
-                                  class="btn btn-primary" style="margin-top:12px; display:inline-block;">
-                                  Abrir presupuesto
-                               </a>`,
-                        showConfirmButton: false,
-                        showCloseButton: true,
-                    });
-                } else {
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = pdfFilename;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    Swal.close();
-                }
-
-                // Se libera la memoria del blob, dando margen para la descarga.
-                setTimeout(() => URL.revokeObjectURL(url), 120000);
-            } catch (err) {
-                console.error("Error al descargar PDF:", err?.message || err);
-                Swal.fire({
-                    icon: "error",
-                    title: "No se pudo generar el PDF",
-                    text: "Podés pedirme el presupuesto por WhatsApp mientras tanto.",
-                });
-            } finally {
-                if (container.parentNode) document.body.removeChild(container);
-            }
-        });
-    }
-
-    // ==========================================================================
     // Formulario de Contacto (FUNC-01)
     //
     // Si VITE_FORMSPREE_ID está definido, el mensaje se envía por email.
@@ -1387,6 +619,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function renderizarResenasPublicas() {
         const cont = document.getElementById("grid-resenas-publicas");
+        const cinta = document.getElementById("resenas-cinta");
         if (!cont) return;
 
         try {
@@ -1401,8 +634,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 const esLargo = commentText.length > 95;
 
                 return `
-                    <div class="resena-card-item">
-                        <div class="resena-card-inner glass" id="resena-card-${idx}">
+                    <div class="resena-card-item" role="listitem">
+                        <div class="resena-card-inner glass">
                             <div class="resena-top-box">
                                 <div class="resena-stars" aria-label="${r.rating || 5} de 5 estrellas">
                                     ${pintarEstrellas(r.rating || 5)}
@@ -1411,7 +644,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     "${escapeHtml(commentText)}"
                                 </p>
                                 ${esLargo ? `
-                                    <button type="button" class="resena-ver-mas-btn" data-target="${idx}">
+                                    <button type="button" class="resena-ver-mas-btn" aria-expanded="false">
                                         Ver más
                                     </button>
                                 ` : ''}
@@ -1433,76 +666,128 @@ document.addEventListener("DOMContentLoaded", () => {
                 `;
             }).join("");
 
-            // Lógica de despliegue "Ver más" / "Ver menos"
-            cont.querySelectorAll(".resena-ver-mas-btn").forEach((btn) => {
-                btn.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    const idx = btn.dataset.target;
-                    const card = document.getElementById(`resena-card-${idx}`);
-                    if (!card) return;
-                    const estaExpandido = card.classList.contains("expandido");
-                    
-                    if (estaExpandido) {
-                        card.classList.remove("expandido");
-                        btn.textContent = "Ver más";
-                    } else {
-                        // Contraer otras expandidas para mantener formato uniforme
-                        cont.querySelectorAll(".resena-card-inner.expandido").forEach(c => c.classList.remove("expandido"));
-                        cont.querySelectorAll(".resena-ver-mas-btn").forEach(b => b.textContent = "Ver más");
-                        
-                        card.classList.add("expandido");
-                        btn.textContent = "Ver menos";
-                    }
+            /* «Ver más»: con un solo oyente arriba, no uno por botón. Abajo
+               la cinta va a clonar las tarjetas, y un oyente por botón se
+               perdería en las copias — esto las cubre a todas, incluidas las
+               que todavía no existen. */
+            cont.addEventListener("click", (e) => {
+                const btn = e.target.closest(".resena-ver-mas-btn");
+                if (!btn || !cont.contains(btn)) return;
+                e.stopPropagation();
+
+                const card = btn.closest(".resena-card-inner");
+                if (!card) return;
+                const abrir = !card.classList.contains("expandido");
+
+                // Se cierra todo lo demás para que las tarjetas midan igual.
+                cont.querySelectorAll(".resena-card-inner.expandido")
+                    .forEach((c) => c.classList.remove("expandido"));
+                cont.querySelectorAll(".resena-ver-mas-btn").forEach((b) => {
+                    b.textContent = "Ver más";
+                    b.setAttribute("aria-expanded", "false");
                 });
+
+                if (abrir) {
+                    card.classList.add("expandido");
+                    btn.textContent = "Ver menos";
+                    btn.setAttribute("aria-expanded", "true");
+                }
+                // Mientras hay algo abierto la cinta no se mueve: si no, el
+                // texto que estás leyendo se va de la pantalla solo.
+                cinta?.classList.toggle("pausada", abrir);
             });
 
-            // Función para contraer tarjetas desplegadas al deslizar
-            const contraerExpandidas = () => {
-                cont.querySelectorAll(".resena-card-inner.expandido").forEach(c => c.classList.remove("expandido"));
-                cont.querySelectorAll(".resena-ver-mas-btn").forEach(b => b.textContent = "Ver más");
-            };
-
-            // Conectar botones de navegación con BUCLE INFINITO (Infinite Loop)
-            const prevBtn = document.getElementById("resenas-btn-prev");
-            const nextBtn = document.getElementById("resenas-btn-next");
-
-            if (prevBtn && !prevBtn.dataset.bound) {
-                prevBtn.dataset.bound = "true";
-                prevBtn.addEventListener("click", () => {
-                    contraerExpandidas();
-                    const card = cont.querySelector(".resena-card-item");
-                    const scrollAmount = card ? card.getBoundingClientRect().width + 20 : 320;
-                    const atStart = cont.scrollLeft <= 15;
-
-                    if (atStart) {
-                        // Si está en la primera, vuelve al final (bucle infinito)
-                        cont.scrollTo({ left: cont.scrollWidth, behavior: "smooth" });
-                    } else {
-                        cont.scrollBy({ left: -scrollAmount, behavior: "smooth" });
-                    }
-                });
-            }
-
-            if (nextBtn && !nextBtn.dataset.bound) {
-                nextBtn.dataset.bound = "true";
-                nextBtn.addEventListener("click", () => {
-                    contraerExpandidas();
-                    const card = cont.querySelector(".resena-card-item");
-                    const scrollAmount = card ? card.getBoundingClientRect().width + 20 : 320;
-                    const maxScroll = cont.scrollWidth - cont.clientWidth;
-                    const atEnd = cont.scrollLeft >= maxScroll - 15;
-
-                    if (atEnd) {
-                        // Si llegó a la última, vuelve al inicio (bucle infinito)
-                        cont.scrollTo({ left: 0, behavior: "smooth" });
-                    } else {
-                        cont.scrollBy({ left: scrollAmount, behavior: "smooth" });
-                    }
-                });
-            }
+            armarCinta(cont);
         } catch (err) {
             console.error("Error cargando reseñas públicas:", err);
         }
+    }
+
+    /**
+     * Convierte la lista de reseñas en una cinta que da vueltas sin cortes.
+     *
+     * COMO NO SE VE EL SALTO.
+     * Se repite la lista hasta que el carril mide, como mínimo, el doble del
+     * ancho visible. Después se desplaza exactamente el ancho de la lista
+     * original (tarjetas + los gaps de adentro + el gap que la separa de la
+     * copia). Al llegar al final, la copia quedó pixel por pixel donde
+     * arrancó la original, la animación reinicia en cero y nadie lo nota.
+     *
+     * POR QUE LA DURACION SE CALCULA Y NO SE ESCRIBE.
+     * Una duración fija hace que la cinta ande más rápido cuanto más
+     * reseñas tengas: el mismo tiempo para recorrer más distancia. Acá se
+     * fija la VELOCIDAD y se despeja el tiempo, así se lee igual de cómodo
+     * con 3 reseñas que con 30.
+     */
+    function armarCinta(cont) {
+        const cinta = document.getElementById("resenas-cinta");
+        if (!cinta) return;
+
+        const PIXELES_POR_SEGUNDO = 42;   // ritmo de lectura tranquilo
+
+        /* Las copias de la medición anterior se van PRIMERO. Si se sacaran
+           después de leer los hijos, al remedir (rotar el celular) las
+           copias contarían como originales y la cinta se duplicaría sola en
+           cada vuelta hasta quedarse sin memoria. */
+        cont.querySelectorAll("[data-copia]").forEach((e) => e.remove());
+
+        const originales = [...cont.children];
+        if (!originales.length) return;
+
+        /* Con «menos movimiento» no hay cinta ni copias: queda la lista tal
+           cual, que se recorre con el dedo o la rueda. Clonar ahí solo
+           lograría que el lector de pantalla lea todo dos veces. */
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            cont.style.removeProperty("--cinta-dur");
+            cont.style.removeProperty("--cinta-paso");
+            return;
+        }
+
+        const gap = parseFloat(getComputedStyle(cont).columnGap) || 0;
+        const paso = originales.reduce((t, el) => t + el.getBoundingClientRect().width + gap, 0);
+        if (paso <= 0) return;
+
+        /* Hacen falta copias hasta cubrir el ancho visible MÁS una vuelta
+           entera; si no, al volver a cero queda un hueco a la derecha. */
+        const faltan = Math.max(1, Math.ceil(cinta.clientWidth / paso));
+        for (let i = 0; i < faltan; i++) {
+            for (const el of originales) {
+                const copia = el.cloneNode(true);
+                copia.dataset.copia = "1";
+                copia.setAttribute("aria-hidden", "true");
+                copia.removeAttribute("role");
+                // Fuera del orden de tabulación: es la misma reseña otra vez.
+                copia.querySelectorAll("a, button").forEach((n) => (n.tabIndex = -1));
+                cont.appendChild(copia);
+            }
+        }
+
+        cont.style.setProperty("--cinta-paso", `${paso}px`);
+        cont.style.setProperty("--cinta-dur", `${(paso / PIXELES_POR_SEGUNDO).toFixed(1)}s`);
+
+        /* Lo de abajo se engancha UNA sola vez. armarCinta() se vuelve a
+           llamar cada vez que cambia el ancho, y sin esta guarda cada
+           llamada dejaría otro ResizeObserver mirando el mismo elemento:
+           cada cambio de tamaño dispararía el doble de mediciones que el
+           anterior, y así para siempre. */
+        if (cinta.dataset.enganchada) return;
+        cinta.dataset.enganchada = "1";
+
+        /* En el celular no hay hover: el :hover del CSS se queda pegado
+           después de tocar. Con pointerdown/up la cinta frena mientras el
+           dedo está apoyado y sigue al soltarlo. */
+        cinta.addEventListener("pointerdown", () => cinta.classList.add("tocando"));
+        for (const ev of ["pointerup", "pointercancel", "pointerleave"]) {
+            cinta.addEventListener(ev, () => cinta.classList.remove("tocando"));
+        }
+
+        /* Si cambia el ancho (rotar el celular, agrandar la ventana) el paso
+           ya no sirve: se vuelve a medir con las tarjetas originales. */
+        let remedir;
+        new ResizeObserver(() => {
+            clearTimeout(remedir);
+            remedir = setTimeout(() => armarCinta(cont), 250);
+        }).observe(cinta);
     }
 
     // ==========================================================================
@@ -1591,9 +876,6 @@ document.addEventListener("DOMContentLoaded", () => {
         init3DTilt();
         initStackingProjectsScroll();
         renderizarResenasPublicas();
-
-        // Cotización del dólar en segundo plano sin demorar la aparición inicial
-        fetchDollarRate().catch((e) => console.error("No se pudo cotizar el dólar:", e?.message || e));
 
         /* La pantalla de carga YA NO ESPERA a que lleguen los proyectos.
            Esperarlos era el error de fondo: la sección de portfolio tiene su
@@ -1954,7 +1236,7 @@ document.addEventListener("DOMContentLoaded", () => {
         animateFollower();
 
         bindCursorHoverEvents = function() {
-            const interactives = document.querySelectorAll('a, button, input, select, textarea, .interactive, .combo-card, .addon-item, [role="button"], .filter-btn');
+            const interactives = document.querySelectorAll('a, button, input, select, textarea, .interactive, [role="button"], .filter-btn');
             interactives.forEach(el => {
                 el.removeEventListener('mouseenter', onMouseEnter);
                 el.removeEventListener('mouseleave', onMouseLeave);

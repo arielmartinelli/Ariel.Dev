@@ -61,7 +61,7 @@
     <meta property="og:site_name" content="Ariel.Dev">
     <meta property="og:locale" content="es_AR">
     <meta property="og:title" content="Ariel.Dev | Desarrollo Web Freelance en Córdoba">
-    <meta property="og:description" content="Landing pages, tiendas online y desarrollos a medida. Cotizá tu proyecto en 1 minuto con el cotizador interactivo.">
+    <meta property="og:description" content="Landing pages, tiendas online y desarrollos a medida. Escribime y te paso un presupuesto el mismo día.">
     <meta property="og:url" content="https://arieldev.com/">
     <meta property="og:image" content="https://arieldev.com/images/og-banner.png">
     <meta property="og:image:alt" content="Ariel.Dev — Desarrollo web freelance en Córdoba, Argentina">
@@ -119,7 +119,6 @@
                 <a href="#hero" class="nav-link active">Inicio</a>
                 <a href="#portfolio" class="nav-link">Portfolio</a>
                 <a href="/proyectos" class="nav-link">Proyectos</a>
-                <a href="#cotizador" class="nav-link">Cotizador</a>
                 <a href="#contacto" class="nav-link">Contacto</a>
             </nav>
 
@@ -130,7 +129,7 @@
                     <!-- Moon Icon (Dark Mode) -->
                     <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                 </button>
-                <a href="#cotizador" class="btn btn-primary btn-sm hide-mobile">Cotizar Web</a>
+                <a href="https://wa.me/543516121498?text=Hola%20Ariel%21%20Vi%20tu%20portfolio%20y%20quiero%20pedirte%20un%20presupuesto%20para%20mi%20proyecto." target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm hide-mobile">Pedir presupuesto</a>
                 <button class="menu-toggle" id="menu-toggle" aria-label="Abrir menú">
                     <span></span>
                     <span></span>
@@ -152,7 +151,6 @@
             <a href="#hero" class="drawer-link">Inicio</a>
             <a href="#portfolio" class="drawer-link">Portfolio</a>
             <a href="/proyectos" class="drawer-link">Proyectos</a>
-            <a href="#cotizador" class="drawer-link">Cotizador</a>
             <a href="#contacto" class="drawer-link">Contacto</a>
         </nav>
     </div>
@@ -171,9 +169,9 @@
                         Especialista en Landing Pages de conversión, Tiendas Online (E-commerce), Portfolios interactivos y desarrollos web a medida adaptados a tu negocio.
                     </p>
                     <div class="hero-actions-group">
-                        <a href="#cotizador" class="btn btn-primary btn-lg magnet-target" data-strength="8">
+                        <a href="https://wa.me/543516121498?text=Hola%20Ariel%21%20Vi%20tu%20portfolio%20y%20quiero%20pedirte%20un%20presupuesto%20para%20mi%20proyecto." target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg magnet-target" data-strength="8">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            Cotizar Proyecto
+                            Pedir presupuesto
                         </a>
                         <a href="#portfolio" class="btn btn-outline btn-lg magnet-target" data-strength="8">
                             Ver mis trabajos
@@ -478,242 +476,6 @@
             </div>
         </section>
 
-        <!-- Dynamic Quotation Section (Cotizador) -->
-        <section id="cotizador" class="cotizador-section">
-            <div class="container">
-                <div class="section-header text-center">
-                    <span class="section-tag">Presupuesto Online</span>
-                    <h2 class="section-title">Calcula la cotización de tu web</h2>
-                    <p class="section-desc">Selecciona uno de nuestros combos pre-armados o personalízalo a tu gusto agregando los servicios adicionales que requieras.</p>
-                </div>
-
-                <div class="cotizador-container">
-                    <div class="cotizador-builder">
-                        <!-- Step 1: Select Combo -->
-                        <div class="builder-step">
-                            <h3 class="step-title"><span class="step-num">1</span> Selecciona un Combo de Proyecto</h3>
-                            <div class="combos-grid" id="combos-grid">
-                                <!-- Combo 1: Express -->
-                                <div class="combo-card active" data-combo="express" data-price="99" data-time="5">
-                                    <div class="combo-badge">Más popular</div>
-                                    <h4>Combo Express</h4>
-                                    <p class="combo-desc">Ideal para lanzar rápido tu producto o servicio.</p>
-                                    <ul class="combo-details">
-                                        <li>1 Página de Aterrizaje</li>
-                                        <li>Formulario de Contacto</li>
-                                        <li>Links a Redes Sociales</li>
-                                        <li>Optimización Mobile</li>
-                                    </ul>
-                                    <div class="combo-price-indicator">
-                                        Desde <span class="combo-price">$99 USD</span>
-                                    </div>
-                                </div>
-
-                                <!-- Combo 2: Portfolio/Corp -->
-                                <div class="combo-card" data-combo="institucional" data-price="149" data-time="10">
-                                    <h4>Combo Portfolio / Corp</h4>
-                                    <p class="combo-desc">Perfecto para profesionales independientes y empresas.</p>
-                                    <ul class="combo-details">
-                                        <li>Hasta 5 secciones independientes</li>
-                                        <li>Galería de trabajos / proyectos</li>
-                                        <li>Sección sobre nosotros / equipo</li>
-                                        <li>Formulario personalizado</li>
-                                    </ul>
-                                    <div class="combo-price-indicator">
-                                        Desde <span class="combo-price">$149 USD</span>
-                                    </div>
-                                </div>
-
-                                <!-- Combo 3: E-commerce -->
-                                <div class="combo-card" data-combo="ecommerce" data-price="499" data-time="15">
-                                    <h4>Combo E-Commerce</h4>
-                                    <p class="combo-desc">Monta tu propia tienda online y vende 24/7 sin comisiones.</p>
-                                    <ul class="combo-details">
-                                        <li>Catálogo dinámico de productos</li>
-                                        <li>Carrito y checkout optimizado</li>
-                                        <li>Pasarela Mercado Pago / Stripe</li>
-                                        <li>Gestión de stock simple</li>
-                                    </ul>
-                                    <div class="combo-price-indicator">
-                                        Desde <span class="combo-price">$499 USD</span>
-                                    </div>
-                                </div>
-
-                                <!-- Combo 4: Custom -->
-                                <div class="combo-card" data-combo="custom" data-price="799" data-time="25">
-                                    <h4>Combo Web App Custom</h4>
-                                    <p class="combo-desc">Desarrollo totalmente a medida para requisitos especiales.</p>
-                                    <ul class="combo-details">
-                                        <li>Dashboard de Administración</li>
-                                        <li>Base de datos e inicio de sesión</li>
-                                        <li>Integración de APIs avanzadas</li>
-                                        <li>Arquitectura escalable</li>
-                                    </ul>
-                                    <div class="combo-price-indicator">
-                                        Desde <span class="combo-price">$799 USD</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 2: Extras / Add-ons -->
-                        <div class="builder-step mt-6">
-                            <h3 class="step-title"><span class="step-num">2</span> Agrega componentes o servicios extras</h3>
-                            <div class="addons-list" id="addons-list">
-                                <!-- Addon 1 -->
-                                <label class="addon-item">
-                                    <input type="checkbox" data-addon="seo" data-price="99" data-time="2">
-                                    <div class="addon-content">
-                                        <div class="addon-header">
-                                            <span class="addon-title">SEO Profesional y Google Analytics</span>
-                                            <span class="addon-price">+$99 USD</span>
-                                        </div>
-                                        <p class="addon-desc">Configuración avanzada de meta tags, sitemap, indexación rápida en Google e instalación de analíticas.</p>
-                                    </div>
-                                </label>
-
-                                <!-- Addon 2 -->
-                                <label class="addon-item">
-                                    <input type="checkbox" data-addon="multiidioma" data-price="50" data-time="4">
-                                    <div class="addon-content">
-                                        <div class="addon-header">
-                                            <span class="addon-title">Soporte Multi-idioma (Inglés/Español)</span>
-                                            <span class="addon-price">+$9 USD</span>
-                                        </div>
-                                        <p class="addon-desc">Traducción e internacionalización de los contenidos de todo el sitio con selector interactivo.</p>
-                                    </div>
-                                </label>
-
-                                <!-- Addon 3 -->
-                                <label class="addon-item">
-                                    <input type="checkbox" data-addon="blog" data-price="99" data-time="5">
-                                    <div class="addon-content">
-                                        <div class="addon-header">
-                                            <span class="addon-title">Blog / Sección de Noticias auto-gestionable</span>
-                                            <span class="addon-price">+$99 USD</span>
-                                        </div>
-                                        <p class="addon-desc">Un sistema autoadministrable simple para que puedas escribir y actualizar tus propios artículos.</p>
-                                    </div>
-                                </label>
-
-                                <!-- Addon 4 -->
-                                <label class="addon-item">
-                                    <input type="checkbox" data-addon="panel" data-price="99" data-time="7">
-                                    <div class="addon-content">
-                                        <div class="addon-header">
-                                            <span class="addon-title">Panel de Administración a Medida</span>
-                                            <span class="addon-price">+$99 USD</span>
-                                        </div>
-                                        <p class="addon-desc">Panel de control privado para poder modificar contenidos del sitio, cargar fotos y gestionar clientes.</p>
-                                    </div>
-                                </label>
-
-                                <!-- Addon 5 -->
-                                <label class="addon-item">
-                                    <input type="checkbox" data-addon="soporte" data-price="15" data-time="0">
-                                    <div class="addon-content">
-                                        <div class="addon-header">
-                                            <span class="addon-title">Mantenimiento mensual y Hosting (Mensual)</span>
-                                            <span class="addon-price">+$15 USD/mes</span>
-                                        </div>
-                                        <p class="addon-desc">Gestión del dominio, alojamiento del sitio seguro SSL y resolución de problemas técnicos mensuales.</p>
-                                    </div>
-                                </label>
-
-                                <!-- Addon 6 -->
-                                <label class="addon-item">
-                                    <input type="checkbox" data-addon="mantenimiento-anual" data-price="49" data-time="0">
-                                    <div class="addon-content">
-                                        <div class="addon-header">
-                                            <span class="addon-title">Mantenimiento y Dominio Anual</span>
-                                            <span class="addon-price">+$49 USD/año</span>
-                                        </div>
-                                        <p class="addon-desc">Abono anual para la renovación del dominio, hosting básico y mantenimiento de seguridad.</p>
-                                    </div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quotation Card Sticky -->
-                    <div class="cotizador-summary-card glass" id="summary-card">
-                        <h3 class="summary-title">Resumen del Proyecto</h3>
-                        <div class="summary-divider"></div>
-                        
-                        <div class="summary-line">
-                            <span class="summary-label">Combo Seleccionado:</span>
-                            <span class="summary-value" id="sum-combo-name">Combo Express</span>
-                        </div>
-                        <div class="summary-line text-sm opacity-70">
-                            <span class="summary-label">Precio Combo:</span>
-                            <span class="summary-value" id="sum-combo-price">$99 USD</span>
-                        </div>
-
-                        <div class="summary-divider"></div>
-                        
-                        <div class="summary-addons-section">
-                            <h5>Adicionales:</h5>
-                            <ul class="summary-addons-list" id="sum-addons-list">
-                                <li class="no-addons">Ningún adicional seleccionado</li>
-                            </ul>
-                        </div>
-
-                        <div class="summary-divider"></div>
-
-                        <div class="summary-payment-section">
-                            <h5>Método de Pago:</h5>
-                            <div class="payment-options">
-                                <label class="payment-option">
-                                    <input type="radio" name="payment-method" value="1" checked id="pay-cash">
-                                    <span>Efectivo / Transferencia (1 pago)</span>
-                                </label>
-                                <label class="payment-option">
-                                    <input type="radio" name="payment-method" value="3" id="pay-installments">
-                                    <span>3 Cuotas sin interés</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="summary-divider"></div>
-
-                        <div class="summary-delivery">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="delivery-icon"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                            <span>Entrega aprox: <strong id="sum-delivery-time">5 días hábiles</strong></span>
-                        </div>
-
-                        <div class="summary-total-container">
-                            <div class="summary-total">
-                                <span>Total en USD:</span>
-                                <span class="total-price" id="sum-total-price">$99 USD</span>
-                            </div>
-                            <div class="summary-total ARS">
-                                <span>Total en ARS:</span>
-                                <span class="total-price-ars" id="sum-total-price-ars">$123,750 ARS</span>
-                            </div>
-                            <div class="installments-detail hidden" id="installments-detail">
-                                <span>3 cuotas de:</span>
-                                <strong id="installment-price-value">$36.30 USD ($45,375 ARS)</strong>
-                            </div>
-                        </div>
-                        <div class="dollar-rate-footer" id="dollar-rate-display">
-                            Cotización Dólar Blue: Cargando...
-                        </div>
-
-                        <div class="summary-actions">
-                            <button id="btn-quote-whatsapp" class="btn btn-whatsapp w-full">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24" class="btn-icon-wsp"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.457L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.965C16.638 1.986 14.163 1.058 11.53 1.058c-5.44 0-9.866 4.372-9.87 9.802 0 1.764.476 3.49 1.378 5.011l-.99 3.616 3.73-.965zm13.62-5.462c-.302-.15-1.785-.875-2.056-.973-.272-.1-.47-.15-.667.15-.197.3-.763.96-.935 1.157-.172.197-.344.22-.646.07-1.123-.56-2.029-1.002-2.827-2.373-.207-.356.207-.33.593-1.09.06-.12.03-.225-.015-.315-.045-.09-.39-1.29-.556-1.685-.118-.283-.243-.283-.344-.283-.098-.002-.213-.002-.328-.002-.115 0-.302.043-.46.213-.158.17-.604.59-.604 1.44s.618 1.67.705 1.786c.088.117 1.217 1.843 2.95 2.57 1.054.442 1.724.58 2.366.52.716-.107 2.185-.888 2.49-1.742.302-.852.302-1.58.212-1.73-.09-.15-.302-.25-.604-.4z"/></svg>
-                                Enviar Presupuesto por WhatsApp
-                            </button>
-                            <button id="btn-quote-pdf" class="btn btn-outline w-full mt-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                Descargar Presupuesto (PDF)
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <!-- Testimonios / Reseñas -->
         <section id="resenas" class="resenas-section" style="padding: 80px 0;">
             <div class="container">
@@ -723,18 +485,19 @@
                     <p class="section-desc">Experiencias reales de clientes que confiaron en mi trabajo para impulsar su presencia online.</p>
                 </div>
 
-                <div class="resenas-carousel-wrapper">
-                    <button type="button" class="resenas-nav-btn prev" id="resenas-btn-prev" aria-label="Anterior testimonio">
-                        ‹
-                    </button>
-
-                    <div class="resenas-carousel-track" id="grid-resenas-publicas">
+                <!--
+                  Cinta continua. Las flechas se fueron: con la cinta andando
+                  sola no decidían nada que el visitante no pudiera hacer
+                  parando el mouse encima, y eran dos botones más que mantener.
+                  El carril lleva role="list" para que el lector de pantalla
+                  anuncie cuántas reseñas hay; la copia que el JS agrega para
+                  que el bucle no se note va con aria-hidden, así no las
+                  cuenta dos veces.
+                -->
+                <div class="resenas-cinta" id="resenas-cinta">
+                    <div class="resenas-cinta-track" id="grid-resenas-publicas" role="list">
                         <!-- Se renderiza dinámicamente desde JS -->
                     </div>
-
-                    <button type="button" class="resenas-nav-btn next" id="resenas-btn-next" aria-label="Siguiente testimonio">
-                        ›
-                    </button>
                 </div>
             </div>
         </section>
@@ -815,7 +578,7 @@
 
                 <!--
                   Acceso al panel. Antes era un botón grande en el encabezado,
-                  al lado de "Cotizar Web": ocupaba un lugar de conversión con
+                  al lado del botón de presupuesto: ocupaba un lugar de conversión con
                   un enlace que solo usa una persona. Acá abajo sigue a mano
                   para vos y no le compite atención a nadie.
                   rel="nofollow" para que ningún buscador lo siga.
