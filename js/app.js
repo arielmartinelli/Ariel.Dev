@@ -511,12 +511,12 @@ document.addEventListener("DOMContentLoaded", () => {
     /** Última marca de tiempo de envío, para frenar clics repetidos. */
     let lastContactSubmit = 0;
 
-    function abrirWhatsAppContacto({ name, email, subject, message }) {
+    function abrirWhatsAppContacto({ name, email, subject }) {
         const body =
             `Hola Ariel! Consulta desde el portfolio.\n\n` +
             `Nombre: ${name}\n` +
             `Email: ${email}\n` +
-            `Asunto: ${subject}\n\n${message}`;
+            `Asunto: ${subject}`;
         window.open(
             `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(body)}`,
             "_blank",
@@ -530,7 +530,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const name = sanitizeText(contactName.value, LIMITS.NAME);
         const email = document.getElementById("contact-email").value.trim();
         const subject = sanitizeText(document.getElementById("contact-subject").value, LIMITS.SUBJECT);
-        const message = sanitizeText(document.getElementById("contact-message").value, LIMITS.MESSAGE);
         const gotcha = document.getElementById("contact-gotcha")?.value || "";
 
         // Honeypot: si este campo oculto viene lleno, es un bot.
@@ -541,7 +540,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if (!name || !email || !subject || !message) {
+        if (!name || !email || !subject) {
             Swal.fire("Atención", "Por favor, completa todos los campos del formulario.", "warning");
             return;
         }
@@ -559,7 +558,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const datos = { name, email, subject, message };
+        const datos = { name, email, subject };
 
         // Sin Formspree configurado: WhatsApp, avisando con claridad.
         if (!FORMSPREE_ID) {
@@ -585,7 +584,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     name,
                     email,
                     subject,
-                    message,
                     _subject: `Portfolio — ${subject}`,
                 }),
             });
@@ -1346,27 +1344,36 @@ document.addEventListener("DOMContentLoaded", () => {
      * Anima el conteo incremental progresivo de una estadística usando requestAnimationFrame
      */
     function animateStatCounter(el) {
+        /* Sin data-target no hay nada que contar: es un dato fijo, como el
+           plazo de entrega. Se deja como está. */
+        if (!el.hasAttribute('data-target')) return;
+
         const target = +el.getAttribute('data-target');
+        /* El signo y el símbolo vienen del HTML. Antes se deducían mirando
+           si el rótulo de al lado tenía un "%", y el resultado se pegaba
+           siempre detrás del número: "4+ Años de Experiencia". */
+        const prefijo = el.dataset.prefijo || '';
+        const sufijo = el.dataset.sufijo || '';
+        const escribir = (n) => { el.textContent = prefijo + n + sufijo; };
+
         const duration = 2500; // 2.5 segundos (más lento y elegante)
         const startTime = performance.now();
-        
+
         function update(currentTime) {
             const elapsed = currentTime - startTime;
             const progress = Math.min(elapsed / duration, 1);
-            
+
             // Easing cuadrático de salida para desaceleración suave
             const easeProgress = progress * (2 - progress);
-            const currentVal = Math.floor(easeProgress * target);
-            
-            const isPercent = el.parentNode.textContent.includes('%');
-            el.textContent = currentVal + (isPercent ? '%' : '+');
-            
+            escribir(Math.floor(easeProgress * target));
+
             if (progress < 1) {
                 requestAnimationFrame(update);
             } else {
-                el.textContent = target + (isPercent ? '%' : '+');
+                escribir(target);
             }
         }
+        escribir(0);
         requestAnimationFrame(update);
     }
 

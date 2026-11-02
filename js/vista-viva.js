@@ -44,8 +44,31 @@ import { portadaDe } from "./projects.js";
 /** Ancho con el que el sitio de adentro cree que lo están mirando. */
 const ANCHO_LOGICO = 1280;
 
-/** Alto que se le da a la página de adentro. Más que esto no se recorre. */
-const ALTO_LOGICO = 2600;
+/**
+ * Alto de la "pantalla" con la que el sitio de adentro cree que lo miran.
+ *
+ * ACA ESTUVO EL ERROR, Y VALE LA PENA DEJARLO ESCRITO.
+ * Primero fueron 2600px, para poder recorrer el sitio hacia abajo. Resultado:
+ * se veía la portada y después todo en blanco. Dos motivos, los dos de
+ * fondo y ninguno arreglable desde acá:
+ *
+ *   1. Una sección con `height: 100vh` mide el alto de SU ventana. En un
+ *      marco de 2600px, la portada pasa a medir 2600px: ocupa todo y el
+ *      resto queda empujado fuera de la vista.
+ *
+ *   2. Casi todos tus demos hacen aparecer las secciones al scrollear. Esa
+ *      aparición la dispara el scroll DE ADENTRO del marco — y el marco
+ *      nunca scrollea: lo que se movía era la caja de afuera. Las secciones
+ *      se quedaban esperando, invisibles, para siempre. Eso era el blanco.
+ *
+ *   Y no se puede arreglar scrolleando el marco por dentro: es otro dominio,
+ *   el navegador no deja tocarlo. Es una pared, no un detalle.
+ *
+ * Así que la vista viva muestra UNA pantalla: la portada del sitio, como se
+ * ve en una notebook, andando de verdad. Sin recorrerla. Comprobado contra
+ * los demos reales: a 2600px la página salía medio vacía, a 820 sale entera.
+ */
+const ALTO_LOGICO = 820;
 
 /**
  * El contenido de .marco-nav-pantalla para un proyecto con demo.
@@ -124,10 +147,6 @@ function escalar(caja) {
   if (!ancho) return;
   const escala = ancho / ANCHO_LOGICO;
   caja.style.setProperty("--viva-escala", escala);
-  /* El `transform` no cambia el tamaño que la caja OCUPA, solo el que se ve.
-     Sin esta altura, el contenedor creería que adentro hay 2600px de alto y
-     el scroll quedaría larguísimo y casi todo vacío. */
-  caja.style.setProperty("--viva-alto", `${Math.round(ALTO_LOGICO * escala)}px`);
 }
 
 /* Lo que contestó /api/marco-permite para cada sitio, mientras dure la
@@ -168,6 +187,7 @@ async function encender(caja) {
   marco.src = caja.dataset.demo;
   marco.width = ANCHO_LOGICO;
   marco.height = ALTO_LOGICO;
+  marco.scrolling = "no";          // navegadores viejos
   marco.loading = "lazy";
   marco.title = "";                       // decorativo: el link ya nombra el sitio
   marco.setAttribute("aria-hidden", "true");
@@ -205,5 +225,4 @@ function apagar(caja) {
      La foto de respaldo SÍ se deja: no cuesta nada y evita que la tarjeta
      parpadee cada vez que entra y sale de la pantalla. */
   if (lienzo) lienzo.replaceChildren();
-  caja.scrollTop = 0;
 }

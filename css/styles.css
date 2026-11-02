@@ -2096,9 +2096,14 @@ body.light-theme .admin-category-item {
     }
 
     .card-inner {
-        /* En el celular los cuatro números van en dos filas, así que el panel
-           es más alto que en escritorio, no más bajo. */
-        min-height: 0;
+        /* OJO: acá decía `min-height: 0`, y era un salto de 299 de CLS.
+           El panel lo dibuja el JavaScript: hasta que corre, el div está
+           vacío. Con el mínimo en cero, la tarjeta medía NADA en el primer
+           pintado y al aparecer el panel empujaba 478px hacia abajo todo lo
+           que tenía debajo — en un celular, media pantalla.
+           El numero sale de medir el panel ya dibujado a 390px (390px);
+           se redondea para abajo para no dejar un hueco si queda mas corto. */
+        min-height: 380px;
     }
 
     .floating-badge {
@@ -4388,17 +4393,12 @@ a.pcard:hover .pcard-link svg { transform: translateX(4px); }
        .marco-nav-pantalla, que es quien tiene que decidirlo. */
     position: absolute;
     inset: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-
-    /* Al llegar al final, el scroll NO sigue en la página de atrás. Si no,
-       recorrer una tarjeta te empuja la página entera sin querer. */
-    overscroll-behavior: contain;
-
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+    /* NO scrollea. Ver js/vista-viva.js: el marco muestra una pantalla del
+       sitio y nada más. Dejarlo recorrer no servía — las secciones de abajo
+       aparecen con el scroll de adentro del marco, que nunca se mueve, así
+       que lo único que se veía al bajar era blanco. */
+    overflow: hidden;
 }
-.vista-viva::-webkit-scrollbar { display: none; }
 
 /* El nombre del sitio, quieto y detrás de todo. Si la página se niega a
    mostrarse adentro de un marco, el navegador deja el iframe en blanco y no
@@ -4418,13 +4418,13 @@ a.pcard:hover .pcard-link svg { transform: translateX(4px); }
 }
 
 .vista-viva-lienzo {
-    position: relative;
-    height: var(--viva-alto, 100%);
+    position: absolute;
+    inset: 0;
 }
 
 .vista-viva-lienzo iframe {
     width: 1280px;
-    height: 2600px;
+    height: 820px;
     border: 0;
     display: block;
     transform: scale(var(--viva-escala, 0.44));
@@ -4618,4 +4618,86 @@ p > .hueso[data-esqueleto] {
     object-fit: cover;
     object-position: top center;
     display: block;
+}
+
+/* ==========================================================================
+   Cómo trabajamos
+   --------------------------------------------------------------------------
+   Es una <ol>: los pasos tienen orden y el orden importa. Que sea una lista
+   numerada de verdad hace que un lector de pantalla diga "3 de 4" sin que
+   haya que escribirlo en ningún lado. El "01" grande es decorativo y va con
+   aria-hidden, para que no se lea dos veces.
+   ========================================================================== */
+.pasos-section { padding: 90px 0; }
+
+.pasos-grid {
+    list-style: none;
+    margin: 44px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 22px;
+}
+
+.paso-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    padding: 26px 24px 24px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--bg-card);
+    transition: border-color 0.25s ease, transform 0.25s ease;
+}
+.paso-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-4px);
+}
+
+/* El número va atrás, grande y apagado: ordena sin pelear con el título. */
+.paso-num {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-family: var(--font-heading);
+    font-size: 2.6rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--primary);
+    opacity: 0.16;
+}
+
+.paso-titulo {
+    font-family: var(--font-heading);
+    font-size: 1.06rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0;
+    /* Deja libre la esquina del número, que si no lo pisa. */
+    padding-right: 42px;
+}
+
+.paso-desc {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.paso-plazo {
+    margin-top: auto;
+    padding-top: 12px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--primary-light);
+}
+
+@media (max-width: 768px) {
+    .pasos-section { padding: 64px 0; }
+    .pasos-grid { gap: 16px; margin-top: 32px; }
+    .paso-card { padding: 22px 20px 20px; }
+    .paso-num { font-size: 2.1rem; }
 }

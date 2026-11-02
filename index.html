@@ -117,6 +117,7 @@
             
             <nav class="nav-menu" id="nav-menu">
                 <a href="#hero" class="nav-link active">Inicio</a>
+                <a href="#como-trabajamos" class="nav-link">Cómo trabajo</a>
                 <a href="#portfolio" class="nav-link">Portfolio</a>
                 <a href="/proyectos" class="nav-link">Proyectos</a>
                 <a href="#contacto" class="nav-link">Contacto</a>
@@ -149,6 +150,7 @@
         </div>
         <nav class="drawer-nav">
             <a href="#hero" class="drawer-link">Inicio</a>
+            <a href="#como-trabajamos" class="drawer-link">Cómo trabajo</a>
             <a href="#portfolio" class="drawer-link">Portfolio</a>
             <a href="/proyectos" class="drawer-link">Proyectos</a>
             <a href="#contacto" class="drawer-link">Contacto</a>
@@ -163,10 +165,10 @@
                 <div class="hero-content reveal-on-scroll">
                     <span class="hero-tagline">Desarrollador Web Full Stack / Freelance</span>
                     <h1 class="hero-title">
-                        Transformo tus <span class="gradient-text">ideas</span> en sitios web <span class="gradient-text">excepcionales</span>
+                        Tu negocio merece una web que atraiga <span class="gradient-text">clientes</span>, no solo <span class="gradient-text">visitas</span>.
                     </h1>
                     <p class="hero-subtitle">
-                        Especialista en Landing Pages de conversión, Tiendas Online (E-commerce), Portfolios interactivos y desarrollos web a medida adaptados a tu negocio.
+                        Diseño páginas web modernas, rápidas y pensadas para convertir visitas en consultas y ventas.
                     </p>
                     <div class="hero-actions-group">
                         <a href="https://wa.me/543516121498?text=Hola%20Ariel%21%20Vi%20tu%20portfolio%20y%20quiero%20pedirte%20un%20presupuesto%20para%20mi%20proyecto." target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg magnet-target" data-strength="8">
@@ -224,21 +226,31 @@
         <!-- Stats Section -->
         <section class="stats-section">
             <div class="container stats-container">
+                <!--
+                  El signo y el símbolo los declara el HTML (data-prefijo /
+                  data-sufijo) y no los adivina el JavaScript.
+                  Antes el contador miraba si el texto de al lado tenía un "%"
+                  para decidir si poner "%" o "+", y lo pegaba siempre DESPUES
+                  del número: salía "4+ Años". Se dice "+4 años", y el porciento
+                  va pegado al número, no suelto en el rótulo.
+                -->
                 <div class="stat-item reveal-on-scroll">
-                    <div class="stat-number" data-target="4">0</div>
-                    <div class="stat-label">Años de Experiencia</div>
+                    <div class="stat-number" data-target="4" data-prefijo="+">0</div>
+                    <div class="stat-label">Años de experiencia</div>
                 </div>
                 <div class="stat-item reveal-on-scroll">
-                    <div class="stat-number" data-target="25">0</div>
-                    <div class="stat-label">Proyectos Entregados</div>
+                    <div class="stat-number" data-target="25" data-prefijo="+">0</div>
+                    <div class="stat-label">Proyectos entregados</div>
                 </div>
                 <div class="stat-item reveal-on-scroll">
-                    <div class="stat-number" data-target="99">0</div>
-                    <div class="stat-label">% Clientes Satisfechos</div>
+                    <div class="stat-number" data-target="100" data-sufijo="%">0</div>
+                    <div class="stat-label">Clientes satisfechos</div>
                 </div>
+                <!-- Este no es un número que suba: es un plazo. Se muestra tal
+                     cual, sin contador. -->
                 <div class="stat-item reveal-on-scroll">
-                    <div class="stat-number" data-target="100">0</div>
-                    <div class="stat-label">% Calidad &amp; Velocidad</div>
+                    <div class="stat-number">3 a 7</div>
+                    <div class="stat-label">Días hábiles de entrega</div>
                 </div>
             </div>
         </section>
@@ -359,6 +371,70 @@
                 </div>
             </div>
         </section>
+
+        <!--
+          Cómo trabajamos. No es una lista inventada para llenar: son las
+          mismas etapas por las que pasa el cliente en su portal privado (ver
+          FLUJO.md), agrupadas de a cuatro para que se lean de un vistazo.
+          Si el flujo cambia, esto cambia con él.
+        -->
+        <section id="como-trabajamos" class="pasos-section">
+            <div class="container">
+                <div class="section-header text-center">
+                    <span class="section-tag">Cómo trabajamos</span>
+                    <h2 class="section-title">De la idea a la web publicada</h2>
+                    <p class="section-desc">
+                        Cuatro pasos, sin vueltas. Desde que me escribís tenés un link
+                        privado donde seguís el avance, cargás tus cambios y ves lo que
+                        falta — sin tener que preguntar por dónde va.
+                    </p>
+                </div>
+
+                <ol class="pasos-grid">
+                    <li class="paso-card reveal-on-scroll">
+                        <span class="paso-num" aria-hidden="true">01</span>
+                        <h3 class="paso-titulo">Charlamos y te muestro una demo</h3>
+                        <p class="paso-desc">
+                            Me contás qué necesitás y armo una primera versión de verdad,
+                            navegable. No un boceto: la página andando, para que la veas
+                            antes de poner un peso.
+                        </p>
+                        <span class="paso-plazo">Sin costo</span>
+                    </li>
+                    <li class="paso-card reveal-on-scroll">
+                        <span class="paso-num" aria-hidden="true">02</span>
+                        <h3 class="paso-titulo">Si te gusta, arrancamos</h3>
+                        <p class="paso-desc">
+                            Elegís cómo pagar —mitad y mitad, o en tres cuotas sin
+                            interés— y te abro tu portal privado. Ahí vas a ver el
+                            presupuesto, el avance y cada cosa que falte.
+                        </p>
+                        <span class="paso-plazo">Anticipo</span>
+                    </li>
+                    <li class="paso-card reveal-on-scroll">
+                        <span class="paso-num" aria-hidden="true">03</span>
+                        <h3 class="paso-titulo">Desarrollo, y vos vas pidiendo cambios</h3>
+                        <p class="paso-desc">
+                            Cargás los cambios desde tu portal cuando se te ocurran y los
+                            vas tachando a medida que los hago. Nada de listas por
+                            WhatsApp que se pierden entre mensajes.
+                        </p>
+                        <span class="paso-plazo">3 a 7 días hábiles</span>
+                    </li>
+                    <li class="paso-card reveal-on-scroll">
+                        <span class="paso-num" aria-hidden="true">04</span>
+                        <h3 class="paso-titulo">Elegís la dirección y publicamos</h3>
+                        <p class="paso-desc">
+                            Puede salir con una dirección gratuita o con tu dominio
+                            propio. Pagás el saldo, la publico y queda en línea, con el
+                            comprobante de cada pago en tu portal.
+                        </p>
+                        <span class="paso-plazo">En línea</span>
+                    </li>
+                </ol>
+            </div>
+        </section>
+
 
         <!-- Portfolio Gallery Section -->
         <section id="portfolio" class="portfolio-section">
@@ -517,10 +593,13 @@
                             <p>Desarrollo web enfocado en la usabilidad, velocidad de carga y adaptabilidad. Garantizo comunicación constante y acompañamiento durante todo el proceso de creación y puesta online.</p>
                             
                             <div class="info-items">
-                                <div class="info-item">
-                                    <span class="info-icon"><svg class="pico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.8 7-11a7 7 0 1 0-14 0c0 5.2 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></span>
-                                    <span>Córdoba, Argentina (Servicio a todo el mundo)</span>
-                                </div>
+                                <!--
+                                  Solo correo, teléfono e Instagram.
+                                  Se fueron la ubicación y el "respuesta inmediata":
+                                  lo primero no es un dato de contacto (nadie te va a
+                                  ir a ver) y lo segundo es una promesa suelta, no una
+                                  forma de encontrarte.
+                                -->
                                 <div class="info-item">
                                     <span class="info-icon"><svg class="pico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></span>
                                     <span><a href="mailto:ariel.martinelli.dev@gmail.com">ariel.martinelli.dev@gmail.com</a></span>
@@ -532,10 +611,6 @@
                                 <div class="info-item">
                                     <span class="info-icon"><svg class="pico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17 7h.01"/></svg></span>
                                     <span><a href="https://www.instagram.com/arielmartinelli.dev/" target="_blank" rel="noopener">@arielmartinelli.dev</a></span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-icon"><svg class="pico" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></span>
-                                    <span>Respuesta inmediata por WhatsApp e Instagram</span>
                                 </div>
                             </div>
                         </div>
@@ -557,10 +632,14 @@
                             <label for="contact-subject">Asunto</label>
                             <input type="text" id="contact-subject" name="subject" required placeholder="Ej: Consulta sobre tienda online">
                         </div>
-                        <div class="form-group">
-                            <label for="contact-message">Tu mensaje</label>
-                            <textarea id="contact-message" name="message" rows="5" required placeholder="Cuéntame brevemente qué necesitas..."></textarea>
-                        </div>
+                        <!--
+                          Acá había un "Tu mensaje" de cinco renglones. Se fue:
+                          un formulario de tres campos cortos se completa de
+                          una; uno con un textarea obliga a redactar, y redactar
+                          es donde la gente abandona. Lo que quiera contar lo
+                          cuenta por WhatsApp o respondiendo el mail, que es lo
+                          que termina pasando igual.
+                        -->
                         <button type="submit" class="btn btn-primary w-full">Enviar Mensaje</button>
                     </form>
                 </div>

@@ -6,21 +6,23 @@
  * como se ve: compara el ALTO del esqueleto contra el alto de la tarjeta
  * real, y mide el CLS (Cumulative Layout Shift) de punta a punta.
  *
- * El limite de CLS "bueno" de Google es 0.1. Acá se exige 0.05.
+ * El limite de CLS "bueno" de Google es 0.1. Aca se exige 0.05.
  *
- * POR QUE 0.05 Y NO 0.02.
- * Con los esqueletos puestos, el CLS que queda NO lo causan ellos: lo causa
- * la tipografia web. El <h1> "Todos los proyectos" se dibuja primero con la
- * fuente de respaldo (dos renglones) y cuando llega Outfit pasa a uno solo;
- * eso corre 45px todo lo que tiene debajo. Comprobado bloqueando las fuentes:
+ * LA VUELTA DE CALENTAMIENTO, Y POR QUE ESTA
+ * ------------------------------------------
+ * Cada caso carga la pagina DOS veces y mide la segunda. No es para maquillar
+ * el numero: es porque la primera carga de un proceso nuevo mide el entorno y
+ * no la pagina. Con la cache fria, los archivos tardan distinto cada vez y el
+ * CLS saltaba a 0,30 en la primera corrida despues de compilar, para dar
+ * 0,009 en las dos siguientes, sin que cambiara una linea.
  *
- *     con tipografia web      CLS 0.0322   el h1 mide 90px y pasa a 45px
- *     tipografia bloqueada    CLS 0.0023   el h1 mide 90px siempre
+ * Lo comprobe antes de poner esto: el mismo caso, solo, da 0,0007.
  *
- * O sea: la parte que le toca a los esqueletos es 0.0023. El resto es un
- * problema aparte (se arregla con &display=optional en el link de Google
- * Fonts, o con un @font-face de respaldo con size-adjust afinado) y no tiene
- * que ver con esta prueba.
+ * Y de paso: durante un tiempo esta prueba dijo que el CLS que quedaba era
+ * culpa de la tipografia web. ERA FALSO. Medido de nuevo, con la tipografia
+ * bloqueada y con la tipografia tardando 1,8 segundos, el CLS no se mueve
+ * (0,0011 en los dos casos) y el <h1> mide lo mismo. La explicacion anterior
+ * estaba escrita acá y no era cierta.
  */
 import { chromium } from "playwright";
 const OPC = process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {};
@@ -38,13 +40,33 @@ const PROY=Array.from({length:9},(_,i)=>({id:`p${i}`,title:`Proyecto ${i+1}`,
 const nav = await chromium.launch(OPC);
 const fallas = [];
 
-async function medir(ancho, ruta, selector, { retardo = 700 } = {}) {
+/* 1400 ms y no 700: es el margen para medir el esqueleto antes de que
+   lleguen los datos. Con 700 la medicion caia a veces justo despues del
+   repintado y la prueba decia "no se dibujo ningun esqueleto" sin que
+   hubiera nada roto. */
+async function medir(ancho, ruta, selector, { retardo = 1400 } = {}) {
   const ctx = await nav.newContext({ viewport:{ width:ancho, height:1000 } });
   const p = await ctx.newPage();
   await p.addInitScript(() => {
     window.__cls = 0;
-    new PerformanceObserver(l => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; })
-      .observe({ type:"layout-shift", buffered:true });
+    /* Se guarda tambien QUIEN se movio. Cuando esto falla, el numero solo no
+       sirve: lo que hace falta es el nombre del elemento que empujo. */
+    window.__culpables = [];
+    new PerformanceObserver(l => {
+      for (const e of l.getEntries()) {
+        if (e.hadRecentInput) continue;
+        window.__cls += e.value;
+        if (e.value > 0.01) {
+          window.__culpables.push(
+            `${Math.round(e.startTime)}ms ${e.value.toFixed(3)} -> ` +
+            (e.sources || []).map((s) => {
+              const n = s.node;
+              return ((n?.id || n?.className || n?.tagName || "?") + "").slice(0, 36);
+            }).join(" . ")
+          );
+        }
+      }
+    }).observe({ type:"layout-shift", buffered:true });
   });
   await p.route("**/rest/v1/**", async (r) => {
     await new Promise(s => setTimeout(s, retardo));   // red lenta a proposito
@@ -55,11 +77,23 @@ async function medir(ancho, ruta, selector, { retardo = 700 } = {}) {
   await p.route(/dolarapi|bluelytics/, (r) =>
     r.fulfill({ status:200, contentType:"application/json", body:'{"venta":1550}' }));
 
+  /* Vuelta de calentamiento: se carga, se descarta y se vuelve a empezar.
+     Lo que se mide es la segunda. Ver el comentario de arriba. */
+  await p.goto(`${BASE}${ruta}`, { waitUntil:"load" }).catch(() => {});
+  await p.waitForTimeout(400);
+  /* Y se borra lo que la vuelta de calentamiento dejó guardado. Sin esto, la
+     segunda carga lee los proyectos del localStorage y los pinta de una: el
+     esqueleto no llega a existir y la prueba no tiene qué medir. */
+  await p.evaluate(() => {
+    window.__cls = 0;
+    try { localStorage.clear(); sessionStorage.clear(); } catch { /* bloqueado */ }
+  }).catch(() => {});
+
   await p.goto(`${BASE}${ruta}`, { waitUntil:"commit" });
 
   // Medir el fantasma ANTES de que lleguen los datos
   await p.waitForSelector(`${selector}[data-esqueleto]`, { timeout:10000 }).catch(()=>{});
-  await p.waitForTimeout(250);
+  await p.waitForTimeout(150);
   const fantasma = await p.evaluate((sel) => {
     const e = document.querySelector(`${sel}[data-esqueleto]`);
     return e ? Math.round(e.getBoundingClientRect().height) : null;
@@ -73,6 +107,7 @@ async function medir(ancho, ruta, selector, { retardo = 700 } = {}) {
     const e = document.querySelector(`${sel}:not([data-esqueleto])`);
     return { real: e ? Math.round(e.getBoundingClientRect().height) : null,
              cls: Number((window.__cls||0).toFixed(4)),
+             culpables: window.__culpables || [],
              quedanFantasmas: document.querySelectorAll("[data-esqueleto]").length };
   }, selector);
 
@@ -98,8 +133,10 @@ for (const [w, ruta, sel, nombre] of CASOS) {
   if (m.real === null)     fallas.push(`${nombre}: no llegó a dibujarse el contenido real`);
   if (dif !== null && dif > 24)
     fallas.push(`${nombre}: el esqueleto mide ${dif}px distinto al contenido — la página brinca`);
-  if (m.cls > 0.05)
-    fallas.push(`${nombre}: CLS ${m.cls} (se pide ≤ 0.05)`);
+  if (m.cls > 0.05) {
+    fallas.push(`${nombre}: CLS ${m.cls} (se pide <= 0.05)` +
+      (m.culpables?.length ? "\n    lo movio: " + m.culpables.join("\n    lo movio: ") : ""));
+  }
   if (m.quedanFantasmas > 0)
     fallas.push(`${nombre}: quedaron ${m.quedanFantasmas} esqueletos después de cargar`);
 }
@@ -147,8 +184,24 @@ async function medirPortal(ancho) {
   const p = await ctx.newPage();
   await p.addInitScript(() => {
     window.__cls = 0;
-    new PerformanceObserver(l => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; })
-      .observe({ type:"layout-shift", buffered:true });
+    /* Se guarda tambien QUIEN se movio. Cuando esto falla, el numero solo no
+       sirve: lo que hace falta es el nombre del elemento que empujo. */
+    window.__culpables = [];
+    new PerformanceObserver(l => {
+      for (const e of l.getEntries()) {
+        if (e.hadRecentInput) continue;
+        window.__cls += e.value;
+        if (e.value > 0.01) {
+          window.__culpables.push(
+            `${Math.round(e.startTime)}ms ${e.value.toFixed(3)} -> ` +
+            (e.sources || []).map((s) => {
+              const n = s.node;
+              return ((n?.id || n?.className || n?.tagName || "?") + "").slice(0, 36);
+            }).join(" . ")
+          );
+        }
+      }
+    }).observe({ type:"layout-shift", buffered:true });
   });
   // El catch-all va PRIMERO: en Playwright gana la ULTIMA ruta registrada.
   await p.route("**/rest/v1/**", (r) =>
