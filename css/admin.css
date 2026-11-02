@@ -1612,3 +1612,29 @@
     .resena-admin-pie { flex-direction: column; align-items: stretch; }
     .resena-admin-acciones .btn { flex: 1; min-height: 42px; }
 }
+
+/* ==========================================================================
+   Filas fantasma de las listas del panel
+   --------------------------------------------------------------------------
+   Antes cada lista decía «Cargando…»: un renglón de ~20px que al llegar los
+   datos se convertía en varias filas de ~60px. Toda la pantalla saltaba.
+   Estas filas reservan un alto parecido al real y dicen, por su forma, qué
+   es lo que viene.
+   ========================================================================== */
+.admin-fila-fantasma {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+}
+.admin-fila-fantasma:last-child { border-bottom: none; }
+
+.admin-fila-fantasma .hueso-circulo { width: 30px; height: 30px; flex: 0 0 auto; }
+.admin-fila-fantasma .hueso-linea   { flex: 1 1 auto; height: 0.95em; }
+.admin-fila-fantasma .hueso-pildora { flex: 0 0 auto; }
+
+/* El valor de un KPI mientras no llegó: el hueso lleva el alto de la cifra,
+   así el número aterriza sin correr la tarjeta. */
+.admin-kpi-valor[data-esqueleto] .hueso,
+.admin-kpi-nota[data-esqueleto] .hueso { vertical-align: middle; }

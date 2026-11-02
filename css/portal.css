@@ -1328,3 +1328,20 @@
   .portal-precio { padding: var(--e3) var(--e4); }
   .portal-precio-num { font-size: 2rem; }
 }
+
+/* ==========================================================================
+   Esqueleto del portal
+   --------------------------------------------------------------------------
+   Reemplaza al spinner centrado. Reusa .portal-hero, .portal-pasos y
+   .portal-etapa, o sea las mismas clases del portal de verdad: el alto no
+   está estimado, lo calcula el mismo CSS.
+   ========================================================================== */
+#portal-cargando .portal-barra .hueso { height: 100%; border-radius: inherit; }
+#portal-cargando .portal-paso-n { border: none; }
+#portal-cargando .portal-paso-t { display: inline-block; min-width: 42px; }
+#portal-cargando .portal-hero-num .hueso { display: inline-block; }
+
+/* El riel de pasos del esqueleto no lleva la línea verde que une los
+   círculos: esa línea dice "este paso ya está hecho", y todavía no se sabe
+   nada. Mostrarla sería inventar información. */
+#portal-cargando .portal-paso::before { display: none; }

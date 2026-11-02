@@ -375,7 +375,7 @@
 
                 <!-- Projects Stack Container -->
                 <div class="projects-stack-wrapper" style="width: 100%; margin-top: 40px;">
-                    <div class="w-full relative mb-20" id="projects-stack-container">
+                    <div class="w-full relative mb-20" id="projects-stack-container" aria-busy="true">
                         <!--
                           Placeholder del primer pintado. Sin esto, la sección
                           queda literalmente vacía hasta que responde la base:
@@ -383,9 +383,95 @@
                           donde deberían estar los trabajos. El JS lo reemplaza
                           apenas tiene los datos.
                         -->
-                        <div class="glass text-center w-full" id="projects-placeholder"
-                             style="padding: 40px; border-radius: 28px;">
-                            <p style="color: var(--text-secondary);">Cargando proyectos…</p>
+                        <div class="stage-card" data-esqueleto aria-hidden="true" style="z-index:1; top: calc(160px + 0px);">
+                            <div class="stage-card-inner">
+                                <div class="stack-card-info">
+                                    <span class="stack-card-tag hueso">&nbsp;</span>
+                                    <h3 class="stack-card-title"><span class="hueso hueso-titulo">&nbsp;</span></h3>
+                                    <p class="stack-card-desc hueso-parrafo">
+                                        <span class="hueso hueso-linea"></span>
+                                        <span class="hueso hueso-linea"></span>
+                                        <span class="hueso hueso-linea"></span>
+                                    </p>
+                                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px;">
+                                        <span class="hueso hueso-pildora"></span>
+                                        <span class="hueso hueso-pildora"></span>
+                                        <span class="hueso hueso-pildora"></span>
+                                    </div>
+                                    <span class="stack-card-link"><span class="hueso hueso-chico">&nbsp;</span></span>
+                                </div>
+                                <div class="stage-img-box">
+                                    <div class="marco-nav">
+                                        <div class="marco-nav-barra">
+                                            <span class="marco-nav-punto"></span>
+                                            <span class="marco-nav-punto"></span>
+                                            <span class="marco-nav-punto"></span>
+                                            <span class="marco-nav-url hueso">&nbsp;</span>
+                                        </div>
+                                        <div class="marco-nav-pantalla"><div class="hueso stage-img"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stage-card" data-esqueleto aria-hidden="true" style="z-index:2; top: calc(160px + 35px);">
+                            <div class="stage-card-inner">
+                                <div class="stack-card-info">
+                                    <span class="stack-card-tag hueso">&nbsp;</span>
+                                    <h3 class="stack-card-title"><span class="hueso hueso-titulo">&nbsp;</span></h3>
+                                    <p class="stack-card-desc hueso-parrafo">
+                                        <span class="hueso hueso-linea"></span>
+                                        <span class="hueso hueso-linea"></span>
+                                        <span class="hueso hueso-linea"></span>
+                                    </p>
+                                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px;">
+                                        <span class="hueso hueso-pildora"></span>
+                                        <span class="hueso hueso-pildora"></span>
+                                        <span class="hueso hueso-pildora"></span>
+                                    </div>
+                                    <span class="stack-card-link"><span class="hueso hueso-chico">&nbsp;</span></span>
+                                </div>
+                                <div class="stage-img-box">
+                                    <div class="marco-nav">
+                                        <div class="marco-nav-barra">
+                                            <span class="marco-nav-punto"></span>
+                                            <span class="marco-nav-punto"></span>
+                                            <span class="marco-nav-punto"></span>
+                                            <span class="marco-nav-url hueso">&nbsp;</span>
+                                        </div>
+                                        <div class="marco-nav-pantalla"><div class="hueso stage-img"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stage-card" data-esqueleto aria-hidden="true" style="z-index:3; top: calc(160px + 70px);">
+                            <div class="stage-card-inner">
+                                <div class="stack-card-info">
+                                    <span class="stack-card-tag hueso">&nbsp;</span>
+                                    <h3 class="stack-card-title"><span class="hueso hueso-titulo">&nbsp;</span></h3>
+                                    <p class="stack-card-desc hueso-parrafo">
+                                        <span class="hueso hueso-linea"></span>
+                                        <span class="hueso hueso-linea"></span>
+                                        <span class="hueso hueso-linea"></span>
+                                    </p>
+                                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px;">
+                                        <span class="hueso hueso-pildora"></span>
+                                        <span class="hueso hueso-pildora"></span>
+                                        <span class="hueso hueso-pildora"></span>
+                                    </div>
+                                    <span class="stack-card-link"><span class="hueso hueso-chico">&nbsp;</span></span>
+                                </div>
+                                <div class="stage-img-box">
+                                    <div class="marco-nav">
+                                        <div class="marco-nav-barra">
+                                            <span class="marco-nav-punto"></span>
+                                            <span class="marco-nav-punto"></span>
+                                            <span class="marco-nav-punto"></span>
+                                            <span class="marco-nav-url hueso">&nbsp;</span>
+                                        </div>
+                                        <div class="marco-nav-pantalla"><div class="hueso stage-img"></div></div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

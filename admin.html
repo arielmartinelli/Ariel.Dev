@@ -114,23 +114,23 @@
                     <div class="admin-kpis">
                         <div class="admin-kpi">
                             <span class="admin-kpi-label">Cobrado</span>
-                            <span class="admin-kpi-valor verde" id="kpi-cobrado">—</span>
-                            <span class="admin-kpi-nota" id="kpi-cobrado-nota"></span>
+                            <span class="admin-kpi-valor verde" id="kpi-cobrado" data-esqueleto><span class="hueso" style="display:inline-block;width:5.5ch">&nbsp;</span></span>
+                            <span class="admin-kpi-nota" id="kpi-cobrado-nota" data-esqueleto><span class="hueso" style="display:inline-block;width:11ch">&nbsp;</span></span>
                         </div>
                         <div class="admin-kpi">
                             <span class="admin-kpi-label">Por cobrar</span>
-                            <span class="admin-kpi-valor ambar" id="kpi-pendiente">—</span>
-                            <span class="admin-kpi-nota" id="kpi-pendiente-nota"></span>
+                            <span class="admin-kpi-valor ambar" id="kpi-pendiente" data-esqueleto><span class="hueso" style="display:inline-block;width:5.5ch">&nbsp;</span></span>
+                            <span class="admin-kpi-nota" id="kpi-pendiente-nota" data-esqueleto><span class="hueso" style="display:inline-block;width:11ch">&nbsp;</span></span>
                         </div>
                         <div class="admin-kpi">
                             <span class="admin-kpi-label">Proyectos activos</span>
-                            <span class="admin-kpi-valor" id="kpi-activos">—</span>
-                            <span class="admin-kpi-nota" id="kpi-activos-nota"></span>
+                            <span class="admin-kpi-valor" id="kpi-activos" data-esqueleto><span class="hueso" style="display:inline-block;width:2.5ch">&nbsp;</span></span>
+                            <span class="admin-kpi-nota" id="kpi-activos-nota" data-esqueleto><span class="hueso" style="display:inline-block;width:11ch">&nbsp;</span></span>
                         </div>
                         <div class="admin-kpi">
                             <span class="admin-kpi-label">Tareas pendientes</span>
-                            <span class="admin-kpi-valor violeta" id="kpi-tareas">—</span>
-                            <span class="admin-kpi-nota" id="kpi-tareas-nota"></span>
+                            <span class="admin-kpi-valor violeta" id="kpi-tareas" data-esqueleto><span class="hueso" style="display:inline-block;width:2.5ch">&nbsp;</span></span>
+                            <span class="admin-kpi-nota" id="kpi-tareas-nota" data-esqueleto><span class="hueso" style="display:inline-block;width:11ch">&nbsp;</span></span>
                         </div>
                     </div>
 
@@ -150,7 +150,10 @@
                     </div>
 
                     <div id="resumen-proyectos">
-                        <p class="admin-hint">Cargando…</p>
+                        <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+                        <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+                        <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+                        <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
                     </div>
                 </section>
 
@@ -259,7 +262,10 @@
                     </div>
 
                     <div id="lista-clientes">
-                        <p class="admin-hint">Cargando…</p>
+                        <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+                        <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+                        <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+                        <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
                     </div>
                 </section>
 
@@ -290,7 +296,10 @@
                     </div>
 
                     <div id="tabla-cobros">
-                        <p class="admin-hint">Cargando…</p>
+                        <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+                        <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+                        <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+                        <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
                     </div>
                 </section>
 
@@ -368,7 +377,9 @@
                             <!-- Proyectos -->
                             <div class="admin-card">
                                 <h2 class="admin-h2">Proyectos publicados</h2>
-                                <div id="lista-proyectos"><p class="admin-hint">Cargando…</p></div>
+                                <div id="lista-proyectos" aria-busy="true"><div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+<div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+<div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div></div>
                             </div>
 
                             <!-- Categorías -->
@@ -379,7 +390,8 @@
                                            aria-label="Nombre de la nueva categoría">
                                     <button type="button" class="btn btn-primary btn-sm" id="btn-agregar-categoria">Agregar</button>
                                 </div>
-                                <div id="lista-categorias"><p class="admin-hint">Cargando…</p></div>
+                                <div id="lista-categorias" aria-busy="true"><div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+<div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div></div>
                             </div>
                         </div>
                     </div>
@@ -404,7 +416,8 @@
                         </div>
 
                         <div id="admin-lista-resenas" class="admin-lista-resenas">
-                            <p class="admin-hint">Cargando reseñas…</p>
+                            <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
+                            <div class="admin-fila-fantasma" data-esqueleto aria-hidden="true"><span class="hueso hueso-circulo"></span><span class="hueso hueso-linea"></span><span class="hueso hueso-pildora"></span></div>
                         </div>
                     </div>
                 </section>

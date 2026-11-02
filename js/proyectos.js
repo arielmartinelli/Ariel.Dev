@@ -112,6 +112,7 @@ function pintarFiltros() {
       <span class="filter-cuenta">${cuenta(id)}</span>
     </button>`;
 
+  caja.setAttribute("aria-busy", "false");
   caja.innerHTML =
     boton("all", "Todos") +
     conProyectos.map((c) => boton(c.id, c.label)).join("");
@@ -121,30 +122,77 @@ function pintarFiltros() {
    Grilla
    ========================================================================== */
 /**
- * Qué posiciones ocupan el doble de ancho en la grilla.
+ * Los destacados ocupan el doble de ancho y los marcás con la casilla del
+ * panel (`is_featured`). Antes eran las posiciones 1.ª y 3.ª fijas; quedó
+ * mejor así, porque el orden y el destaque pasan a ser dos decisiones
+ * separadas.
  *
- * Los elegís vos arrastrando en el panel: son el 1.º y el 3.º de tu orden.
- * No hace falta ningún campo nuevo en la base ni una casilla más que tildar.
- *
- * POR QUE EL 1.º Y EL 3.º, Y NO LOS DOS PRIMEROS.
- * Con 3 columnas, una tarjeta doble ocupa 2 y deja 1 libre. Si las dos
- * dobles van seguidas, la segunda no entra en lo que queda de la primera
- * fila y se va a la siguiente: queda un hueco vacío arriba a la derecha.
- * Intercalando una normal entre las dos, cada fila cierra justa:
- *
- *     [ ███ doble ███ ][ una ]
- *     [ ███ doble ███ ][ una ]
- *     [ una ][ una ][ una ]
- *
- * Se podría resolver con grid-auto-flow: dense, pero eso reordena lo que se
- * ve sin reordenar el HTML: el tabulador salta en un orden distinto al
- * visual. Acomodar las posiciones no tiene ese costo.
- *
- * Solo aplica con el filtro en "Todos": dentro de una categoría, destacar
- * dos al azar no significa nada.
+ * Lo que sigue valiendo del diseño viejo: con 3 columnas, una tarjeta doble
+ * ocupa 2 y deja 1 libre, así que DOS destacadas seguidas dejan un hueco
+ * vacío arriba a la derecha. Si marcás varias, conviene que no queden
+ * pegadas en el orden.
  */
-const POSICIONES_DESTACADAS = [0, 2];
-const DESTACADOS = POSICIONES_DESTACADAS.length;
+
+/**
+ * Tarjeta fantasma mientras llegan los datos.
+ *
+ * Usa EXACTAMENTE las mismas clases que tarjeta() — .pcard, .pcard-img-box,
+ * .marco-nav, .pcard-cuerpo — y solo cambia el contenido por huesos. No hay
+ * ni un alto inventado acá: el alto lo calcula el mismo CSS que la tarjeta de
+ * verdad, así que cuando llegan los proyectos no se mueve un pixel.
+ *
+ * Si algún día cambia el alto de la tarjeta real, este sigue igual solo,
+ * porque no lo sabe: lo hereda.
+ */
+function tarjetaFantasma(destacada = false) {
+  return `
+    <div class="pcard${destacada ? " pcard-destacada" : ""}" data-esqueleto aria-hidden="true">
+      <div class="pcard-img-box">
+        <div class="marco-nav">
+          <div class="marco-nav-barra">
+            <span class="marco-nav-punto"></span>
+            <span class="marco-nav-punto"></span>
+            <span class="marco-nav-punto"></span>
+            <span class="marco-nav-url hueso">&nbsp;</span>
+          </div>
+          <div class="marco-nav-pantalla"><div class="hueso hueso-bloque"></div></div>
+        </div>
+      </div>
+      <div class="pcard-cuerpo">
+        <h2 class="pcard-titulo"><span class="hueso hueso-titulo">&nbsp;</span></h2>
+        <p class="pcard-desc hueso-parrafo">
+          <span class="hueso hueso-linea"></span>
+          <span class="hueso hueso-linea"></span>
+          <span class="hueso hueso-linea"></span>
+        </p>
+        <div class="pcard-tags">
+          <span class="hueso hueso-pildora"></span>
+          <span class="hueso hueso-pildora"></span>
+          <span class="hueso hueso-pildora"></span>
+        </div>
+        <span class="pcard-link"><span class="hueso hueso-chico">&nbsp;</span></span>
+      </div>
+    </div>`;
+}
+
+/** Cuántas fantasmas se dibujan mientras no sabemos cuántos proyectos hay. */
+const FANTASMAS = 6;
+
+function pintarFantasmas() {
+  const grilla = $("listado");
+  if (!grilla) return;
+  grilla.setAttribute("aria-busy", "true");
+
+  /* Si el HTML ya trajo fantasmas, no se redibujan. Cada redibujo es un
+     reacomodo que el visitante ve: pasar de 3 a 6 y después a los reales son
+     DOS saltos donde debería haber uno. */
+  if (grilla.querySelector("[data-esqueleto]")) return;
+  /* La primera va destacada porque casi siempre hay alguna: así el esqueleto
+     se parece a lo que viene y el reacomodo final es menor. */
+  grilla.classList.add("con-destacados");
+  grilla.innerHTML = Array.from({ length: FANTASMAS },
+    (_, i) => tarjetaFantasma(i === 0)).join("");
+}
 
 function tarjeta(p, i, enTodos) {
   // Todo esto sale de la base y se trata como no confiable: se escapa en
@@ -163,9 +211,14 @@ function tarjeta(p, i, enTodos) {
   // chiquito adentro obliga a apuntar; así el objetivo táctil es la tarjeta.
   const destacada = Boolean(p.isFeatured) ? " pcard-destacada" : "";
 
+  /* data-id: FLIP necesita reconocer la MISMA tarjeta antes y después de
+     filtrar para saber de dónde a dónde viaja. Sin un id estable, cada
+     redibujo son tarjetas nuevas y no hay viaje que animar. */
+  const id = escapeHtml(String(p.id));
+
   const abre = tieneDemo
-    ? `<a class="pcard${destacada}" href="${escapeHtml(demo)}" target="_blank" rel="noopener noreferrer">`
-    : `<article class="pcard pcard-sin-demo${destacada}">`;
+    ? `<a class="pcard${destacada}" data-id="${id}" href="${escapeHtml(demo)}" target="_blank" rel="noopener noreferrer">`
+    : `<article class="pcard pcard-sin-demo${destacada}" data-id="${id}">`;
   const cierra = tieneDemo ? "</a>" : "</article>";
 
   return `
@@ -207,6 +260,132 @@ function tarjeta(p, i, enTodos) {
     ${cierra}`;
 }
 
+
+/* ==========================================================================
+   El filtro con las tarjetas viajando (FLIP)
+   --------------------------------------------------------------------------
+   Al filtrar, la lista no se redibuja de golpe: las tarjetas que siguen
+   deslizan hasta su nueva posición y las que se van se desvanecen.
+
+   La técnica se llama FLIP, por sus cuatro pasos:
+
+     First   — anotar dónde está cada tarjeta ANTES de tocar nada.
+     Last    — cambiar el DOM y dejar que el navegador calcule las posiciones
+               nuevas (esto es instantáneo y el ojo no lo ve).
+     Invert  — poner cada tarjeta, con un transform, en el lugar VIEJO. Para
+               el navegador ya está en el sitio nuevo; visualmente no se
+               movió.
+     Play    — sacar el transform y animar la vuelta a cero.
+
+   Se anima `transform` y no `top`/`left` a propósito: transform no toca el
+   layout, así que el navegador no recalcula nada en cada cuadro y la
+   animación corre en el compositor. Animando posiciones reales, con 20
+   tarjetas se nota el tirón en un celular.
+
+   Y por qué no la View Transitions API, que haría esto en tres líneas:
+   todavía no la tienen Firefox ni Safari en versiones viejas, y el respaldo
+   habría que escribirlo igual. FLIP funciona en todos lados y son 30 líneas.
+   ========================================================================== */
+const DURACION_VIAJE = 420;
+
+/** Anota dónde está cada tarjeta ahora, indexado por el id del proyecto. */
+function anotarPosiciones() {
+  const mapa = new Map();
+  for (const el of $("listado").querySelectorAll(".pcard[data-id]")) {
+    mapa.set(el.dataset.id, el.getBoundingClientRect());
+  }
+  return mapa;
+}
+
+/**
+ * Hace viajar cada tarjeta desde donde estaba hasta donde quedó.
+ * Las que no estaban antes (entran por el filtro) aparecen con un fundido
+ * corto en vez de viajar desde la nada.
+ */
+function reproducirViaje(antes) {
+  const grilla = $("listado");
+  if (!grilla) return;
+
+  /* Si la persona pidió menos movimiento, no se anima nada: el cambio de
+     lista ya es la respuesta a lo que tocó, y la animación no aporta
+     información que no esté. */
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  for (const el of grilla.querySelectorAll(".pcard[data-id]")) {
+    const previo = antes.get(el.dataset.id);
+    const ahora = el.getBoundingClientRect();
+
+    if (!previo) {
+      el.animate([{ opacity: 0, transform: "scale(.96)" }, { opacity: 1, transform: "none" }],
+                 { duration: 260, easing: "ease-out" });
+      continue;
+    }
+
+    const dx = previo.left - ahora.left;
+    const dy = previo.top - ahora.top;
+    // Un viaje de menos de 2px no se ve; animarlo solo gasta.
+    if (Math.abs(dx) < 2 && Math.abs(dy) < 2) continue;
+
+    el.animate(
+      [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }],
+      { duration: DURACION_VIAJE, easing: "cubic-bezier(.22,.61,.36,1)" }
+    );
+  }
+}
+
+/** Las que sobreviven al filtro nuevo, por id. */
+function idsQueQuedan(filtro) {
+  const lista = filtro === "all" ? proyectos : proyectos.filter((p) => p.category === filtro);
+  return new Set(lista.map((p) => String(p.id)));
+}
+
+let cambiando = false;
+
+/**
+ * Cambia el filtro con las tarjetas en movimiento.
+ *
+ * Primero se desvanecen las que se van (140 ms, apenas perceptible como
+ * espera) y recién ahí se redibuja y arranca el viaje de las que quedan. Si
+ * se hiciera todo junto, las que se van desaparecerían de golpe en el mismo
+ * cuadro en que las otras empiezan a moverse, y el ojo lee eso como un
+ * parpadeo, no como una transición.
+ *
+ * `cambiando` evita que dos toques seguidos se pisen: sin eso, el segundo
+ * anota posiciones a mitad del viaje del primero y las tarjetas saltan.
+ */
+async function cambiarFiltro(nuevo) {
+  if (cambiando) return;
+  const grilla = $("listado");
+  if (!grilla) return;
+
+  const sinMovimiento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  cambiando = true;
+
+  try {
+    if (!sinMovimiento) {
+      const quedan = idsQueQuedan(nuevo);
+      const salen = [...grilla.querySelectorAll(".pcard[data-id]")]
+        .filter((el) => !quedan.has(el.dataset.id));
+
+      if (salen.length) {
+        await Promise.all(salen.map((el) =>
+          el.animate([{ opacity: 1 }, { opacity: 0, transform: "scale(.97)" }],
+                     { duration: 140, easing: "ease-in", fill: "forwards" }).finished
+            .catch(() => {})   // si la animación se cancela, seguimos igual
+        ));
+      }
+    }
+
+    const antes = anotarPosiciones();   // First
+    filtroActivo = nuevo;
+    pintarFiltros();
+    pintarGrilla();                     // Last
+    reproducirViaje(antes);             // Invert + Play
+  } finally {
+    cambiando = false;
+  }
+}
+
 function pintarGrilla() {
   const grilla = $("listado");
   const conteo = $("proyectos-conteo");
@@ -216,6 +395,7 @@ function pintarGrilla() {
   grilla.setAttribute("aria-busy", "false");
 
   if (conteo) {
+    conteo.removeAttribute("aria-busy");
     const n = proyectos.length;
     conteo.textContent = n === 1
       ? "1 trabajo publicado."
@@ -239,6 +419,11 @@ async function iniciar() {
   iniciarTema();
 
   const grilla = $("listado");
+
+  /* Las fantasmas se dibujan ANTES de pedir los datos, no después: si se
+     dibujaran al recibir la respuesta no servirían para nada, que es
+     justamente el momento en que ya hay contenido real. */
+  pintarFantasmas();
 
   try {
     // En paralelo: son dos consultas independientes y en serie el visitante
@@ -290,9 +475,7 @@ async function iniciar() {
     $("filter-wrapper")?.addEventListener("click", (ev) => {
       const btn = ev.target.closest(".filter-btn");
       if (!btn || btn.dataset.filter === filtroActivo) return;
-      filtroActivo = btn.dataset.filter;
-      pintarFiltros();
-      pintarGrilla();
+      cambiarFiltro(btn.dataset.filter);
     });
 }
 

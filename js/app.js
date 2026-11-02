@@ -199,15 +199,62 @@ document.addEventListener("DOMContentLoaded", () => {
      */
     const PROYECTOS_EN_PORTADA = 5;
 
+    /**
+     * Tarjeta fantasma del landing.
+     *
+     * Misma estructura que la real (.stage-card > .stage-card-inner con
+     * .stack-card-info y .stage-img-box): el alto no se estima, lo calcula el
+     * mismo CSS. Por eso cuando llegan los proyectos la sección no se mueve.
+     *
+     * Lleva el mismo `top` escalonado que las reales para que el apilado
+     * sticky se vea igual desde el primer cuadro.
+     */
+    function tarjetaFantasmaLanding(i) {
+        return `
+            <div class="stage-card" data-esqueleto aria-hidden="true" style="z-index:${i + 1}; top: calc(160px + ${i * 35}px);">
+                <div class="stage-card-inner">
+                    <div class="stack-card-info">
+                        <span class="stack-card-tag hueso">&nbsp;</span>
+                        <h3 class="stack-card-title"><span class="hueso hueso-titulo">&nbsp;</span></h3>
+                        <p class="stack-card-desc hueso-parrafo">
+                            <span class="hueso hueso-linea"></span>
+                            <span class="hueso hueso-linea"></span>
+                            <span class="hueso hueso-linea"></span>
+                        </p>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:24px;">
+                            <span class="hueso hueso-pildora"></span>
+                            <span class="hueso hueso-pildora"></span>
+                            <span class="hueso hueso-pildora"></span>
+                        </div>
+                        <span class="stack-card-link"><span class="hueso hueso-chico">&nbsp;</span></span>
+                    </div>
+                    <div class="stage-img-box">
+                        <div class="marco-nav">
+                            <div class="marco-nav-barra">
+                                <span class="marco-nav-punto"></span>
+                                <span class="marco-nav-punto"></span>
+                                <span class="marco-nav-punto"></span>
+                                <span class="marco-nav-url hueso">&nbsp;</span>
+                            </div>
+                            <div class="marco-nav-pantalla"><div class="hueso stage-img"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+    }
+
     async function renderPortfolio(filter = "all") {
         const container = document.getElementById("projects-stack-container");
         if (!container) return;
 
-        if (!container.innerHTML.trim() || !container.querySelector(".project-stage-card")) {
-            container.innerHTML = `
-                <div class="glass text-center w-full" style="padding: 40px; border-radius: 28px;">
-                    <p style="color: var(--text-secondary);">Cargando proyectos…</p>
-                </div>`;
+        /* Fantasmas en vez del cartel «Cargando proyectos…».
+           El cartel medía ~120px y la pila real mide varios miles: la página
+           pegaba un salto enorme al llegar los datos, justo en la sección que
+           el visitante estaba mirando. Las fantasmas reservan el alto. */
+        if (!container.querySelector(".stage-card:not([data-esqueleto])")) {
+            container.setAttribute("aria-busy", "true");
+            container.innerHTML = Array.from({ length: 3 }, (_, i) =>
+                tarjetaFantasmaLanding(i)).join("");
         }
 
         let projects;
@@ -308,6 +355,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             container.style.opacity = "1";
+            container.setAttribute("aria-busy", "false");
 
             // Generar dots de navegación para vista móvil (slider horizontal)
             let dotsContainer = document.getElementById("projects-mobile-dots");

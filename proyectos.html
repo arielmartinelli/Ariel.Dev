@@ -87,22 +87,214 @@
             <div class="section-header proyectos-header">
                 <span class="section-tag">Mis Trabajos</span>
                 <h1 class="section-title">Todos los proyectos</h1>
-                <p class="section-desc" id="proyectos-conteo"></p>
+                <!-- Reserva el alto del texto que viene: en celular ocupa dos
+                     renglones, y pasar de vacío a la frase completa movía todo
+                     lo de abajo. El texto del hueso es invisible pero mide. -->
+                <p class="section-desc" id="proyectos-conteo" aria-busy="true"></p>
             </div>
 
             <!--
               role="group" y no "radiogroup": son botones que filtran una
               lista, no una elección que se envía en un formulario.
             -->
+            <!--
+              La barra de filtros nace CON fantasmas, no vacía. Vacía mide 0 y
+              al llenarla con los botones empujaba la grilla hacia abajo: era
+              la causa del 0.034 de CLS en escritorio y del 0.088 en celular.
+              Los fantasmas usan .filter-btn, así que miden lo mismo que los
+              botones de verdad.
+            -->
             <div class="filter-wrapper proyectos-filtros" id="filter-wrapper"
-                 role="group" aria-label="Filtrar proyectos por categoría"></div>
-
-            <div class="proyectos-grid" id="listado" aria-live="polite" aria-busy="true">
-                <p class="proyectos-aviso">Cargando proyectos…</p>
+                 role="group" aria-label="Filtrar proyectos por categoría" aria-busy="true">
+                <span class="filter-btn" data-esqueleto aria-hidden="true"><span class="hueso">Todos</span></span>
+                <span class="filter-btn" data-esqueleto aria-hidden="true"><span class="hueso">Landing Page</span></span>
+                <span class="filter-btn" data-esqueleto aria-hidden="true"><span class="hueso">E-Commerce</span></span>
+                <span class="filter-btn" data-esqueleto aria-hidden="true"><span class="hueso">Portfolio</span></span>
+                <span class="filter-btn" data-esqueleto aria-hidden="true"><span class="hueso">Custom App</span></span>
             </div>
 
-        </div>
-    </main>
+            <!--
+              Las tarjetas fantasma van en el HTML, no solo en el JS: así se
+              ven en el PRIMER pintado, antes de que el módulo baje y corra.
+              Las dibuja js/proyectos.js (tarjetaFantasma) con estas mismas
+              clases — si cambiás una, cambiá la otra.
+            -->
+                            <!--
+                  Tarjetas fantasma en el PRIMER pintado, antes de que baje el
+                  módulo. Mismas clases que las reales (ver tarjetaFantasma()
+                  en js/proyectos.js): el alto no está estimado acá, lo calcula
+                  el mismo CSS que la tarjeta de verdad.
+                  Son 6 porque es lo que suele haber; js/proyectos.js NO las
+                  vuelve a dibujar si ya están, para no sumar un reacomodo.
+                -->
+                <div class="proyectos-grid con-destacados" id="listado" aria-live="polite" aria-busy="true">
+                    <div class="pcard pcard-destacada" data-esqueleto aria-hidden="true">
+                        <div class="pcard-img-box">
+                            <div class="marco-nav">
+                                <div class="marco-nav-barra">
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-url hueso">&nbsp;</span>
+                                </div>
+                                <div class="marco-nav-pantalla"><div class="hueso hueso-bloque"></div></div>
+                            </div>
+                        </div>
+                        <div class="pcard-cuerpo">
+                            <h2 class="pcard-titulo"><span class="hueso hueso-titulo">&nbsp;</span></h2>
+                            <p class="pcard-desc hueso-parrafo">
+                                <span class="hueso hueso-linea"></span>
+                                <span class="hueso hueso-linea"></span>
+                                <span class="hueso hueso-linea"></span>
+                            </p>
+                            <div class="pcard-tags">
+                                <span class="hueso hueso-pildora"></span>
+                                <span class="hueso hueso-pildora"></span>
+                                <span class="hueso hueso-pildora"></span>
+                            </div>
+                            <span class="pcard-link"><span class="hueso hueso-chico">&nbsp;</span></span>
+                        </div>
+                    </div>
+                    <div class="pcard" data-esqueleto aria-hidden="true">
+                        <div class="pcard-img-box">
+                            <div class="marco-nav">
+                                <div class="marco-nav-barra">
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-url hueso">&nbsp;</span>
+                                </div>
+                                <div class="marco-nav-pantalla"><div class="hueso hueso-bloque"></div></div>
+                            </div>
+                        </div>
+                        <div class="pcard-cuerpo">
+                            <h2 class="pcard-titulo"><span class="hueso hueso-titulo">&nbsp;</span></h2>
+                            <p class="pcard-desc hueso-parrafo">
+                                <span class="hueso hueso-linea"></span>
+                                <span class="hueso hueso-linea"></span>
+                                <span class="hueso hueso-linea"></span>
+                            </p>
+                            <div class="pcard-tags">
+                                <span class="hueso hueso-pildora"></span>
+                                <span class="hueso hueso-pildora"></span>
+                                <span class="hueso hueso-pildora"></span>
+                            </div>
+                            <span class="pcard-link"><span class="hueso hueso-chico">&nbsp;</span></span>
+                        </div>
+                    </div>
+                    <div class="pcard" data-esqueleto aria-hidden="true">
+                        <div class="pcard-img-box">
+                            <div class="marco-nav">
+                                <div class="marco-nav-barra">
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-url hueso">&nbsp;</span>
+                                </div>
+                                <div class="marco-nav-pantalla"><div class="hueso hueso-bloque"></div></div>
+                            </div>
+                        </div>
+                        <div class="pcard-cuerpo">
+                            <h2 class="pcard-titulo"><span class="hueso hueso-titulo">&nbsp;</span></h2>
+                            <p class="pcard-desc hueso-parrafo">
+                                <span class="hueso hueso-linea"></span>
+                                <span class="hueso hueso-linea"></span>
+                                <span class="hueso hueso-linea"></span>
+                            </p>
+                            <div class="pcard-tags">
+                                <span class="hueso hueso-pildora"></span>
+                                <span class="hueso hueso-pildora"></span>
+                                <span class="hueso hueso-pildora"></span>
+                            </div>
+                            <span class="pcard-link"><span class="hueso hueso-chico">&nbsp;</span></span>
+                        </div>
+                    </div>
+                    <div class="pcard" data-esqueleto aria-hidden="true">
+                        <div class="pcard-img-box">
+                            <div class="marco-nav">
+                                <div class="marco-nav-barra">
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-url hueso">&nbsp;</span>
+                                </div>
+                                <div class="marco-nav-pantalla"><div class="hueso hueso-bloque"></div></div>
+                            </div>
+                        </div>
+                        <div class="pcard-cuerpo">
+                            <h2 class="pcard-titulo"><span class="hueso hueso-titulo">&nbsp;</span></h2>
+                            <p class="pcard-desc hueso-parrafo">
+                                <span class="hueso hueso-linea"></span>
+                                <span class="hueso hueso-linea"></span>
+                                <span class="hueso hueso-linea"></span>
+                            </p>
+                            <div class="pcard-tags">
+                                <span class="hueso hueso-pildora"></span>
+                                <span class="hueso hueso-pildora"></span>
+                                <span class="hueso hueso-pildora"></span>
+                            </div>
+                            <span class="pcard-link"><span class="hueso hueso-chico">&nbsp;</span></span>
+                        </div>
+                    </div>
+                    <div class="pcard" data-esqueleto aria-hidden="true">
+                        <div class="pcard-img-box">
+                            <div class="marco-nav">
+                                <div class="marco-nav-barra">
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-url hueso">&nbsp;</span>
+                                </div>
+                                <div class="marco-nav-pantalla"><div class="hueso hueso-bloque"></div></div>
+                            </div>
+                        </div>
+                        <div class="pcard-cuerpo">
+                            <h2 class="pcard-titulo"><span class="hueso hueso-titulo">&nbsp;</span></h2>
+                            <p class="pcard-desc hueso-parrafo">
+                                <span class="hueso hueso-linea"></span>
+                                <span class="hueso hueso-linea"></span>
+                                <span class="hueso hueso-linea"></span>
+                            </p>
+                            <div class="pcard-tags">
+                                <span class="hueso hueso-pildora"></span>
+                                <span class="hueso hueso-pildora"></span>
+                                <span class="hueso hueso-pildora"></span>
+                            </div>
+                            <span class="pcard-link"><span class="hueso hueso-chico">&nbsp;</span></span>
+                        </div>
+                    </div>
+                    <div class="pcard" data-esqueleto aria-hidden="true">
+                        <div class="pcard-img-box">
+                            <div class="marco-nav">
+                                <div class="marco-nav-barra">
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-punto"></span>
+                                    <span class="marco-nav-url hueso">&nbsp;</span>
+                                </div>
+                                <div class="marco-nav-pantalla"><div class="hueso hueso-bloque"></div></div>
+                            </div>
+                        </div>
+                        <div class="pcard-cuerpo">
+                            <h2 class="pcard-titulo"><span class="hueso hueso-titulo">&nbsp;</span></h2>
+                            <p class="pcard-desc hueso-parrafo">
+                                <span class="hueso hueso-linea"></span>
+                                <span class="hueso hueso-linea"></span>
+                                <span class="hueso hueso-linea"></span>
+                            </p>
+                            <div class="pcard-tags">
+                                <span class="hueso hueso-pildora"></span>
+                                <span class="hueso hueso-pildora"></span>
+                                <span class="hueso hueso-pildora"></span>
+                            </div>
+                            <span class="pcard-link"><span class="hueso hueso-chico">&nbsp;</span></span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
 
     <footer class="footer">
         <div class="container footer-content">

@@ -2491,6 +2491,18 @@ body.light-theme .summary-total-container {
     line-height: 1.6;
     color: rgba(215, 226, 234, 0.7);
     margin-bottom: 24px;
+    /* Recortada a 3 líneas, por dos motivos que apuntan al mismo lado:
+       1. Las descripciones las escribís vos y varían mucho de largo; sin
+          recorte, una tarjeta de 2 líneas y otra de 7 hacen que la pila se
+          vea despareja.
+       2. El esqueleto no puede adivinar cuántas líneas va a tener el texto.
+          Con el recorte siempre son 3, así que el fantasma mide exactamente
+          lo mismo que la tarjeta real y la página no brinca al cargar. */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 @media (max-width: 768px) {
@@ -4674,4 +4686,149 @@ a.pcard:hover .pcard-link svg { transform: translateX(4px); }
     .marco-nav-barra { padding: 0 8px; gap: 5px; }
     .marco-nav-punto { width: 6px; height: 6px; }
     .marco-nav-url { font-size: 0.58rem; padding: 1px 8px; }
+}
+
+/* ==========================================================================
+   Skeletons — el hueso de lo que todavía no llegó
+   --------------------------------------------------------------------------
+   Un skeleton no es "un spinner más lindo". La diferencia que importa es que
+   OCUPA EL MISMO ESPACIO que el contenido real. Un spinner centrado mide
+   40×40 y se reemplaza por una tarjeta de 500px de alto: la página pega un
+   salto y lo que estabas por tocar se corre de lugar. El skeleton ya reserva
+   ese alto, así que cuando llegan los datos no se mueve nada.
+
+   Por eso los skeletons de este sitio NO se dibujan con medidas inventadas:
+   se arman con las MISMAS clases de la tarjeta real (.pcard, .pcard-img-box,
+   .pcard-cuerpo…) y solo se reemplaza el contenido por huesos. Así el alto
+   no es una estimación: es el alto de verdad, calculado por el mismo CSS.
+   Hay una prueba que lo mide — pruebas/verificar-skeletons.mjs.
+
+   El spinner sigue estando bien en otro caso: una acción corta que el
+   usuario disparó y cuya forma no se conoce de antemano (guardar, enviar un
+   comprobante). Ahí no hay layout que reservar y el spinner dice "esperá un
+   segundo" sin mentir sobre lo que viene.
+   ========================================================================== */
+
+.hueso {
+    position: relative;
+    overflow: hidden;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.055);
+    /* El texto de adentro no se ve pero sigue midiendo: así el hueso toma el
+       alto real de la línea que va a reemplazar, sin números mágicos. */
+    color: transparent;
+    user-select: none;
+}
+.light-theme .hueso { background: rgba(15, 23, 42, 0.07); }
+
+/* El brillo: una franja clara que cruza de izquierda a derecha.
+   Se anima `transform` y no `background-position` — background-position
+   obliga a repintar en cada cuadro, y con 20 huesos en pantalla eso se
+   siente en un celular. Con transform el compositor lo resuelve solo. */
+.hueso::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.07) 45%,
+        rgba(255, 255, 255, 0.07) 55%,
+        transparent);
+    animation: hueso-brillo 1.5s ease-in-out infinite;
+}
+.light-theme .hueso::after {
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.55) 45%,
+        rgba(255, 255, 255, 0.55) 55%,
+        transparent);
+}
+
+@keyframes hueso-brillo {
+    to { transform: translateX(100%); }
+}
+
+/* Con «menos movimiento» no se apaga la señal de "esto sigue cargando": se
+   cambia el barrido por un latido suave de opacidad. Quitar la animación del
+   todo dejaría unos bloques grises quietos, indistinguibles de un error. */
+@media (prefers-reduced-motion: reduce) {
+    .hueso::after {
+        animation: hueso-latido 2s ease-in-out infinite;
+        transform: none;
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .light-theme .hueso::after { background: rgba(255, 255, 255, 0.4); }
+}
+@keyframes hueso-latido {
+    0%, 100% { opacity: 0; }
+    50%      { opacity: 1; }
+}
+
+/* Variantes de forma. Los altos van en em/lh para que sigan a la tipografía
+   del contexto: un hueso de título dentro de un h2 mide lo que mide ese h2.
+
+   PARRAFO DE VARIAS LINEAS.
+   El alto va en `lh`, que es la altura de linea DEL PROPIO elemento. Así
+   `height: 3lh` son tres renglones exactos de ese texto, sin que haya que
+   saber el font-size ni el line-height en ningún lado — y sigue siendo
+   exacto si mañana cambian.
+
+   Las barras se reparten con flex y NO con margin: los margenes verticales
+   entre hermanos se colapsan, así que tres barras con margin no suman lo que
+   uno calcula. Con justify-content el alto total es el del contenedor, que
+   ya es el correcto.
+
+   La primera version usaba <span> con `height`, que al ser inline no apila
+   ni ocupa alto: el esqueleto medía 37px menos que la tarjeta real en
+   escritorio y 56px menos en celular. Lo encontró la prueba, no el ojo. */
+.hueso-parrafo {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 4.8em;            /* respaldo si el navegador no entiende lh */
+    height: 3lh;
+}
+.hueso-parrafo-2 { height: 3.2em; height: 2lh; }
+
+.hueso-linea   { display: block; height: 0.78em; flex: 0 0 auto; }
+.hueso-titulo  { display: block; height: 1em; width: 55%; margin: 0.1em 0; }
+.hueso-chico   { display: inline-block; height: 0.8em; width: 35%; vertical-align: middle; }
+.hueso-bloque  { height: 100%; width: 100%; border-radius: 0; }
+.hueso-pildora { display: inline-block; height: 1.6em; width: 56px; border-radius: 99px; vertical-align: middle; }
+.hueso-circulo { border-radius: 50%; }
+
+/* Última línea de un párrafo: más corta, como termina un párrafo de verdad.
+   Sin esto, tres barras iguales se leen como una tabla, no como texto. */
+.hueso-linea:last-child { width: 72%; }
+
+/* Para que el lector de pantalla no lea una pila de cajas vacías. El aviso
+   de que se está cargando lo da el contenedor con aria-busy. */
+[data-esqueleto] { pointer-events: none; }
+
+/* Hueso que reemplaza un PARRAFO DE TEXTO suelto (no una tarjeta).
+   display:block es la clave: un .hueso inline tiene overflow:hidden, y eso
+   le arma una caja de línea distinta a la del texto plano que lo reemplaza.
+   El alto del párrafo no cambiaba, pero el texto aparecía corrido unos
+   píxeles — y un texto que se corre cuenta como salto igual que un bloque
+   que crece. Medido: 0.034 de CLS en celular por este solo elemento. */
+p > .hueso[data-esqueleto] {
+    display: block;
+    width: 100%;
+}
+
+/* El subtítulo con el conteo de trabajos.
+   El alto se reserva en LINEAS (unidad lh = la altura de línea del propio
+   elemento), no con un hueso que lleve texto adentro. Un hueso con texto
+   reserva el alto pero no la POSICION: el texto definitivo caía unos píxeles
+   corrido respecto del invisible, y eso cuenta como salto igual que un
+   bloque que crece — medido, 0.034 de CLS en celular por este solo párrafo.
+   Con min-height el párrafo ya nace con su alto final y el texto aterriza
+   exactamente donde estaba el hueco. */
+#proyectos-conteo {
+    min-height: 1lh;
+}
+@media (max-width: 620px) {
+    /* En pantalla angosta la frase ocupa dos renglones. */
+    #proyectos-conteo { min-height: 2lh; }
 }

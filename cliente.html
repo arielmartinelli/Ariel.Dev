@@ -40,10 +40,44 @@
 
   <main id="portal-main" class="portal-main">
 
-    <!-- Cargando -->
-    <section id="portal-cargando" class="portal-centro">
-      <div class="portal-spinner" aria-hidden="true"></div>
-      <p>Buscando tu proyecto…</p>
+    <!--
+      Cargando: la silueta de lo que viene, no un spinner.
+      El spinner estaba centrado y medía 34px; abajo aparecía un portal de
+      varios miles de píxeles. La pantalla pegaba un salto justo cuando el
+      cliente empezaba a mirar. Esto reserva el espacio y, por la forma, ya
+      dice qué va a haber: el saludo, el avance, los pasos y la tarjeta.
+    -->
+    <section id="portal-cargando" aria-busy="true" aria-label="Cargando tu proyecto">
+      <div class="portal-hero">
+        <div class="portal-hero-fila">
+          <div class="portal-hero-txt">
+            <span class="portal-badge-estado" data-esqueleto><span class="hueso">Portal privado de cliente</span></span>
+            <h1><span class="hueso hueso-titulo">&nbsp;</span></h1>
+            <p class="portal-hero-proyecto"><span class="hueso hueso-chico">&nbsp;</span></p>
+          </div>
+          <div class="portal-hero-num-box">
+            <p class="portal-hero-num"><span class="hueso">00</span></p>
+          </div>
+        </div>
+        <div class="portal-barra"><span class="hueso hueso-bloque"></span></div>
+        <ol class="portal-pasos" data-esqueleto aria-hidden="true">
+          <li class="portal-paso"><span class="portal-paso-n hueso hueso-circulo"></span><span class="portal-paso-t hueso">Paso</span></li>
+          <li class="portal-paso"><span class="portal-paso-n hueso hueso-circulo"></span><span class="portal-paso-t hueso">Paso</span></li>
+          <li class="portal-paso"><span class="portal-paso-n hueso hueso-circulo"></span><span class="portal-paso-t hueso">Paso</span></li>
+          <li class="portal-paso"><span class="portal-paso-n hueso hueso-circulo"></span><span class="portal-paso-t hueso">Paso</span></li>
+          <li class="portal-paso"><span class="portal-paso-n hueso hueso-circulo"></span><span class="portal-paso-t hueso">Paso</span></li>
+        </ol>
+      </div>
+      <div class="portal-etapa" data-esqueleto aria-hidden="true">
+        <span class="portal-etapa-ico hueso hueso-circulo"></span>
+        <h2><span class="hueso hueso-titulo">&nbsp;</span></h2>
+        <p class="hueso-parrafo">
+          <span class="hueso hueso-linea"></span>
+          <span class="hueso hueso-linea"></span>
+          <span class="hueso hueso-linea"></span>
+        </p>
+        <div class="portal-acciones"><span class="hueso" style="display:block;height:44px;width:190px;border-radius:12px"></span></div>
+      </div>
     </section>
 
     <!-- Link inválido -->

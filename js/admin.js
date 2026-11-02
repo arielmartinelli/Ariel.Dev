@@ -258,9 +258,18 @@ export async function refrescarTodo() {
     faltanTablas = sinEsquema;
     pintarAvisoEsquema();
 
+    /* ORDEN DE APARICION: primero los números, después las listas.
+       Los cuatro KPIs son cuatro textos: se pintan en microsegundos. Las
+       listas de tareas, cobros y clientes son cientos de nodos y tardan
+       bastante más. Pintando todo en el mismo bloque, los números no se ven
+       hasta que termina lo pesado, aunque ya estuvieran calculados.
+       El await de abajo le devuelve el control al navegador para que DIBUJE
+       los números antes de ponerse con el resto. */
     pintarResumen();
-    pintarCobros();
     pintarBadges();
+    await new Promise((listo) => requestAnimationFrame(() => listo()));
+
+    pintarCobros();
     refrescarClientes(clientes);
     firmaPanel = firmaDelPanel();
     await refrescarPortfolio();
@@ -456,6 +465,12 @@ function pintarResumen() {
 
   const tareasPendientes = cacheTareas.filter((t) => !t.done);
   const pedidasPorCliente = tareasPendientes.filter((t) => t.source === "cliente").length;
+
+  /* Sacar la marca de esqueleto antes de escribir: el valor vivía adentro de
+     un <span class="hueso">, y asignar textContent lo reemplaza, pero el
+     atributo quedaría puesto y el CSS seguiría tratándolo como fantasma. */
+  document.querySelectorAll('.admin-kpi-valor[data-esqueleto], .admin-kpi-nota[data-esqueleto]')
+    .forEach((e) => e.removeAttribute("data-esqueleto"));
 
   $("kpi-cobrado").textContent = usd(cobrado);
   $("kpi-cobrado-nota").textContent =
