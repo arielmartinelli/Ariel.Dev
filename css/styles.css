@@ -4246,8 +4246,25 @@ a.pcard:hover .pcard-img { transform: scale(1.04); }
     height: 3lh;
 }
 
+/* Las etiquetas: DOS filas exactas, nunca una fila y media.
+   Antes el alto iba en `lh`, que es el renglón del TEXTO y no el alto de la
+   pastilla —que suma su propio padding y su borde—, así que la segunda fila
+   quedaba cortada por la mitad. Ahora el alto de la pastilla está fijado en
+   una variable y el de la caja sale de esa cuenta: dos pastillas más el
+   hueco del medio. Una tercera fila no se asoma, desaparece entera. */
+.pcard-tags {
+    --pildora: 25px;
+    --hueco: 7px;
+    gap: var(--hueco);
+}
+.pcard-tags .tag {
+    display: inline-flex;
+    align-items: center;
+    height: var(--pildora);
+    line-height: 1;
+}
 .proyectos-grid .pcard:not(.pcard-destacada) .pcard-tags {
-    height: 1.95lh;
+    height: calc(var(--pildora) * 2 + var(--hueco));
     overflow: hidden;
 }
 
@@ -4404,6 +4421,31 @@ a.pcard:hover .pcard-link svg { transform: translateX(4px); }
        aparecen con el scroll de adentro del marco, que nunca se mueve, así
        que lo único que se veía al bajar era blanco. */
     overflow: hidden;
+}
+
+/* Mientras el sitio carga, el mismo hueso que brilla en los esqueletos del
+   resto de la página. Antes acá había un rectángulo con el nombre y nada
+   más: se veía igual que una tarjeta rota. El brillo dice "esto viene".
+   Reusa las mismas animaciones que .hueso, no unas propias. */
+.vista-viva.cargando {
+    background: rgba(255, 255, 255, 0.055);
+}
+.vista-viva.cargando::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .07) 45%,
+                                rgba(255, 255, 255, .07) 55%, transparent);
+    animation: hueso-brillo 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .vista-viva.cargando::after {
+        animation: hueso-latido 2s ease-in-out infinite;
+        transform: none;
+        background: rgba(255, 255, 255, .05);
+    }
 }
 
 /* El nombre del sitio, quieto y detrás de todo. Si la página se niega a
@@ -4682,6 +4724,10 @@ p > .hueso[data-esqueleto] {
     margin: 0;
     /* Deja libre la esquina del número, que si no lo pisa. */
     padding-right: 42px;
+    /* Dos renglones siempre, entren uno o dos: "Se publica" ocupa uno y
+       "Me contás qué necesitás" dos, y sin esto las descripciones de las
+       cuatro tarjetas arrancan a alturas distintas. */
+    min-height: 2lh;
 }
 
 .paso-desc {
@@ -4689,6 +4735,9 @@ p > .hueso[data-esqueleto] {
     font-size: 0.9rem;
     line-height: 1.6;
     color: var(--text-secondary);
+    /* Dos renglones de alto, para que la etiqueta de abajo quede a la misma
+       altura en las cuatro aunque el texto entre en uno. */
+    min-height: 2lh;
 }
 
 .paso-plazo {

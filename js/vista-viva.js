@@ -80,7 +80,7 @@ export function pantallaViva(url, titulo, id) {
   const t = escapar(titulo || "");
   const p = escapar(id == null ? "" : id);
   return `
-    <div class="vista-viva" data-demo="${u}" data-proyecto="${p}">
+    <div class="vista-viva cargando" data-demo="${u}" data-proyecto="${p}">
       <!-- Queda abajo de todo. Si el sitio no se deja mostrar en un marco,
            esto es lo que ve el visitante en vez de un rectángulo vacío. -->
       <span class="vista-viva-fondo" aria-hidden="true">${t}</span>
@@ -200,6 +200,17 @@ async function encender(caja) {
      previa con uno tuyo y escriba datos ahí. */
   marco.setAttribute("sandbox", "allow-scripts allow-same-origin allow-popups");
 
+  /* El hueso que brilla se va cuando el sitio TERMINO de cargar, no cuando
+     se creó el marco. Entre una cosa y la otra puede haber un segundo largo
+     de rectángulo vacío — que es justo lo que el hueso está tapando.
+     `load` en un iframe salta igual aunque sea de otro dominio: no nos deja
+     ver qué cargó, pero sí nos avisa cuándo. */
+  const listo = () => caja.classList.remove("cargando");
+  marco.addEventListener("load", listo, { once: true });
+  /* Red de seguridad: si por lo que sea el evento no llega, el hueso no se
+     queda brillando para siempre. */
+  setTimeout(listo, 12000);
+
   lienzo.appendChild(marco);
 }
 
@@ -207,7 +218,13 @@ async function encender(caja) {
 async function mostrarPortada(caja) {
   if (caja.querySelector(".vista-viva-foto")) return;
   const src = await portadaDe(caja.dataset.proyecto);
-  if (!src || !caja.isConnected) return;
+  if (!caja.isConnected) return;
+  if (!src) {
+    // Ni sitio ni captura: queda el nombre. El hueso se apaga igual, porque
+    // ya no hay nada esperando.
+    caja.classList.remove("cargando");
+    return;
+  }
 
   const foto = document.createElement("img");
   foto.src = src;
@@ -215,6 +232,9 @@ async function mostrarPortada(caja) {
   foto.alt = "";
   foto.decoding = "async";
   foto.loading = "lazy";
+  const listo = () => caja.classList.remove("cargando");
+  foto.addEventListener("load", listo, { once: true });
+  foto.addEventListener("error", listo, { once: true });
   caja.appendChild(foto);
 }
 
@@ -225,4 +245,6 @@ function apagar(caja) {
      La foto de respaldo SÍ se deja: no cuesta nada y evita que la tarjeta
      parpadee cada vez que entra y sale de la pantalla. */
   if (lienzo) lienzo.replaceChildren();
+  // Vuelve al hueso: si se acerca otra vez, hay que cargarlo de nuevo.
+  if (!caja.querySelector(".vista-viva-foto")) caja.classList.add("cargando");
 }

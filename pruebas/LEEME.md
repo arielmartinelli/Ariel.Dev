@@ -8,7 +8,7 @@ justo lo que más se rompe sin avisar — que algo se vea mal, no que tire error
 
 ```bash
 npm run build
-npx serve dist -l 4178
+node pruebas/servidor.mjs
 node pruebas/verificar-iconos.mjs
 node pruebas/verificar-portal.mjs
 node pruebas/verificar-panel.mjs
@@ -23,11 +23,19 @@ node pruebas/verificar-panel-demo.mjs
 node pruebas/verificar-mp.mjs      # este no necesita el servidor
 ```
 
-**Usá `npx serve`, no `python3 -m http.server`.** El de Python atiende un
-pedido por vez. `verificar-skeletons.mjs` abre varias páginas y mide los
-primeros 250 ms de cada una: con los pedidos haciendo cola, el esqueleto
-todavía no llegó cuando se lo mide y la prueba falla con «no se dibujó
-ningún esqueleto» sin que haya nada roto en el sitio.
+**Usá `pruebas/servidor.mjs` y no `npx serve` ni `python3 -m http.server`.**
+Dos motivos, y el primero ya nos mordió:
+
+1. **Manda las cabeceras de producción.** El sitio sirve un
+   `Content-Security-Policy` con `default-src 'self'`. Sin un `frame-src`
+   que lo contradiga, el navegador se niega a mostrar cualquier sitio ajeno
+   adentro de un marco: las vistas vivas de las tarjetas salían todas en
+   gris en producción. En local no se notaba, porque el servidor de pruebas
+   no mandaba ninguna cabecera. Ahora sí las manda, leídas de
+   `public/_headers`.
+2. El de Python atiende un pedido por vez, y `verificar-skeletons.mjs` abre
+   varias páginas y mide los primeros milisegundos de cada una: con los
+   pedidos haciendo cola, la prueba falla sin que haya nada roto.
 
 La primera vez: `npx playwright install chromium`.
 

@@ -30,7 +30,7 @@
   # - style-src necesita 'unsafe-inline' por los atributos style="" del HTML y de Google Fonts.
   # - connect-src limita a donde puede hablar el JS: solo Supabase y la API del dolar.
   # - Si agregas una libreria o API nueva y la consola marca "Refused to load", agregala aca.
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://dolarapi.com https://api.bluelytics.com.ar; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; frame-src https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://dolarapi.com https://api.bluelytics.com.ar; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me; object-src 'none'; upgrade-insecure-requests
 
 # Cache agresivo para los assets con hash en el nombre (los genera Vite).
 /assets/*

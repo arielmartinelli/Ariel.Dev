@@ -18,6 +18,14 @@
  *
  *   4. EL MARCO NO SE QUEDA CON LOS CLICS. La tarjeta entera es un link; si
  *      el iframe recibiera los eventos, tocarla no abriría el demo.
+ *
+ *   5. NUESTRO PROPIO CSP NO BLOQUEA LOS MARCOS. Esta es la que faltaba y
+ *      costó caro: el sitio manda `default-src 'self'` y, sin un `frame-src`
+ *      que lo contradiga, el navegador se niega a mostrar CUALQUIER sitio
+ *      ajeno adentro de un marco. En producción se veían todas las tarjetas
+ *      en gris; en local andaba bien, porque el servidor de pruebas no
+ *      mandaba ninguna cabecera. Por eso ahora las pruebas se corren con
+ *      pruebas/servidor.mjs, que manda el CSP de verdad.
  */
 import { chromium } from "playwright";
 
@@ -50,6 +58,14 @@ const nav = await chromium.launch(OPC);
 const fallas = [];
 const ctx = await nav.newContext({ viewport: { width: 1280, height: 1000 } });
 const p = await ctx.newPage();
+
+/* El navegador avisa por consola cuando rechaza un marco. Es la unica senal
+   que da: desde el JavaScript de la pagina, un marco bloqueado se ve igual
+   que uno que cargo bien. */
+const rechazos = [];
+p.on("console", (m) => {
+  if (/Refused to frame/i.test(m.text())) rechazos.push(m.text().slice(0, 150));
+});
 
 let pesoLista = 0;
 let pidioImagenEnLaLista = false;
@@ -131,6 +147,15 @@ for (let i = 0; i < total; i++) {
   if (e.q === "VACIA") fallas.push(`"${e.t}" quedó sin nada: ni el sitio en vivo ni la captura`);
 }
 console.log(`portadas de respaldo pedidas: ${portadasPedidas}`);
+
+/* --- 5. nuestro propio CSP --- */
+if (rechazos.length) {
+  fallas.push(
+    `el navegador rechazo ${rechazos.length} marco(s) por culpa de NUESTRO CSP. ` +
+    `Falta 'frame-src' en public/_headers y vercel.json:\n    ${rechazos[0]}`
+  );
+}
+console.log(`\nmarcos rechazados por nuestro CSP: ${rechazos.length}`);
 
 /* --- 4. el marco no se queda con los clics --- */
 const dejaPasar = await p.evaluate(() => {
